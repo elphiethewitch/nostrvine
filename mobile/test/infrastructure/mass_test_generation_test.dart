@@ -75,7 +75,7 @@ void main() {
           'run',
           'tools/generate_tests.dart',
           '--type=widget',
-          '--input=lib/screens/feed_screen_v2.dart'
+          '--input=lib/screens/video_feed_screen.dart'
         ],
         workingDirectory: Directory.current.path,
       );
@@ -86,7 +86,7 @@ void main() {
         reason: 'Widget test generation should succeed',
       );
 
-      final generatedTest = File('test/generated/feed_screen_v2_test.dart');
+      final generatedTest = File('test/generated/video_feed_screen_test.dart');
       expect(
         generatedTest.existsSync(),
         isTrue,
