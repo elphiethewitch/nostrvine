@@ -3,9 +3,10 @@
 
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openvine/services/video_thumbnail_service.dart';
 import 'package:mockito/annotations.dart';
+import 'package:openvine/services/video_thumbnail_service.dart';
 
 @GenerateMocks([])
 void main() {

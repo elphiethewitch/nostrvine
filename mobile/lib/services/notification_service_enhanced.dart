@@ -2,21 +2,26 @@
 // ABOUTME: Handles likes, comments, follows, mentions, and video-related notifications
 
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:nostr_sdk/event.dart';
 import 'package:nostr_sdk/filter.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import '../models/notification_model.dart';
-import 'nostr_service_interface.dart';
-import 'user_profile_service.dart';
-import 'video_event_service.dart';
-import '../utils/unified_logger.dart';
+import 'package:openvine/models/notification_model.dart';
+import 'package:openvine/services/nostr_service_interface.dart';
+import 'package:openvine/services/user_profile_service.dart';
+import 'package:openvine/services/video_event_service.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 /// Enhanced notification service with social features
 class NotificationServiceEnhanced extends ChangeNotifier {
+  /// Factory constructor that returns the singleton instance
+  factory NotificationServiceEnhanced() => instance;
+
+  NotificationServiceEnhanced._();
   static NotificationServiceEnhanced? _instance;
-  
+
   /// Singleton instance
   static NotificationServiceEnhanced get instance {
     if (_instance == null || _instance!._disposed) {
@@ -24,30 +29,26 @@ class NotificationServiceEnhanced extends ChangeNotifier {
     }
     return _instance!;
   }
-  
-  /// Factory constructor that returns the singleton instance
-  factory NotificationServiceEnhanced() => instance;
-  
-  NotificationServiceEnhanced._();
 
   final List<NotificationModel> _notifications = [];
   final Map<String, StreamSubscription> _subscriptions = {};
-  
+
   INostrService? _nostrService;
   UserProfileService? _profileService;
   VideoEventService? _videoService;
   Box<Map<String, dynamic>>? _notificationBox;
-  
+
   bool _permissionsGranted = false;
   bool _disposed = false;
   int _unreadCount = 0;
-  
+
   /// List of recent notifications
-  List<NotificationModel> get notifications => List.unmodifiable(_notifications);
-  
+  List<NotificationModel> get notifications =>
+      List.unmodifiable(_notifications);
+
   /// Number of unread notifications
   int get unreadCount => _unreadCount;
-  
+
   /// Check if notification permissions are granted
   bool get hasPermissions => _permissionsGranted;
 
@@ -57,52 +58,57 @@ class NotificationServiceEnhanced extends ChangeNotifier {
     required UserProfileService profileService,
     required VideoEventService videoService,
   }) async {
-    Log.debug('� Initializing Enhanced NotificationService', name: 'NotificationServiceEnhanced', category: LogCategory.system);
-    
+    Log.debug('🔧 Initializing Enhanced NotificationService',
+        name: 'NotificationServiceEnhanced', category: LogCategory.system);
+
     _nostrService = nostrService;
     _profileService = profileService;
     _videoService = videoService;
-    
+
     try {
       // Initialize Hive for notification storage
-      _notificationBox = await Hive.openBox<Map<String, dynamic>>('notifications');
-      
+      _notificationBox =
+          await Hive.openBox<Map<String, dynamic>>('notifications');
+
       // Load cached notifications
       await _loadCachedNotifications();
-      
+
       // Request notification permissions
       await _requestPermissions();
-      
+
       // Subscribe to Nostr events for notifications
       await _subscribeToNostrEvents();
-      
-      Log.info('Enhanced NotificationService initialized', name: 'NotificationServiceEnhanced', category: LogCategory.system);
+
+      Log.info('Enhanced NotificationService initialized',
+          name: 'NotificationServiceEnhanced', category: LogCategory.system);
     } catch (e) {
-      Log.error('Failed to initialize enhanced notifications: $e', name: 'NotificationServiceEnhanced', category: LogCategory.system);
+      Log.error('Failed to initialize enhanced notifications: $e',
+          name: 'NotificationServiceEnhanced', category: LogCategory.system);
     }
   }
 
   /// Subscribe to Nostr events for real-time notifications
   Future<void> _subscribeToNostrEvents() async {
     if (_nostrService == null || !_nostrService!.hasKeys) {
-      Log.warning('Cannot subscribe to events without Nostr keys', name: 'NotificationServiceEnhanced', category: LogCategory.system);
+      Log.warning('Cannot subscribe to events without Nostr keys',
+          name: 'NotificationServiceEnhanced', category: LogCategory.system);
       return;
     }
-    
+
     final userPubkey = _nostrService!.publicKey!;
-    
+
     // Subscribe to reactions (likes) on user's videos
     _subscribeToReactions(userPubkey);
-    
+
     // Subscribe to comments on user's videos
     _subscribeToComments(userPubkey);
-    
+
     // Subscribe to follows
     _subscribeToFollows(userPubkey);
-    
+
     // Subscribe to mentions
     _subscribeToMentions(userPubkey);
-    
+
     // Subscribe to reposts
     _subscribeToReposts(userPubkey);
   }
@@ -111,15 +117,15 @@ class NotificationServiceEnhanced extends ChangeNotifier {
   void _subscribeToReactions(String userPubkey) {
     final filter = Filter(
       kinds: [7], // Kind 7 = Reactions (NIP-25)
-      h: ['vine'], // Required for vine.hol.is relay
+      // NO h filter - we query all relays
     );
-    
+
     final subscription = _nostrService!.subscribeToEvents(
       filters: [filter],
     ).listen((event) async {
       await _handleReactionEvent(event);
     });
-    
+
     _subscriptions['reactions'] = subscription;
   }
 
@@ -127,15 +133,15 @@ class NotificationServiceEnhanced extends ChangeNotifier {
   void _subscribeToComments(String userPubkey) {
     final filter = Filter(
       kinds: [1], // Kind 1 = Text notes (comments)
-      h: ['vine'], // Required for vine.hol.is relay
+      // NO h filter - we query all relays
     );
-    
+
     final subscription = _nostrService!.subscribeToEvents(
       filters: [filter],
     ).listen((event) async {
       await _handleCommentEvent(event);
     });
-    
+
     _subscriptions['comments'] = subscription;
   }
 
@@ -143,15 +149,15 @@ class NotificationServiceEnhanced extends ChangeNotifier {
   void _subscribeToFollows(String userPubkey) {
     final filter = Filter(
       kinds: [3], // Kind 3 = Contact list (follows)
-      h: ['vine'], // Required for vine.hol.is relay
+      // NO h filter - we query all relays
     );
-    
+
     final subscription = _nostrService!.subscribeToEvents(
       filters: [filter],
     ).listen((event) async {
       await _handleFollowEvent(event);
     });
-    
+
     _subscriptions['follows'] = subscription;
   }
 
@@ -159,15 +165,15 @@ class NotificationServiceEnhanced extends ChangeNotifier {
   void _subscribeToMentions(String userPubkey) {
     final filter = Filter(
       kinds: [1, 30023], // Text notes and long-form content
-      h: ['vine'], // Required for vine.hol.is relay
+      // NO h filter - we query all relays
     );
-    
+
     final subscription = _nostrService!.subscribeToEvents(
       filters: [filter],
     ).listen((event) async {
       await _handleMentionEvent(event);
     });
-    
+
     _subscriptions['mentions'] = subscription;
   }
 
@@ -175,15 +181,15 @@ class NotificationServiceEnhanced extends ChangeNotifier {
   void _subscribeToReposts(String userPubkey) {
     final filter = Filter(
       kinds: [6], // Kind 6 = Reposts (NIP-18)
-      h: ['vine'], // Required for vine.hol.is relay
+      // NO h filter - we query all relays
     );
-    
+
     final subscription = _nostrService!.subscribeToEvents(
       filters: [filter],
     ).listen((event) async {
       await _handleRepostEvent(event);
     });
-    
+
     _subscriptions['reposts'] = subscription;
   }
 
@@ -191,7 +197,7 @@ class NotificationServiceEnhanced extends ChangeNotifier {
   Future<void> _handleReactionEvent(Event event) async {
     // Check if this is a like (+ reaction)
     if (event.content != '+') return;
-    
+
     // Get the video that was liked
     String? videoEventId;
     for (final tag in event.tags) {
@@ -201,26 +207,30 @@ class NotificationServiceEnhanced extends ChangeNotifier {
       }
     }
     if (videoEventId == null) return;
-    
-    // Get actor info
+
+    // Get actor info - try multiple profile fields
     final actorProfile = await _profileService?.fetchProfile(event.pubkey);
-    
+    final actorName = actorProfile?.name ?? 
+                     actorProfile?.displayName ?? 
+                     actorProfile?.nip05?.split('@').first ??
+                     'Unknown user';
+
     // Get video info
     final videoEvent = _videoService?.getVideoEventById(videoEventId);
-    
+
     final notification = NotificationModel(
       id: event.id,
       type: NotificationType.like,
       actorPubkey: event.pubkey,
-      actorName: actorProfile?.name ?? actorProfile?.displayName,
+      actorName: actorName,
       actorPictureUrl: actorProfile?.picture,
-      message: '${actorProfile?.name ?? 'Someone'} liked your video',
+      message: '$actorName liked your video',
       timestamp: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
       targetEventId: videoEventId,
       targetVideoUrl: videoEvent?.videoUrl,
       targetVideoThumbnail: videoEvent?.thumbnailUrl,
     );
-    
+
     await _addNotification(notification);
   }
 
@@ -235,20 +245,24 @@ class NotificationServiceEnhanced extends ChangeNotifier {
       }
     }
     if (videoEventId == null) return;
-    
-    // Get actor info
+
+    // Get actor info - try multiple profile fields
     final actorProfile = await _profileService?.fetchProfile(event.pubkey);
-    
+    final actorName = actorProfile?.name ?? 
+                     actorProfile?.displayName ?? 
+                     actorProfile?.nip05?.split('@').first ??
+                     'Unknown user';
+
     // Get video info
     final videoEvent = _videoService?.getVideoEventById(videoEventId);
-    
+
     final notification = NotificationModel(
       id: event.id,
       type: NotificationType.comment,
       actorPubkey: event.pubkey,
-      actorName: actorProfile?.name ?? actorProfile?.displayName,
+      actorName: actorName,
       actorPictureUrl: actorProfile?.picture,
-      message: '${actorProfile?.name ?? 'Someone'} commented on your video',
+      message: '$actorName commented on your video',
       timestamp: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
       targetEventId: videoEventId,
       targetVideoUrl: videoEvent?.videoUrl,
@@ -257,46 +271,54 @@ class NotificationServiceEnhanced extends ChangeNotifier {
         'comment': event.content,
       },
     );
-    
+
     await _addNotification(notification);
   }
 
   /// Handle follow events
   Future<void> _handleFollowEvent(Event event) async {
-    // Get actor info
+    // Get actor info - try multiple profile fields
     final actorProfile = await _profileService?.fetchProfile(event.pubkey);
-    
+    final actorName = actorProfile?.name ?? 
+                     actorProfile?.displayName ?? 
+                     actorProfile?.nip05?.split('@').first ??
+                     'Unknown user';
+
     final notification = NotificationModel(
       id: event.id,
       type: NotificationType.follow,
       actorPubkey: event.pubkey,
-      actorName: actorProfile?.name ?? actorProfile?.displayName,
+      actorName: actorName,
       actorPictureUrl: actorProfile?.picture,
-      message: '${actorProfile?.name ?? 'Someone'} started following you',
+      message: '$actorName started following you',
       timestamp: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
     );
-    
+
     await _addNotification(notification);
   }
 
   /// Handle mention events
   Future<void> _handleMentionEvent(Event event) async {
-    // Get actor info
+    // Get actor info - try multiple profile fields
     final actorProfile = await _profileService?.fetchProfile(event.pubkey);
-    
+    final actorName = actorProfile?.name ?? 
+                     actorProfile?.displayName ?? 
+                     actorProfile?.nip05?.split('@').first ??
+                     'Unknown user';
+
     final notification = NotificationModel(
       id: event.id,
       type: NotificationType.mention,
       actorPubkey: event.pubkey,
-      actorName: actorProfile?.name ?? actorProfile?.displayName,
+      actorName: actorName,
       actorPictureUrl: actorProfile?.picture,
-      message: '${actorProfile?.name ?? 'Someone'} mentioned you',
+      message: '$actorName mentioned you',
       timestamp: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
       metadata: {
         'text': event.content,
       },
     );
-    
+
     await _addNotification(notification);
   }
 
@@ -311,26 +333,30 @@ class NotificationServiceEnhanced extends ChangeNotifier {
       }
     }
     if (videoEventId == null) return;
-    
-    // Get actor info
+
+    // Get actor info - try multiple profile fields
     final actorProfile = await _profileService?.fetchProfile(event.pubkey);
-    
+    final actorName = actorProfile?.name ?? 
+                     actorProfile?.displayName ?? 
+                     actorProfile?.nip05?.split('@').first ??
+                     'Unknown user';
+
     // Get video info
     final videoEvent = _videoService?.getVideoEventById(videoEventId);
-    
+
     final notification = NotificationModel(
       id: event.id,
       type: NotificationType.repost,
       actorPubkey: event.pubkey,
-      actorName: actorProfile?.name ?? actorProfile?.displayName,
+      actorName: actorName,
       actorPictureUrl: actorProfile?.picture,
-      message: '${actorProfile?.name ?? 'Someone'} reposted your video',
+      message: '$actorName reposted your video',
       timestamp: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
       targetEventId: videoEventId,
       targetVideoUrl: videoEvent?.videoUrl,
       targetVideoThumbnail: videoEvent?.thumbnailUrl,
     );
-    
+
     await _addNotification(notification);
   }
 
@@ -340,26 +366,26 @@ class NotificationServiceEnhanced extends ChangeNotifier {
     if (_notifications.any((n) => n.id == notification.id)) {
       return;
     }
-    
+
     // Add to list
     _notifications.insert(0, notification);
-    
+
     // Update unread count
     _updateUnreadCount();
-    
+
     // Save to cache
     await _saveNotificationToCache(notification);
-    
+
     // Show platform notification if permissions granted
     if (_permissionsGranted && !notification.isRead) {
       await _showPlatformNotification(notification);
     }
-    
+
     // Keep only recent notifications
     if (_notifications.length > 100) {
       _notifications.removeRange(100, _notifications.length);
     }
-    
+
     notifyListeners();
   }
 
@@ -376,7 +402,7 @@ class NotificationServiceEnhanced extends ChangeNotifier {
 
   /// Mark all notifications as read
   Future<void> markAllAsRead() async {
-    for (int i = 0; i < _notifications.length; i++) {
+    for (var i = 0; i < _notifications.length; i++) {
       if (!_notifications[i].isRead) {
         _notifications[i] = _notifications[i].copyWith(isRead: true);
         await _saveNotificationToCache(_notifications[i]);
@@ -386,47 +412,70 @@ class NotificationServiceEnhanced extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Handle notification tap/click for navigation
+  Future<void> handleNotificationTap(String notificationId) async {
+    final notification = _notifications.firstWhere(
+      (n) => n.id == notificationId,
+      orElse: () => throw ArgumentError('Notification not found: $notificationId'),
+    );
+
+    // Mark as read
+    await markAsRead(notificationId);
+
+    // Log the navigation action for debugging
+    Log.info(
+      '🔔 Notification tapped: ${notification.navigationAction} -> ${notification.navigationTarget}',
+      name: 'NotificationServiceEnhanced',
+      category: LogCategory.system,
+    );
+
+    // Navigation will be handled by the UI layer based on navigationAction and navigationTarget
+    // This could be extended to use Navigator or a routing service if needed
+  }
+
   /// Update unread count
   void _updateUnreadCount() {
     _unreadCount = _notifications.where((n) => !n.isRead).length;
   }
 
   /// Get notifications by type
-  List<NotificationModel> getNotificationsByType(NotificationType type) {
-    return _notifications.where((n) => n.type == type).toList();
-  }
+  List<NotificationModel> getNotificationsByType(NotificationType type) =>
+      _notifications.where((n) => n.type == type).toList();
 
   /// Load cached notifications from Hive
   Future<void> _loadCachedNotifications() async {
     if (_notificationBox == null) return;
-    
+
     try {
       final cached = _notificationBox!.values.toList();
       for (final data in cached) {
         final notification = NotificationModel.fromJson(data);
         _notifications.add(notification);
       }
-      
+
       // Sort by timestamp (newest first)
       _notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-      
+
       // Update unread count
       _updateUnreadCount();
-      
-      Log.debug('� Loaded ${_notifications.length} cached notifications', name: 'NotificationServiceEnhanced', category: LogCategory.system);
+
+      Log.debug('📱 Loaded ${_notifications.length} cached notifications',
+          name: 'NotificationServiceEnhanced', category: LogCategory.system);
     } catch (e) {
-      Log.error('Failed to load cached notifications: $e', name: 'NotificationServiceEnhanced', category: LogCategory.system);
+      Log.error('Failed to load cached notifications: $e',
+          name: 'NotificationServiceEnhanced', category: LogCategory.system);
     }
   }
 
   /// Save notification to cache
   Future<void> _saveNotificationToCache(NotificationModel notification) async {
     if (_notificationBox == null) return;
-    
+
     try {
       await _notificationBox!.put(notification.id, notification.toJson());
     } catch (e) {
-      Log.error('Failed to cache notification: $e', name: 'NotificationServiceEnhanced', category: LogCategory.system);
+      Log.error('Failed to cache notification: $e',
+          name: 'NotificationServiceEnhanced', category: LogCategory.system);
     }
   }
 
@@ -436,10 +485,12 @@ class NotificationServiceEnhanced extends ChangeNotifier {
       // TODO: Implement proper notification permissions
       // For now, simulate granted permissions
       _permissionsGranted = true;
-      Log.info('Notification permissions granted (simulated)', name: 'NotificationServiceEnhanced', category: LogCategory.system);
+      Log.info('Notification permissions granted (simulated)',
+          name: 'NotificationServiceEnhanced', category: LogCategory.system);
     } catch (e) {
       _permissionsGranted = false;
-      Log.error('Failed to get notification permissions: $e', name: 'NotificationServiceEnhanced', category: LogCategory.system);
+      Log.error('Failed to get notification permissions: $e',
+          name: 'NotificationServiceEnhanced', category: LogCategory.system);
     }
   }
 
@@ -448,13 +499,16 @@ class NotificationServiceEnhanced extends ChangeNotifier {
     try {
       // TODO: Implement actual platform notifications
       // This would use flutter_local_notifications or similar
-      Log.debug('� Platform notification: ${notification.typeIcon} ${notification.message}', name: 'NotificationServiceEnhanced', category: LogCategory.system);
-      
+      Log.debug(
+          '📱 Platform notification: ${notification.typeIcon} ${notification.message}',
+          name: 'NotificationServiceEnhanced',
+          category: LogCategory.system);
+
       // Simulate haptic feedback
       HapticFeedback.mediumImpact();
-      
     } catch (e) {
-      Log.error('Failed to show platform notification: $e', name: 'NotificationServiceEnhanced', category: LogCategory.system);
+      Log.error('Failed to show platform notification: $e',
+          name: 'NotificationServiceEnhanced', category: LogCategory.system);
     }
   }
 
@@ -462,23 +516,25 @@ class NotificationServiceEnhanced extends ChangeNotifier {
   Future<void> clearAll() async {
     _notifications.clear();
     _unreadCount = 0;
-    
+
     // Clear cache
     await _notificationBox?.clear();
-    
+
     notifyListeners();
-    Log.debug('�️ Cleared all notifications', name: 'NotificationServiceEnhanced', category: LogCategory.system);
+    Log.debug('📱️ Cleared all notifications',
+        name: 'NotificationServiceEnhanced', category: LogCategory.system);
   }
 
   /// Clear notifications older than specified duration
   Future<void> clearOlderThan(Duration duration) async {
     final cutoff = DateTime.now().subtract(duration);
     final initialCount = _notifications.length;
-    
+
     // Remove old notifications
-    _notifications.removeWhere((notification) => 
-        notification.timestamp.isBefore(cutoff));
-    
+    _notifications.removeWhere(
+      (notification) => notification.timestamp.isBefore(cutoff),
+    );
+
     // Update cache
     if (_notificationBox != null) {
       final keysToRemove = <String>[];
@@ -490,36 +546,37 @@ class NotificationServiceEnhanced extends ChangeNotifier {
       }
       await _notificationBox!.deleteAll(keysToRemove);
     }
-    
+
     final removedCount = initialCount - _notifications.length;
     if (removedCount > 0) {
       _updateUnreadCount();
       notifyListeners();
-      Log.debug('�️ Cleared $removedCount old notifications', name: 'NotificationServiceEnhanced', category: LogCategory.system);
+      Log.debug('📱️ Cleared $removedCount old notifications',
+          name: 'NotificationServiceEnhanced', category: LogCategory.system);
     }
   }
 
   @override
   void dispose() {
     if (_disposed) return;
-    
+
     _disposed = true;
-    
+
     // Cancel all subscriptions
     for (final subscription in _subscriptions.values) {
       subscription.cancel();
     }
     _subscriptions.clear();
-    
+
     // Clear notifications
     _notifications.clear();
-    
+
     // Close Hive box
     _notificationBox?.close();
-    
+
     super.dispose();
   }
-  
+
   /// Check if this service is still mounted/active
   bool get mounted => !_disposed;
 }

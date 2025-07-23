@@ -25,7 +25,8 @@ void main() {
       );
     });
 
-    testWidgets('VideoPlaybackController can be created and disposed safely', (WidgetTester tester) async {
+    testWidgets('VideoPlaybackController can be created and disposed safely',
+        (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,
@@ -39,7 +40,9 @@ void main() {
       expect(controller.state, equals(VideoPlaybackState.disposed));
     });
 
-    testWidgets('VideoPlaybackWidget can be created with different configurations', (WidgetTester tester) async {
+    testWidgets(
+        'VideoPlaybackWidget can be created with different configurations',
+        (tester) async {
       // Test feed configuration
       final feedWidget = VideoPlaybackWidget.feed(
         video: testVideo,
@@ -65,7 +68,7 @@ void main() {
       expect(previewWidget.isActive, isFalse);
     });
 
-    testWidgets('Configuration presets have correct settings', (WidgetTester tester) async {
+    testWidgets('Configuration presets have correct settings', (tester) async {
       // Feed configuration
       const feedConfig = VideoPlaybackConfig.feed;
       expect(feedConfig.autoPlay, isTrue);
@@ -85,7 +88,8 @@ void main() {
       expect(previewConfig.handleAppLifecycle, isFalse);
     });
 
-    testWidgets('VideoPlaybackController state management works', (WidgetTester tester) async {
+    testWidgets('VideoPlaybackController state management works',
+        (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,
@@ -93,7 +97,7 @@ void main() {
 
       // Test active state changes
       expect(controller.isActive, isFalse);
-      
+
       controller.setActive(true);
       expect(controller.isActive, isTrue);
 
@@ -103,7 +107,7 @@ void main() {
       controller.dispose();
     });
 
-    testWidgets('Navigation helpers work correctly', (WidgetTester tester) async {
+    testWidgets('Navigation helpers work correctly', (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,
@@ -119,7 +123,8 @@ void main() {
       controller.dispose();
     });
 
-    testWidgets('VideoPlaybackController handles app lifecycle', (WidgetTester tester) async {
+    testWidgets('VideoPlaybackController handles app lifecycle',
+        (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed, // handleAppLifecycle = true
@@ -135,7 +140,8 @@ void main() {
       controller.dispose();
     });
 
-    testWidgets('VideoPlaybackController ignores app lifecycle when disabled', (WidgetTester tester) async {
+    testWidgets('VideoPlaybackController ignores app lifecycle when disabled',
+        (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.preview, // handleAppLifecycle = false
@@ -150,16 +156,14 @@ void main() {
       controller.dispose();
     });
 
-    testWidgets('Event stream works correctly', (WidgetTester tester) async {
+    testWidgets('Event stream works correctly', (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,
       );
 
       final events = <VideoPlaybackEvent>[];
-      final subscription = controller.events.listen((event) {
-        events.add(event);
-      });
+      final subscription = controller.events.listen(events.add);
 
       // Trigger some state changes
       controller.setActive(true);
@@ -172,7 +176,7 @@ void main() {
       controller.dispose();
     });
 
-    testWidgets('Multiple configurations can coexist', (WidgetTester tester) async {
+    testWidgets('Multiple configurations can coexist', (tester) async {
       final feedController = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,
@@ -199,7 +203,7 @@ void main() {
       previewController.dispose();
     });
 
-    testWidgets('Retry mechanism respects max retries', (WidgetTester tester) async {
+    testWidgets('Retry mechanism respects max retries', (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: const VideoPlaybackConfig(
@@ -211,10 +215,10 @@ void main() {
       // Track retry count by checking error states
       // Since the test video URL is fake, initialization will fail
       // But retry logic should still respect maxRetries limit
-      
+
       // First retry should work
       expect(controller.config.maxRetries, equals(2));
-      
+
       // Controller should be disposable without hanging
       controller.dispose();
       expect(controller.state, equals(VideoPlaybackState.disposed));

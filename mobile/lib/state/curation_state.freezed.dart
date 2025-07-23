@@ -19,20 +19,14 @@ mixin _$CurationState {
   /// Editor's picks videos (classic vines)
   List<VideoEvent> get editorsPicks => throw _privateConstructorUsedError;
 
-  /// Trending videos (from analytics API)
+  /// Trending videos (popular now)
   List<VideoEvent> get trending => throw _privateConstructorUsedError;
-
-  /// Featured high-quality videos
-  List<VideoEvent> get featured => throw _privateConstructorUsedError;
-
-  /// All available curation sets
-  List<CurationSet> get curationSets => throw _privateConstructorUsedError;
 
   /// Whether curation data is loading
   bool get isLoading => throw _privateConstructorUsedError;
 
-  /// Whether trending was fetched from API
-  bool get trendingFromApi => throw _privateConstructorUsedError;
+  /// All available curation sets
+  List<CurationSet> get curationSets => throw _privateConstructorUsedError;
 
   /// Last refresh timestamp
   DateTime? get lastRefreshed => throw _privateConstructorUsedError;
@@ -56,10 +50,8 @@ abstract class $CurationStateCopyWith<$Res> {
   $Res call(
       {List<VideoEvent> editorsPicks,
       List<VideoEvent> trending,
-      List<VideoEvent> featured,
-      List<CurationSet> curationSets,
       bool isLoading,
-      bool trendingFromApi,
+      List<CurationSet> curationSets,
       DateTime? lastRefreshed,
       String? error});
 }
@@ -81,10 +73,8 @@ class _$CurationStateCopyWithImpl<$Res, $Val extends CurationState>
   $Res call({
     Object? editorsPicks = null,
     Object? trending = null,
-    Object? featured = null,
-    Object? curationSets = null,
     Object? isLoading = null,
-    Object? trendingFromApi = null,
+    Object? curationSets = null,
     Object? lastRefreshed = freezed,
     Object? error = freezed,
   }) {
@@ -97,22 +87,14 @@ class _$CurationStateCopyWithImpl<$Res, $Val extends CurationState>
           ? _value.trending
           : trending // ignore: cast_nullable_to_non_nullable
               as List<VideoEvent>,
-      featured: null == featured
-          ? _value.featured
-          : featured // ignore: cast_nullable_to_non_nullable
-              as List<VideoEvent>,
-      curationSets: null == curationSets
-          ? _value.curationSets
-          : curationSets // ignore: cast_nullable_to_non_nullable
-              as List<CurationSet>,
       isLoading: null == isLoading
           ? _value.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
               as bool,
-      trendingFromApi: null == trendingFromApi
-          ? _value.trendingFromApi
-          : trendingFromApi // ignore: cast_nullable_to_non_nullable
-              as bool,
+      curationSets: null == curationSets
+          ? _value.curationSets
+          : curationSets // ignore: cast_nullable_to_non_nullable
+              as List<CurationSet>,
       lastRefreshed: freezed == lastRefreshed
           ? _value.lastRefreshed
           : lastRefreshed // ignore: cast_nullable_to_non_nullable
@@ -136,10 +118,8 @@ abstract class _$$CurationStateImplCopyWith<$Res>
   $Res call(
       {List<VideoEvent> editorsPicks,
       List<VideoEvent> trending,
-      List<VideoEvent> featured,
-      List<CurationSet> curationSets,
       bool isLoading,
-      bool trendingFromApi,
+      List<CurationSet> curationSets,
       DateTime? lastRefreshed,
       String? error});
 }
@@ -159,10 +139,8 @@ class __$$CurationStateImplCopyWithImpl<$Res>
   $Res call({
     Object? editorsPicks = null,
     Object? trending = null,
-    Object? featured = null,
-    Object? curationSets = null,
     Object? isLoading = null,
-    Object? trendingFromApi = null,
+    Object? curationSets = null,
     Object? lastRefreshed = freezed,
     Object? error = freezed,
   }) {
@@ -175,22 +153,14 @@ class __$$CurationStateImplCopyWithImpl<$Res>
           ? _value._trending
           : trending // ignore: cast_nullable_to_non_nullable
               as List<VideoEvent>,
-      featured: null == featured
-          ? _value._featured
-          : featured // ignore: cast_nullable_to_non_nullable
-              as List<VideoEvent>,
-      curationSets: null == curationSets
-          ? _value._curationSets
-          : curationSets // ignore: cast_nullable_to_non_nullable
-              as List<CurationSet>,
       isLoading: null == isLoading
           ? _value.isLoading
           : isLoading // ignore: cast_nullable_to_non_nullable
               as bool,
-      trendingFromApi: null == trendingFromApi
-          ? _value.trendingFromApi
-          : trendingFromApi // ignore: cast_nullable_to_non_nullable
-              as bool,
+      curationSets: null == curationSets
+          ? _value._curationSets
+          : curationSets // ignore: cast_nullable_to_non_nullable
+              as List<CurationSet>,
       lastRefreshed: freezed == lastRefreshed
           ? _value.lastRefreshed
           : lastRefreshed // ignore: cast_nullable_to_non_nullable
@@ -208,16 +178,13 @@ class __$$CurationStateImplCopyWithImpl<$Res>
 class _$CurationStateImpl extends _CurationState {
   const _$CurationStateImpl(
       {required final List<VideoEvent> editorsPicks,
-      required final List<VideoEvent> trending,
-      required final List<VideoEvent> featured,
-      final List<CurationSet> curationSets = const [],
+      final List<VideoEvent> trending = const [],
       required this.isLoading,
-      this.trendingFromApi = false,
+      final List<CurationSet> curationSets = const [],
       this.lastRefreshed,
       this.error})
       : _editorsPicks = editorsPicks,
         _trending = trending,
-        _featured = featured,
         _curationSets = curationSets,
         super._();
 
@@ -232,27 +199,21 @@ class _$CurationStateImpl extends _CurationState {
     return EqualUnmodifiableListView(_editorsPicks);
   }
 
-  /// Trending videos (from analytics API)
+  /// Trending videos (popular now)
   final List<VideoEvent> _trending;
 
-  /// Trending videos (from analytics API)
+  /// Trending videos (popular now)
   @override
+  @JsonKey()
   List<VideoEvent> get trending {
     if (_trending is EqualUnmodifiableListView) return _trending;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_trending);
   }
 
-  /// Featured high-quality videos
-  final List<VideoEvent> _featured;
-
-  /// Featured high-quality videos
+  /// Whether curation data is loading
   @override
-  List<VideoEvent> get featured {
-    if (_featured is EqualUnmodifiableListView) return _featured;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_featured);
-  }
+  final bool isLoading;
 
   /// All available curation sets
   final List<CurationSet> _curationSets;
@@ -266,15 +227,6 @@ class _$CurationStateImpl extends _CurationState {
     return EqualUnmodifiableListView(_curationSets);
   }
 
-  /// Whether curation data is loading
-  @override
-  final bool isLoading;
-
-  /// Whether trending was fetched from API
-  @override
-  @JsonKey()
-  final bool trendingFromApi;
-
   /// Last refresh timestamp
   @override
   final DateTime? lastRefreshed;
@@ -285,7 +237,7 @@ class _$CurationStateImpl extends _CurationState {
 
   @override
   String toString() {
-    return 'CurationState(editorsPicks: $editorsPicks, trending: $trending, featured: $featured, curationSets: $curationSets, isLoading: $isLoading, trendingFromApi: $trendingFromApi, lastRefreshed: $lastRefreshed, error: $error)';
+    return 'CurationState(editorsPicks: $editorsPicks, trending: $trending, isLoading: $isLoading, curationSets: $curationSets, lastRefreshed: $lastRefreshed, error: $error)';
   }
 
   @override
@@ -296,13 +248,10 @@ class _$CurationStateImpl extends _CurationState {
             const DeepCollectionEquality()
                 .equals(other._editorsPicks, _editorsPicks) &&
             const DeepCollectionEquality().equals(other._trending, _trending) &&
-            const DeepCollectionEquality().equals(other._featured, _featured) &&
-            const DeepCollectionEquality()
-                .equals(other._curationSets, _curationSets) &&
             (identical(other.isLoading, isLoading) ||
                 other.isLoading == isLoading) &&
-            (identical(other.trendingFromApi, trendingFromApi) ||
-                other.trendingFromApi == trendingFromApi) &&
+            const DeepCollectionEquality()
+                .equals(other._curationSets, _curationSets) &&
             (identical(other.lastRefreshed, lastRefreshed) ||
                 other.lastRefreshed == lastRefreshed) &&
             (identical(other.error, error) || other.error == error));
@@ -313,10 +262,8 @@ class _$CurationStateImpl extends _CurationState {
       runtimeType,
       const DeepCollectionEquality().hash(_editorsPicks),
       const DeepCollectionEquality().hash(_trending),
-      const DeepCollectionEquality().hash(_featured),
-      const DeepCollectionEquality().hash(_curationSets),
       isLoading,
-      trendingFromApi,
+      const DeepCollectionEquality().hash(_curationSets),
       lastRefreshed,
       error);
 
@@ -332,11 +279,9 @@ class _$CurationStateImpl extends _CurationState {
 abstract class _CurationState extends CurationState {
   const factory _CurationState(
       {required final List<VideoEvent> editorsPicks,
-      required final List<VideoEvent> trending,
-      required final List<VideoEvent> featured,
-      final List<CurationSet> curationSets,
+      final List<VideoEvent> trending,
       required final bool isLoading,
-      final bool trendingFromApi,
+      final List<CurationSet> curationSets,
       final DateTime? lastRefreshed,
       final String? error}) = _$CurationStateImpl;
   const _CurationState._() : super._();
@@ -345,25 +290,17 @@ abstract class _CurationState extends CurationState {
   @override
   List<VideoEvent> get editorsPicks;
 
-  /// Trending videos (from analytics API)
+  /// Trending videos (popular now)
   @override
   List<VideoEvent> get trending;
-
-  /// Featured high-quality videos
-  @override
-  List<VideoEvent> get featured;
-
-  /// All available curation sets
-  @override
-  List<CurationSet> get curationSets;
 
   /// Whether curation data is loading
   @override
   bool get isLoading;
 
-  /// Whether trending was fetched from API
+  /// All available curation sets
   @override
-  bool get trendingFromApi;
+  List<CurationSet> get curationSets;
 
   /// Last refresh timestamp
   @override

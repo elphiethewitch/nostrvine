@@ -1,4 +1,4 @@
-// ABOUTME: Stub implementation for dart:js_util when not on web platform  
+// ABOUTME: Stub implementation for dart:js_util when not on web platform
 // ABOUTME: Provides empty implementations to prevent compilation errors on mobile
 
 // Stub implementations for non-web platforms
@@ -14,9 +14,7 @@ void setProperty(Object object, String property, dynamic value) {
   throw UnsupportedError('JavaScript interop not supported on this platform');
 }
 
-bool hasProperty(Object object, String property) {
-  return false;
-}
+bool hasProperty(Object object, String property) => false;
 
 dynamic jsify(Object? object) {
   throw UnsupportedError('JavaScript interop not supported on this platform');

@@ -3,9 +3,10 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
 import 'package:openvine/screens/camera_settings_screen.dart';
 import 'package:openvine/services/camera_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:openvine/providers/app_providers.dart';
 
 void main() {
   group('CameraSettingsScreen', () {
@@ -19,16 +20,14 @@ void main() {
       mockCameraService.dispose();
     });
 
-    Widget createTestWidget() {
-      return MaterialApp(
-        home: ChangeNotifierProvider<CameraService>.value(
-          value: mockCameraService,
-          child: const CameraSettingsScreen(),
-        ),
-      );
-    }
+    Widget createTestWidget() => MaterialApp(
+          home: ChangeNotifierProvider<CameraService>.value(
+            value: mockCameraService,
+            child: const CameraSettingsScreen(),
+          ),
+        );
 
-    testWidgets('displays settings screen with all sections', (WidgetTester tester) async {
+    testWidgets('displays settings screen with all sections', (tester) async {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
@@ -42,7 +41,7 @@ void main() {
       expect(find.text('Current Configuration'), findsOneWidget);
     });
 
-    testWidgets('displays current configuration values', (WidgetTester tester) async {
+    testWidgets('displays current configuration values', (tester) async {
       // Set a specific recording duration
       mockCameraService.setRecordingDuration(const Duration(seconds: 8));
 
@@ -53,7 +52,7 @@ void main() {
       expect(find.text('8s'), findsAtLeastNWidgets(1));
     });
 
-    testWidgets('duration slider updates configuration', (WidgetTester tester) async {
+    testWidgets('duration slider updates configuration', (tester) async {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
@@ -69,17 +68,16 @@ void main() {
       expect(mockCameraService.maxVineDuration.inSeconds, greaterThan(6));
     });
 
-
-    testWidgets('auto-stop switch toggles setting', (WidgetTester tester) async {
+    testWidgets('auto-stop switch toggles setting', (tester) async {
       // Start with auto-stop enabled (already default)
-      
+
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
       // Find and tap the switch
       final autoStopSwitch = find.byType(Switch);
       expect(autoStopSwitch, findsOneWidget);
-      
+
       await tester.tap(autoStopSwitch);
       await tester.pumpAndSettle();
 
@@ -87,7 +85,7 @@ void main() {
       expect(mockCameraService.enableAutoStop, false);
     });
 
-    testWidgets('preset buttons exist and are tappable', (WidgetTester tester) async {
+    testWidgets('preset buttons exist and are tappable', (tester) async {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
@@ -102,7 +100,7 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('quality buttons show selection feedback', (WidgetTester tester) async {
+    testWidgets('quality buttons show selection feedback', (tester) async {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
@@ -114,7 +112,7 @@ void main() {
       expect(find.text('High quality selected'), findsOneWidget);
     });
 
-    testWidgets('current configuration info is displayed', (WidgetTester tester) async {
+    testWidgets('current configuration info is displayed', (tester) async {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 
@@ -122,7 +120,7 @@ void main() {
       expect(find.text('Current Configuration'), findsOneWidget);
     });
 
-    testWidgets('settings screen has app bar with title', (WidgetTester tester) async {
+    testWidgets('settings screen has app bar with title', (tester) async {
       await tester.pumpWidget(createTestWidget());
       await tester.pumpAndSettle();
 

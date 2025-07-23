@@ -2,42 +2,52 @@
 // ABOUTME: Implements NIP-56 reporting events (kind 1984) for Apple compliance and community-driven moderation
 
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nostr_sdk/event.dart';
-import 'nostr_service_interface.dart';
-import 'content_moderation_service.dart';
-import '../utils/unified_logger.dart';
+import 'package:openvine/services/content_moderation_service.dart';
+import 'package:openvine/services/nostr_service_interface.dart';
+import 'package:openvine/utils/unified_logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Report submission result
 class ReportResult {
+  const ReportResult({
+    required this.success,
+    required this.timestamp,
+    this.error,
+    this.reportId,
+  });
   final bool success;
   final String? error;
   final String? reportId;
   final DateTime timestamp;
 
-  const ReportResult({
-    required this.success,
-    this.error,
-    this.reportId,
-    required this.timestamp,
-  });
-
   static ReportResult createSuccess(String reportId) => ReportResult(
-    success: true,
-    reportId: reportId,
-    timestamp: DateTime.now(),
-  );
+        success: true,
+        reportId: reportId,
+        timestamp: DateTime.now(),
+      );
 
   static ReportResult failure(String error) => ReportResult(
-    success: false,
-    error: error,
-    timestamp: DateTime.now(),
-  );
+        success: false,
+        error: error,
+        timestamp: DateTime.now(),
+      );
 }
 
 /// Content report data
 class ContentReport {
+  const ContentReport({
+    required this.reportId,
+    required this.eventId,
+    required this.reason,
+    required this.details,
+    required this.createdAt,
+    this.authorPubkey,
+    this.additionalContext,
+    this.tags = const [],
+  });
   final String reportId;
   final String eventId;
   final String? authorPubkey;
@@ -47,66 +57,50 @@ class ContentReport {
   final String? additionalContext;
   final List<String> tags;
 
-  const ContentReport({
-    required this.reportId,
-    required this.eventId,
-    this.authorPubkey,
-    required this.reason,
-    required this.details,
-    required this.createdAt,
-    this.additionalContext,
-    this.tags = const [],
-  });
+  Map<String, dynamic> toJson() => {
+        'reportId': reportId,
+        'eventId': eventId,
+        'authorPubkey': authorPubkey,
+        'reason': reason.name,
+        'details': details,
+        'createdAt': createdAt.toIso8601String(),
+        'additionalContext': additionalContext,
+        'tags': tags,
+      };
 
-  Map<String, dynamic> toJson() {
-    return {
-      'reportId': reportId,
-      'eventId': eventId,
-      'authorPubkey': authorPubkey,
-      'reason': reason.name,
-      'details': details,
-      'createdAt': createdAt.toIso8601String(),
-      'additionalContext': additionalContext,
-      'tags': tags,
-    };
-  }
-
-  static ContentReport fromJson(Map<String, dynamic> json) {
-    return ContentReport(
-      reportId: json['reportId'],
-      eventId: json['eventId'],
-      authorPubkey: json['authorPubkey'],
-      reason: ContentFilterReason.values.firstWhere(
-        (r) => r.name == json['reason'],
-        orElse: () => ContentFilterReason.other,
-      ),
-      details: json['details'],
-      createdAt: DateTime.parse(json['createdAt']),
-      additionalContext: json['additionalContext'],
-      tags: List<String>.from(json['tags'] ?? []),
-    );
-  }
+  static ContentReport fromJson(Map<String, dynamic> json) => ContentReport(
+        reportId: json['reportId'],
+        eventId: json['eventId'],
+        authorPubkey: json['authorPubkey'],
+        reason: ContentFilterReason.values.firstWhere(
+          (r) => r.name == json['reason'],
+          orElse: () => ContentFilterReason.other,
+        ),
+        details: json['details'],
+        createdAt: DateTime.parse(json['createdAt']),
+        additionalContext: json['additionalContext'],
+        tags: List<String>.from(json['tags'] ?? []),
+      );
 }
 
 /// Service for reporting inappropriate content
 class ContentReportingService extends ChangeNotifier {
-  final INostrService _nostrService;
-  final SharedPreferences _prefs;
-  
-  // OpenVine moderation relay for reports
-  static const String moderationRelayUrl = 'wss://relay.openvine.co';
-  static const String reportsStorageKey = 'content_reports_history';
-  
-  final List<ContentReport> _reportHistory = [];
-  bool _isInitialized = false;
-
   ContentReportingService({
     required INostrService nostrService,
     required SharedPreferences prefs,
-  }) : _nostrService = nostrService,
-       _prefs = prefs {
+  })  : _nostrService = nostrService,
+        _prefs = prefs {
     _loadReportHistory();
   }
+  final INostrService _nostrService;
+  final SharedPreferences _prefs;
+
+  // OpenVine moderation relay for reports
+  static const String moderationRelayUrl = 'wss://relay.openvine.co';
+  static const String reportsStorageKey = 'content_reports_history';
+
+  final List<ContentReport> _reportHistory = [];
+  bool _isInitialized = false;
 
   // Getters
   List<ContentReport> get reportHistory => List.unmodifiable(_reportHistory);
@@ -117,14 +111,17 @@ class ContentReportingService extends ChangeNotifier {
     try {
       // Ensure Nostr service is initialized
       if (!_nostrService.isInitialized) {
-        Log.warning('Nostr service not initialized, cannot setup reporting', name: 'ContentReportingService', category: LogCategory.system);
+        Log.warning('Nostr service not initialized, cannot setup reporting',
+            name: 'ContentReportingService', category: LogCategory.system);
         return;
       }
 
       _isInitialized = true;
-      Log.info('Content reporting service initialized', name: 'ContentReportingService', category: LogCategory.system);
+      Log.info('Content reporting service initialized',
+          name: 'ContentReportingService', category: LogCategory.system);
     } catch (e) {
-      Log.error('Failed to initialize content reporting: $e', name: 'ContentReportingService', category: LogCategory.system);
+      Log.error('Failed to initialize content reporting: $e',
+          name: 'ContentReportingService', category: LogCategory.system);
     }
   }
 
@@ -159,10 +156,12 @@ class ContentReportingService extends ChangeNotifier {
       if (reportEvent != null) {
         final broadcastResult = await _nostrService.broadcastEvent(reportEvent);
         if (broadcastResult.successCount == 0) {
-          Log.error('Failed to broadcast report to relays', name: 'ContentReportingService', category: LogCategory.system);
+          Log.error('Failed to broadcast report to relays',
+              name: 'ContentReportingService', category: LogCategory.system);
           // Still save locally even if broadcast fails
         } else {
-          Log.info('Report broadcast to ${broadcastResult.successCount} relays', name: 'ContentReportingService', category: LogCategory.system);
+          Log.info('Report broadcast to ${broadcastResult.successCount} relays',
+              name: 'ContentReportingService', category: LogCategory.system);
         }
       }
 
@@ -182,11 +181,12 @@ class ContentReportingService extends ChangeNotifier {
       await _saveReportHistory();
       notifyListeners();
 
-      Log.debug('Content report submitted: $reportId', name: 'ContentReportingService', category: LogCategory.system);
+      Log.debug('Content report submitted: $reportId',
+          name: 'ContentReportingService', category: LogCategory.system);
       return ReportResult.createSuccess(reportId);
-
     } catch (e) {
-      Log.error('Failed to submit content report: $e', name: 'ContentReportingService', category: LogCategory.system);
+      Log.error('Failed to submit content report: $e',
+          name: 'ContentReportingService', category: LogCategory.system);
       return ReportResult.failure('Failed to submit report: $e');
     }
   }
@@ -200,15 +200,15 @@ class ContentReportingService extends ChangeNotifier {
   }) async {
     // Use first related event or create a user-focused report
     final eventId = relatedEventIds?.first ?? 'user_$userPubkey';
-    
+
     return reportContent(
       eventId: eventId,
       authorPubkey: userPubkey,
       reason: reason,
       details: details,
-      additionalContext: relatedEventIds != null 
-        ? 'Related events: ${relatedEventIds.join(', ')}'
-        : null,
+      additionalContext: relatedEventIds != null
+          ? 'Related events: ${relatedEventIds.join(', ')}'
+          : null,
       hashtags: ['user-report'],
     );
   }
@@ -220,7 +220,7 @@ class ContentReportingService extends ChangeNotifier {
     required ContentFilterReason reason,
   }) async {
     final details = _getQuickReportDetails(reason);
-    
+
     return reportContent(
       eventId: eventId,
       authorPubkey: authorPubkey,
@@ -231,29 +231,24 @@ class ContentReportingService extends ChangeNotifier {
   }
 
   /// Check if content has been reported before
-  bool hasBeenReported(String eventId) {
-    return _reportHistory.any((report) => report.eventId == eventId);
-  }
+  bool hasBeenReported(String eventId) =>
+      _reportHistory.any((report) => report.eventId == eventId);
 
   /// Get reports for specific event
-  List<ContentReport> getReportsForEvent(String eventId) {
-    return _reportHistory.where((report) => report.eventId == eventId).toList();
-  }
+  List<ContentReport> getReportsForEvent(String eventId) =>
+      _reportHistory.where((report) => report.eventId == eventId).toList();
 
   /// Get reports by user
-  List<ContentReport> getReportsByUser(String authorPubkey) {
-    return _reportHistory
-        .where((report) => report.authorPubkey == authorPubkey)
-        .toList();
-  }
+  List<ContentReport> getReportsByUser(String authorPubkey) => _reportHistory
+      .where((report) => report.authorPubkey == authorPubkey)
+      .toList();
 
   /// Get reporting statistics
   Map<String, dynamic> getReportingStats() {
     final reasonCounts = <String, int>{};
     for (final reason in ContentFilterReason.values) {
-      reasonCounts[reason.name] = _reportHistory
-          .where((report) => report.reason == reason)
-          .length;
+      reasonCounts[reason.name] =
+          _reportHistory.where((report) => report.reason == reason).length;
     }
 
     final last30Days = DateTime.now().subtract(const Duration(days: 30));
@@ -270,18 +265,21 @@ class ContentReportingService extends ChangeNotifier {
   }
 
   /// Clear old reports (privacy cleanup)
-  Future<void> clearOldReports({Duration maxAge = const Duration(days: 90)}) async {
+  Future<void> clearOldReports(
+      {Duration maxAge = const Duration(days: 90)}) async {
     final cutoffDate = DateTime.now().subtract(maxAge);
     final initialCount = _reportHistory.length;
-    
-    _reportHistory.removeWhere((report) => report.createdAt.isBefore(cutoffDate));
-    
+
+    _reportHistory
+        .removeWhere((report) => report.createdAt.isBefore(cutoffDate));
+
     if (_reportHistory.length != initialCount) {
       await _saveReportHistory();
       notifyListeners();
-      
+
       final removedCount = initialCount - _reportHistory.length;
-      Log.debug('🧹 Cleared $removedCount old reports', name: 'ContentReportingService', category: LogCategory.system);
+      Log.debug('🧹 Cleared $removedCount old reports',
+          name: 'ContentReportingService', category: LogCategory.system);
     }
   }
 
@@ -297,7 +295,8 @@ class ContentReportingService extends ChangeNotifier {
   }) async {
     try {
       if (!_nostrService.hasKeys) {
-        Log.error('Cannot create report event: no keys available', name: 'ContentReportingService', category: LogCategory.system);
+        Log.error('Cannot create report event: no keys available',
+            name: 'ContentReportingService', category: LogCategory.system);
         return null;
       }
 
@@ -320,8 +319,9 @@ class ContentReportingService extends ChangeNotifier {
       }
 
       // Create NIP-56 compliant content
-      final reportContent = _formatNip56ReportContent(reason, details, additionalContext);
-      
+      final reportContent =
+          _formatNip56ReportContent(reason, details, additionalContext);
+
       // Create kind 1984 event using nostr_sdk (same pattern as video events)
       final createdAt = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final event = Event(
@@ -331,33 +331,41 @@ class ContentReportingService extends ChangeNotifier {
         reportContent,
         createdAt: createdAt,
       );
-      
+
       // Sign the event
       event.sign(_nostrService.keyManager.keyPair!.private);
-      
-      Log.info('Created NIP-56 report event (kind 1984): ${event.id}', name: 'ContentReportingService', category: LogCategory.system);
-      Log.verbose('Tags: ${tags.length}, Content length: ${reportContent.length}', name: 'ContentReportingService', category: LogCategory.system);
-      Log.debug('Reporting: $eventId for $reason', name: 'ContentReportingService', category: LogCategory.system);
-      
+
+      Log.info('Created NIP-56 report event (kind 1984): ${event.id}',
+          name: 'ContentReportingService', category: LogCategory.system);
+      Log.verbose(
+          'Tags: ${tags.length}, Content length: ${reportContent.length}',
+          name: 'ContentReportingService',
+          category: LogCategory.system);
+      Log.debug('Reporting: $eventId for $reason',
+          name: 'ContentReportingService', category: LogCategory.system);
+
       return event;
     } catch (e) {
-      Log.error('Failed to create NIP-56 report event: $e', name: 'ContentReportingService', category: LogCategory.system);
+      Log.error('Failed to create NIP-56 report event: $e',
+          name: 'ContentReportingService', category: LogCategory.system);
       return null;
     }
   }
 
   /// Format report content for NIP-56 compliance (kind 1984)
-  String _formatNip56ReportContent(ContentFilterReason reason, String details, String? additionalContext) {
+  String _formatNip56ReportContent(
+      ContentFilterReason reason, String details, String? additionalContext) {
     final buffer = StringBuffer();
     buffer.writeln('CONTENT REPORT - NIP-56');
     buffer.writeln('Reason: ${reason.name}');
     buffer.writeln('Details: $details');
-    
+
     if (additionalContext != null) {
       buffer.writeln('Additional Context: $additionalContext');
     }
-    
-    buffer.writeln('Reported via OpenVine for community safety and Apple App Store compliance');
+
+    buffer.writeln(
+        'Reported via OpenVine for community safety and Apple App Store compliance');
     return buffer.toString();
   }
 
@@ -403,11 +411,14 @@ class ContentReportingService extends ChangeNotifier {
         final List<dynamic> reportsJson = jsonDecode(historyJson);
         _reportHistory.clear();
         _reportHistory.addAll(
-          reportsJson.map((json) => ContentReport.fromJson(json))
+          reportsJson.map(
+              (json) => ContentReport.fromJson(json as Map<String, dynamic>)),
         );
-        Log.debug('� Loaded ${_reportHistory.length} reports from history', name: 'ContentReportingService', category: LogCategory.system);
+        Log.debug('📱 Loaded ${_reportHistory.length} reports from history',
+            name: 'ContentReportingService', category: LogCategory.system);
       } catch (e) {
-        Log.error('Failed to load report history: $e', name: 'ContentReportingService', category: LogCategory.system);
+        Log.error('Failed to load report history: $e',
+            name: 'ContentReportingService', category: LogCategory.system);
       }
     }
   }
@@ -415,12 +426,12 @@ class ContentReportingService extends ChangeNotifier {
   /// Save report history to storage
   Future<void> _saveReportHistory() async {
     try {
-      final reportsJson = _reportHistory
-          .map((report) => report.toJson())
-          .toList();
+      final reportsJson =
+          _reportHistory.map((report) => report.toJson()).toList();
       await _prefs.setString(reportsStorageKey, jsonEncode(reportsJson));
     } catch (e) {
-      Log.error('Failed to save report history: $e', name: 'ContentReportingService', category: LogCategory.system);
+      Log.error('Failed to save report history: $e',
+          name: 'ContentReportingService', category: LogCategory.system);
     }
   }
 

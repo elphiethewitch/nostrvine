@@ -10,7 +10,20 @@ export async function handleViewTracking(
   try {
     // Parse request body
     const body = await request.json() as ViewRequest;
-    const { eventId, source = 'web', creatorPubkey, hashtags, title } = body;
+    const { 
+      eventId, 
+      source = 'web', 
+      creatorPubkey, 
+      hashtags, 
+      title,
+      eventType = 'view_start',
+      watchDurationMs,
+      totalDurationMs,
+      completionRate,
+      loopCount,
+      completedVideo,
+      timestamp 
+    } = body;
 
     // Validate event ID (64 char hex string)
     if (!eventId || !/^[a-f0-9]{64}$/i.test(eventId)) {
@@ -26,9 +39,20 @@ export async function handleViewTracking(
     const viewKey = `views:${eventId}`;
     const currentData = await env.ANALYTICS_KV.get<ViewData>(viewKey, 'json');
     
-    // Increment view count
-    const newCount = (currentData?.count || 0) + 1;
+    // Handle different event types
+    let newCount = currentData?.count || 0;
+    if (eventType === 'view_start') {
+      newCount += 1; // Only increment count for new views
+    }
+    
     const now = Date.now();
+    
+    // Calculate enhanced engagement metrics
+    const newTotalWatchTime = (currentData?.totalWatchTimeMs || 0) + (watchDurationMs || 0);
+    const newLoopCount = (currentData?.loopCount || 0) + (loopCount || 0);
+    const newCompletedViews = (currentData?.completedViews || 0) + (completedVideo ? 1 : 0);
+    const newPauseCount = (currentData?.pauseCount || 0) + (eventType === 'pause' ? 1 : 0);
+    const newSkipCount = (currentData?.skipCount || 0) + (eventType === 'skip' ? 1 : 0);
     
     // Preserve existing metadata or use new
     const viewData: ViewData = {
@@ -36,7 +60,15 @@ export async function handleViewTracking(
       lastUpdate: now,
       hashtags: hashtags || currentData?.hashtags || [],
       creatorPubkey: creatorPubkey || currentData?.creatorPubkey,
-      title: title || currentData?.title
+      title: title || currentData?.title,
+      // Enhanced engagement metrics
+      totalWatchTimeMs: newTotalWatchTime,
+      completionRate: completionRate || currentData?.completionRate,
+      loopCount: newLoopCount,
+      completedViews: newCompletedViews,
+      pauseCount: newPauseCount,
+      skipCount: newSkipCount,
+      averageWatchTimeMs: newCount > 0 ? Math.round(newTotalWatchTime / newCount) : 0,
     };
 
     // Store updated count with metadata
@@ -61,7 +93,7 @@ export async function handleViewTracking(
     }
 
     // Log to console for debugging (no user data)
-    console.log(`View recorded: ${eventId} from ${source}, total views: ${newCount}`);
+    console.log(`${eventType} recorded: ${eventId} from ${source}, total views: ${newCount}`);
 
     // Return success response
     return new Response(

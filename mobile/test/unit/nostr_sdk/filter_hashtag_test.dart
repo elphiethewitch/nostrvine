@@ -2,13 +2,16 @@
 // ABOUTME: Tests serialization, deserialization, and event filtering with hashtags
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nostr_sdk/filter.dart';
 import 'package:nostr_sdk/event.dart';
+import 'package:nostr_sdk/filter.dart';
 
 // Valid hex pubkey for testing
-const testPubkey1 = '82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2';
-const testPubkey2 = '82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a3';
-const testPubkey3 = '82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a4';
+const testPubkey1 =
+    '82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a2';
+const testPubkey2 =
+    '82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a3';
+const testPubkey3 =
+    '82341f882b6eabcd2ba7f1ef90aad961cf074af15b9ef44a09f9d2a8fbfbe6a4';
 
 void main() {
   group('Filter hashtag support', () {

@@ -2,16 +2,17 @@
 // ABOUTME: Provides both mock and real implementations based on test needs
 
 import 'dart:async';
+
 import 'package:mocktail/mocktail.dart';
 import 'package:nostr_sdk/event.dart';
 import 'package:nostr_sdk/filter.dart';
-import 'package:openvine/services/subscription_manager.dart';
 import 'package:openvine/services/nostr_service_interface.dart';
+import 'package:openvine/services/subscription_manager.dart';
 
 /// Creates a mock SubscriptionManager for unit tests
 class MockSubscriptionManager extends Mock implements SubscriptionManager {
   final List<String> activeSubscriptions = [];
-  
+
   @override
   Future<String> createSubscription({
     required String name,
@@ -24,7 +25,7 @@ class MockSubscriptionManager extends Mock implements SubscriptionManager {
   }) async {
     final id = 'mock_${DateTime.now().millisecondsSinceEpoch}';
     activeSubscriptions.add(id);
-    
+
     // Simulate subscription behavior
     if (timeout != null) {
       Future.delayed(timeout, () {
@@ -34,10 +35,10 @@ class MockSubscriptionManager extends Mock implements SubscriptionManager {
         }
       });
     }
-    
+
     return id;
   }
-  
+
   @override
   Future<void> cancelSubscription(String subscriptionId) async {
     activeSubscriptions.remove(subscriptionId);
@@ -45,50 +46,54 @@ class MockSubscriptionManager extends Mock implements SubscriptionManager {
 }
 
 /// Creates a real SubscriptionManager for integration tests
-SubscriptionManager createRealSubscriptionManager(INostrService nostrService) {
-  return SubscriptionManager(nostrService);
-}
+SubscriptionManager createRealSubscriptionManager(INostrService nostrService) =>
+    SubscriptionManager(nostrService);
 
 /// Helper to set up common mock behaviors for SubscriptionManager
 void setupMockSubscriptionManager(MockSubscriptionManager mock) {
-  when(() => mock.createSubscription(
-    name: any(named: 'name'),
-    filters: any(named: 'filters'),
-    onEvent: any(named: 'onEvent'),
-    onError: any(named: 'onError'),
-    onComplete: any(named: 'onComplete'),
-    timeout: any(named: 'timeout'),
-    priority: any(named: 'priority'),
-  )).thenAnswer((invocation) async {
+  when(
+    () => mock.createSubscription(
+      name: any(named: 'name'),
+      filters: any(named: 'filters'),
+      onEvent: any(named: 'onEvent'),
+      onError: any(named: 'onError'),
+      onComplete: any(named: 'onComplete'),
+      timeout: any(named: 'timeout'),
+      priority: any(named: 'priority'),
+    ),
+  ).thenAnswer((invocation) async {
     final name = invocation.namedArguments[#name] as String;
     return 'mock_sub_$name';
   });
-  
+
   when(() => mock.cancelSubscription(any())).thenAnswer((_) async {});
 }
 
 /// Helper to set up MockSubscriptionManager that forwards events from a StreamController to VideoEventService
 void setupMockSubscriptionManagerWithEventStream(
-  MockSubscriptionManager mock, 
+  MockSubscriptionManager mock,
   StreamController<Event> eventStreamController,
 ) {
-  when(() => mock.createSubscription(
-    name: any(named: 'name'),
-    filters: any(named: 'filters'),
-    onEvent: any(named: 'onEvent'),
-    onError: any(named: 'onError'),
-    onComplete: any(named: 'onComplete'),
-    timeout: any(named: 'timeout'),
-    priority: any(named: 'priority'),
-  )).thenAnswer((invocation) async {
-    final onEvent = invocation.namedArguments[Symbol('onEvent')] as Function(Event);
-    final name = invocation.namedArguments[Symbol('name')] as String;
-    
+  when(
+    () => mock.createSubscription(
+      name: any(named: 'name'),
+      filters: any(named: 'filters'),
+      onEvent: any(named: 'onEvent'),
+      onError: any(named: 'onError'),
+      onComplete: any(named: 'onComplete'),
+      timeout: any(named: 'timeout'),
+      priority: any(named: 'priority'),
+    ),
+  ).thenAnswer((invocation) async {
+    final onEvent =
+        invocation.namedArguments[const Symbol('onEvent')] as Function(Event);
+    final name = invocation.namedArguments[const Symbol('name')] as String;
+
     // Set up a stream listener that calls onEvent for each event
     eventStreamController.stream.listen(onEvent);
-    
+
     return 'mock_sub_$name';
   });
-  
+
   when(() => mock.cancelSubscription(any())).thenAnswer((_) async {});
 }

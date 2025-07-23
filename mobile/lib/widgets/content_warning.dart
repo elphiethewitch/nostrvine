@@ -2,30 +2,29 @@
 // ABOUTME: Provides user control over viewing filtered content with clear warnings
 
 import 'package:flutter/material.dart';
-import '../services/content_moderation_service.dart';
+import 'package:openvine/services/content_moderation_service.dart';
 
 /// Content warning overlay for filtered content
 class ContentWarning extends StatefulWidget {
+  const ContentWarning({
+    required this.child,
+    required this.moderationResult,
+    super.key,
+    this.onReport,
+    this.onBlock,
+    this.showControls = true,
+  });
   final Widget child;
   final ModerationResult moderationResult;
   final VoidCallback? onReport;
   final VoidCallback? onBlock;
   final bool showControls;
 
-  const ContentWarning({
-    super.key,
-    required this.child,
-    required this.moderationResult,
-    this.onReport,
-    this.onBlock,
-    this.showControls = true,
-  });
-
   @override
   State<ContentWarning> createState() => _ContentWarningState();
 }
 
-class _ContentWarningState extends State<ContentWarning> 
+class _ContentWarningState extends State<ContentWarning>
     with SingleTickerProviderStateMixin {
   bool _isRevealed = false;
   late AnimationController _animationController;
@@ -61,168 +60,167 @@ class _ContentWarningState extends State<ContentWarning>
     return _buildWarningOverlay(context);
   }
 
-  Widget _buildWarningOverlay(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _getWarningColor(widget.moderationResult.severity).withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: _getWarningColor(widget.moderationResult.severity),
-          width: 2,
+  Widget _buildWarningOverlay(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _getWarningColor(widget.moderationResult.severity)
+              .withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _getWarningColor(widget.moderationResult.severity),
+            width: 2,
+          ),
         ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Warning icon and title
-          Row(
-            children: [
-              Icon(
-                _getWarningIcon(widget.moderationResult.severity),
-                color: Colors.white,
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _getWarningTitle(widget.moderationResult.severity),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (widget.moderationResult.warningMessage != null)
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Warning icon and title
+            Row(
+              children: [
+                Icon(
+                  _getWarningIcon(widget.moderationResult.severity),
+                  color: Colors.white,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        widget.moderationResult.warningMessage!,
+                        _getWarningTitle(widget.moderationResult.severity),
                         style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                  ],
+                      if (widget.moderationResult.warningMessage != null)
+                        Text(
+                          widget.moderationResult.warningMessage!,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 16),
-
-          // Filter reason chips
-          if (widget.moderationResult.reasons.isNotEmpty)
-            Wrap(
-              spacing: 8,
-              children: widget.moderationResult.reasons.map((reason) =>
-                Chip(
-                  label: Text(
-                    reason.description,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  labelStyle: const TextStyle(color: Colors.white),
-                ),
-              ).toList(),
-            ),
-
-          const SizedBox(height: 16),
-
-          // Action buttons
-          Row(
-            children: [
-              // Show content button
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _revealContent,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    side: const BorderSide(color: Colors.white),
-                  ),
-                  child: const Text('View Anyway'),
-                ),
-              ),
-
-              if (widget.showControls) ...[
-                const SizedBox(width: 12),
-
-                // Report button
-                if (widget.onReport != null)
-                  IconButton(
-                    onPressed: widget.onReport,
-                    icon: const Icon(Icons.flag_outlined),
-                    color: Colors.white,
-                    tooltip: 'Report Content',
-                  ),
-
-                // Block button  
-                if (widget.onBlock != null)
-                  IconButton(
-                    onPressed: widget.onBlock,
-                    icon: const Icon(Icons.block_outlined),
-                    color: Colors.white,
-                    tooltip: 'Block User',
-                  ),
               ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBlockedContent(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.red.shade800,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red, width: 2),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.block,
-            color: Colors.white,
-            size: 48,
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Content Blocked',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
             ),
-          ),
-          const SizedBox(height: 8),
-          if (widget.moderationResult.warningMessage != null)
+
+            const SizedBox(height: 16),
+
+            // Filter reason chips
+            if (widget.moderationResult.reasons.isNotEmpty)
+              Wrap(
+                spacing: 8,
+                children: widget.moderationResult.reasons
+                    .map(
+                      (reason) => Chip(
+                        label: Text(
+                          reason.description,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        backgroundColor: Colors.white.withValues(alpha: 0.2),
+                        labelStyle: const TextStyle(color: Colors.white),
+                      ),
+                    )
+                    .toList(),
+              ),
+
+            const SizedBox(height: 16),
+
+            // Action buttons
+            Row(
+              children: [
+                // Show content button
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _revealContent,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white),
+                    ),
+                    child: const Text('View Anyway'),
+                  ),
+                ),
+
+                if (widget.showControls) ...[
+                  const SizedBox(width: 12),
+
+                  // Report button
+                  if (widget.onReport != null)
+                    IconButton(
+                      onPressed: widget.onReport,
+                      icon: const Icon(Icons.flag_outlined),
+                      color: Colors.white,
+                      tooltip: 'Report Content',
+                    ),
+
+                  // Block button
+                  if (widget.onBlock != null)
+                    IconButton(
+                      onPressed: widget.onBlock,
+                      icon: const Icon(Icons.block_outlined),
+                      color: Colors.white,
+                      tooltip: 'Block User',
+                    ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildBlockedContent(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.red.shade800,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.red, width: 2),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.block,
+              color: Colors.white,
+              size: 48,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Content Blocked',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (widget.moderationResult.warningMessage != null)
+              Text(
+                widget.moderationResult.warningMessage!,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            const SizedBox(height: 16),
             Text(
-              widget.moderationResult.warningMessage!,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
+              'This content has been blocked due to policy violations.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.8),
+                fontSize: 12,
               ),
               textAlign: TextAlign.center,
             ),
-          const SizedBox(height: 16),
-          Text(
-            'This content has been blocked due to policy violations.',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.8),
-              fontSize: 12,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
 
   void _revealContent() {
     setState(() {
@@ -273,74 +271,70 @@ class _ContentWarningState extends State<ContentWarning>
 
 /// Quick content warning for less severe content
 class QuickContentWarning extends StatelessWidget {
+  const QuickContentWarning({
+    required this.child,
+    required this.warningText,
+    super.key,
+    this.icon = Icons.warning_amber_outlined,
+    this.color = Colors.orange,
+    this.onTap,
+  });
   final Widget child;
   final String warningText;
   final IconData icon;
   final Color color;
   final VoidCallback? onTap;
 
-  const QuickContentWarning({
-    super.key,
-    required this.child,
-    required this.warningText,
-    this.icon = Icons.warning_amber_outlined,
-    this.color = Colors.orange,
-    this.onTap,
-  });
-
   @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        child,
-        Positioned(
-          top: 8,
-          right: 8,
-          child: GestureDetector(
-            onTap: onTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.9),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, color: Colors.white, size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    warningText,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+  Widget build(BuildContext context) => Stack(
+        children: [
+          child,
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: Colors.white, size: 16),
+                    const SizedBox(width: 4),
+                    Text(
+                      warningText,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
-    );
-  }
+        ],
+      );
 }
 
 /// Content warning for video thumbnails
 class VideoContentWarning extends StatefulWidget {
+  const VideoContentWarning({
+    required this.thumbnail,
+    required this.moderationResult,
+    super.key,
+    this.onPlay,
+    this.onReport,
+  });
   final Widget thumbnail;
   final ModerationResult moderationResult;
   final VoidCallback? onPlay;
   final VoidCallback? onReport;
-
-  const VideoContentWarning({
-    super.key,
-    required this.thumbnail,
-    required this.moderationResult,
-    this.onPlay,
-    this.onReport,
-  });
 
   @override
   State<VideoContentWarning> createState() => _VideoContentWarningState();
@@ -366,14 +360,15 @@ class _VideoContentWarningState extends State<VideoContentWarning> {
         // Blurred background
         ImageFiltered(
           imageFilter: widget.moderationResult.severity == ContentSeverity.block
-              ? ColorFilter.mode(Colors.black.withValues(alpha: 0.8), BlendMode.srcOver)
+              ? ColorFilter.mode(
+                  Colors.black.withValues(alpha: 0.8), BlendMode.srcOver)
               : const ColorFilter.mode(Colors.transparent, BlendMode.multiply),
           child: widget.thumbnail,
         ),
 
         // Warning overlay
         Positioned.fill(
-          child: Container(
+          child: DecoratedBox(
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.7),
               borderRadius: BorderRadius.circular(8),
@@ -381,15 +376,15 @@ class _VideoContentWarningState extends State<VideoContentWarning> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
+                const Icon(
                   Icons.warning_amber,
                   color: Colors.white,
                   size: 32,
                 ),
                 const SizedBox(height: 8),
-                Text(
+                const Text(
                   'Sensitive Content',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -399,7 +394,8 @@ class _VideoContentWarningState extends State<VideoContentWarning> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    if (widget.moderationResult.severity != ContentSeverity.block)
+                    if (widget.moderationResult.severity !=
+                        ContentSeverity.block)
                       TextButton(
                         onPressed: () {
                           setState(() {

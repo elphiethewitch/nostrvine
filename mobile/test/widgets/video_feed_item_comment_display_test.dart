@@ -6,10 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('VideoFeedItem Comment Display', () {
-    testWidgets('should show "?" for comment count initially', (WidgetTester tester) async {
+    testWidgets('should show "?" for comment count initially', (tester) async {
       // This is a simple display test - just verify the "?" appears in the widget tree
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: Center(
               child: Text('?'),

@@ -6,14 +6,6 @@ import 'package:flutter/material.dart';
 /// Professional video icon placeholder that displays instead of missing thumbnails
 /// Uses a proper video icon with subtle animations and proper theming
 class VideoIconPlaceholder extends StatefulWidget {
-  final double? width;
-  final double? height;
-  final Color? backgroundColor;
-  final Color? iconColor;
-  final bool showLoading;
-  final double borderRadius;
-  final bool showPlayIcon;
-
   const VideoIconPlaceholder({
     super.key,
     this.width,
@@ -24,6 +16,13 @@ class VideoIconPlaceholder extends StatefulWidget {
     this.borderRadius = 8.0,
     this.showPlayIcon = true,
   });
+  final double? width;
+  final double? height;
+  final Color? backgroundColor;
+  final Color? iconColor;
+  final bool showLoading;
+  final double borderRadius;
+  final bool showPlayIcon;
 
   @override
   State<VideoIconPlaceholder> createState() => _VideoIconPlaceholderState();
@@ -43,11 +42,13 @@ class _VideoIconPlaceholderState extends State<VideoIconPlaceholder>
     );
     _pulseAnimation = Tween<double>(
       begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
+      end: 1,
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Curves.easeInOut,
+      ),
+    );
 
     if (widget.showLoading) {
       _animationController.repeat(reverse: true);
@@ -77,11 +78,11 @@ class _VideoIconPlaceholderState extends State<VideoIconPlaceholder>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
-    final bgColor = widget.backgroundColor ?? 
+
+    final bgColor = widget.backgroundColor ??
         (isDark ? Colors.grey[800] : Colors.grey[200]);
-    final iconColorValue = widget.iconColor ?? 
-        (isDark ? Colors.grey[400] : Colors.grey[600]);
+    final iconColorValue =
+        widget.iconColor ?? (isDark ? Colors.grey[400] : Colors.grey[600]);
 
     return Container(
       width: widget.width,
@@ -97,73 +98,68 @@ class _VideoIconPlaceholderState extends State<VideoIconPlaceholder>
       child: widget.showLoading
           ? AnimatedBuilder(
               animation: _pulseAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _pulseAnimation.value,
-                  child: _buildIcon(iconColorValue),
-                );
-              },
+              builder: (context, child) => Transform.scale(
+                scale: _pulseAnimation.value,
+                child: _buildIcon(iconColorValue),
+              ),
             )
           : _buildIcon(iconColorValue),
     );
   }
 
-  Widget _buildIcon(Color? iconColor) {
-    return Center(
-      child: widget.showPlayIcon 
-        ? Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.play_circle_outline,
-                size: 48,
-                color: iconColor,
-              ),
-              const SizedBox(height: 8),
-              Text(
+  Widget _buildIcon(Color? iconColor) => Center(
+        child: widget.showPlayIcon
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.play_circle_outline,
+                    size: 48,
+                    color: iconColor,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Video',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: iconColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              )
+            : Text(
                 'Video',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 14,
                   color: iconColor,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-            ],
-          )
-        : Text(
-            'Video',
-            style: TextStyle(
-              fontSize: 14,
-              color: iconColor,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-    );
-  }
+      );
 }
 
 /// Compact version for smaller spaces
 class VideoIconPlaceholderCompact extends StatelessWidget {
-  final double size;
-  final Color? iconColor;
-  final Color? backgroundColor;
-
   const VideoIconPlaceholderCompact({
     super.key,
     this.size = 24,
     this.iconColor,
     this.backgroundColor,
   });
+  final double size;
+  final Color? iconColor;
+  final Color? backgroundColor;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
-    final bgColor = backgroundColor ?? 
-        (isDark ? Colors.grey[800] : Colors.grey[200]);
-    final iconColorValue = iconColor ?? 
-        (isDark ? Colors.grey[400] : Colors.grey[600]);
+
+    final bgColor =
+        backgroundColor ?? (isDark ? Colors.grey[800] : Colors.grey[200]);
+    final iconColorValue =
+        iconColor ?? (isDark ? Colors.grey[400] : Colors.grey[600]);
 
     return Container(
       width: size,

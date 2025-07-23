@@ -4,12 +4,13 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
-import 'dart:ui' as _i9;
+import 'dart:ui' as _i10;
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:nostr_sdk/event.dart' as _i6;
-import 'package:nostr_sdk/filter.dart' as _i7;
-import 'package:openvine/models/nip94_metadata.dart' as _i8;
+import 'package:mockito/src/dummies.dart' as _i6;
+import 'package:nostr_sdk/event.dart' as _i7;
+import 'package:nostr_sdk/filter.dart' as _i8;
+import 'package:openvine/models/nip94_metadata.dart' as _i9;
 import 'package:openvine/services/nostr_key_manager.dart' as _i2;
 import 'package:openvine/services/nostr_service.dart' as _i4;
 import 'package:openvine/services/nostr_service_interface.dart' as _i3;
@@ -116,10 +117,64 @@ class MockNostrService extends _i1.Mock implements _i4.NostrService {
       ) as Map<String, dynamic>);
 
   @override
+  Map<String, bool> get relayAuthStates => (super.noSuchMethod(
+        Invocation.getter(#relayAuthStates),
+        returnValue: <String, bool>{},
+      ) as Map<String, bool>);
+
+  @override
+  _i5.Stream<Map<String, bool>> get authStateStream => (super.noSuchMethod(
+        Invocation.getter(#authStateStream),
+        returnValue: _i5.Stream<Map<String, bool>>.empty(),
+      ) as _i5.Stream<Map<String, bool>>);
+
+  @override
+  bool get isVineRelayAuthenticated => (super.noSuchMethod(
+        Invocation.getter(#isVineRelayAuthenticated),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  String get primaryRelay => (super.noSuchMethod(
+        Invocation.getter(#primaryRelay),
+        returnValue: _i6.dummyValue<String>(
+          this,
+          Invocation.getter(#primaryRelay),
+        ),
+      ) as String);
+
+  @override
+  String get serviceName => (super.noSuchMethod(
+        Invocation.getter(#serviceName),
+        returnValue: _i6.dummyValue<String>(
+          this,
+          Invocation.getter(#serviceName),
+        ),
+      ) as String);
+
+  @override
   bool get hasListeners => (super.noSuchMethod(
         Invocation.getter(#hasListeners),
         returnValue: false,
       ) as bool);
+
+  @override
+  bool isRelayAuthenticated(String? relayUrl) => (super.noSuchMethod(
+        Invocation.method(
+          #isRelayAuthenticated,
+          [relayUrl],
+        ),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  void setAuthTimeout(Duration? timeout) => super.noSuchMethod(
+        Invocation.method(
+          #setAuthTimeout,
+          [timeout],
+        ),
+        returnValueForMissingStub: null,
+      );
 
   @override
   _i5.Future<void> initialize({List<String>? customRelays}) =>
@@ -134,8 +189,8 @@ class MockNostrService extends _i1.Mock implements _i4.NostrService {
       ) as _i5.Future<void>);
 
   @override
-  _i5.Stream<_i6.Event> subscribeToEvents({
-    required List<_i7.Filter>? filters,
+  _i5.Stream<_i7.Event> subscribeToEvents({
+    required List<_i8.Filter>? filters,
     bool? bypassLimits = false,
   }) =>
       (super.noSuchMethod(
@@ -147,11 +202,11 @@ class MockNostrService extends _i1.Mock implements _i4.NostrService {
             #bypassLimits: bypassLimits,
           },
         ),
-        returnValue: _i5.Stream<_i6.Event>.empty(),
-      ) as _i5.Stream<_i6.Event>);
+        returnValue: _i5.Stream<_i7.Event>.empty(),
+      ) as _i5.Stream<_i7.Event>);
 
   @override
-  _i5.Future<_i3.NostrBroadcastResult> broadcastEvent(_i6.Event? event) =>
+  _i5.Future<_i3.NostrBroadcastResult> broadcastEvent(_i7.Event? event) =>
       (super.noSuchMethod(
         Invocation.method(
           #broadcastEvent,
@@ -169,7 +224,7 @@ class MockNostrService extends _i1.Mock implements _i4.NostrService {
 
   @override
   _i5.Future<_i3.NostrBroadcastResult> publishFileMetadata({
-    required _i8.NIP94Metadata? metadata,
+    required _i9.NIP94Metadata? metadata,
     required String? content,
     List<String>? hashtags = const [],
   }) =>
@@ -317,6 +372,52 @@ class MockNostrService extends _i1.Mock implements _i4.NostrService {
       ) as _i5.Future<void>);
 
   @override
+  _i5.Future<void> clearPersistedAuthStates() => (super.noSuchMethod(
+        Invocation.method(
+          #clearPersistedAuthStates,
+          [],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
+  void onAppBackgrounded() => super.noSuchMethod(
+        Invocation.method(
+          #onAppBackgrounded,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void onExtendedBackground() => super.noSuchMethod(
+        Invocation.method(
+          #onExtendedBackground,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void onAppResumed() => super.noSuchMethod(
+        Invocation.method(
+          #onAppResumed,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void onPeriodicCleanup() => super.noSuchMethod(
+        Invocation.method(
+          #onPeriodicCleanup,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
   void dispose() => super.noSuchMethod(
         Invocation.method(
           #dispose,
@@ -326,7 +427,7 @@ class MockNostrService extends _i1.Mock implements _i4.NostrService {
       );
 
   @override
-  void addListener(_i9.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i10.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #addListener,
           [listener],
@@ -335,7 +436,7 @@ class MockNostrService extends _i1.Mock implements _i4.NostrService {
       );
 
   @override
-  void removeListener(_i9.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i10.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #removeListener,
           [listener],

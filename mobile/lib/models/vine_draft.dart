@@ -4,16 +4,6 @@
 import 'dart:io';
 
 class VineDraft {
-  final String id;
-  final File videoFile;
-  final String title;
-  final String description;
-  final List<String> hashtags;
-  final int frameCount;
-  final String selectedApproach;
-  final DateTime createdAt;
-  final DateTime lastModified;
-
   const VineDraft({
     required this.id,
     required this.videoFile,
@@ -48,51 +38,55 @@ class VineDraft {
     );
   }
 
+  factory VineDraft.fromJson(Map<String, dynamic> json) => VineDraft(
+        id: json['id'] as String,
+        videoFile: File(json['videoFilePath'] as String),
+        title: json['title'] as String,
+        description: json['description'] as String,
+        hashtags: List<String>.from(json['hashtags'] as Iterable),
+        frameCount: json['frameCount'] as int,
+        selectedApproach: json['selectedApproach'] as String,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        lastModified: DateTime.parse(json['lastModified'] as String),
+      );
+  final String id;
+  final File videoFile;
+  final String title;
+  final String description;
+  final List<String> hashtags;
+  final int frameCount;
+  final String selectedApproach;
+  final DateTime createdAt;
+  final DateTime lastModified;
+
   VineDraft copyWith({
     String? title,
     String? description,
     List<String>? hashtags,
-  }) {
-    return VineDraft(
-      id: id,
-      videoFile: videoFile,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      hashtags: hashtags ?? this.hashtags,
-      frameCount: frameCount,
-      selectedApproach: selectedApproach,
-      createdAt: createdAt,
-      lastModified: DateTime.now(),
-    );
-  }
+  }) =>
+      VineDraft(
+        id: id,
+        videoFile: videoFile,
+        title: title ?? this.title,
+        description: description ?? this.description,
+        hashtags: hashtags ?? this.hashtags,
+        frameCount: frameCount,
+        selectedApproach: selectedApproach,
+        createdAt: createdAt,
+        lastModified: DateTime.now(),
+      );
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'videoFilePath': videoFile.path,
-      'title': title,
-      'description': description,
-      'hashtags': hashtags,
-      'frameCount': frameCount,
-      'selectedApproach': selectedApproach,
-      'createdAt': createdAt.toIso8601String(),
-      'lastModified': lastModified.toIso8601String(),
-    };
-  }
-
-  factory VineDraft.fromJson(Map<String, dynamic> json) {
-    return VineDraft(
-      id: json['id'],
-      videoFile: File(json['videoFilePath']),
-      title: json['title'],
-      description: json['description'],
-      hashtags: List<String>.from(json['hashtags']),
-      frameCount: json['frameCount'],
-      selectedApproach: json['selectedApproach'],
-      createdAt: DateTime.parse(json['createdAt']),
-      lastModified: DateTime.parse(json['lastModified']),
-    );
-  }
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'videoFilePath': videoFile.path,
+        'title': title,
+        'description': description,
+        'hashtags': hashtags,
+        'frameCount': frameCount,
+        'selectedApproach': selectedApproach,
+        'createdAt': createdAt.toIso8601String(),
+        'lastModified': lastModified.toIso8601String(),
+      };
 
   String get displayDuration {
     final duration = DateTime.now().difference(createdAt);

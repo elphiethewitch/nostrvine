@@ -3,11 +3,11 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
-import 'package:video_player/video_player.dart';
-import 'package:openvine/services/video_playback_controller.dart';
+import 'package:mockito/mockito.dart';
 import 'package:openvine/models/video_event.dart';
+import 'package:openvine/services/video_playback_controller.dart';
+import 'package:video_player/video_player.dart';
 
 @GenerateMocks([VideoPlayerController])
 import 'video_playback_controller_mock_test.mocks.dart';
@@ -31,7 +31,7 @@ void main() {
       );
 
       mockVideoController = MockVideoPlayerController();
-      
+
       // Setup default mock behaviors
       when(mockVideoController.initialize()).thenAnswer((_) async {});
       when(mockVideoController.play()).thenAnswer((_) async {});
@@ -42,7 +42,7 @@ void main() {
       when(mockVideoController.dispose()).thenAnswer((_) async {});
       when(mockVideoController.addListener(any)).thenReturn(null);
       when(mockVideoController.removeListener(any)).thenReturn(null);
-      
+
       // Setup video player value
       when(mockVideoController.value).thenReturn(
         const VideoPlayerValue(
@@ -52,15 +52,16 @@ void main() {
           isPlaying: false,
           isLooping: false,
           isBuffering: false,
-          volume: 1.0,
-          playbackSpeed: 1.0,
+          volume: 1,
+          playbackSpeed: 1,
           errorDescription: null,
           size: Size(1920, 1080),
         ),
       );
     });
 
-    testWidgets('Controller properly tracks initialization state', (WidgetTester tester) async {
+    testWidgets('Controller properly tracks initialization state',
+        (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,
@@ -78,14 +79,14 @@ void main() {
 
       // Initialize
       await controller.initialize();
-      
+
       // Should have gone through initializing state
       expect(states.contains(VideoPlaybackState.initializing), isTrue);
-      
+
       controller.dispose();
     });
 
-    testWidgets('Feed configuration applies correct settings', (WidgetTester tester) async {
+    testWidgets('Feed configuration applies correct settings', (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,
@@ -100,7 +101,7 @@ void main() {
       controller.dispose();
     });
 
-    testWidgets('Navigation pause/resume tracks playing state', (WidgetTester tester) async {
+    testWidgets('Navigation pause/resume tracks playing state', (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,
@@ -108,23 +109,23 @@ void main() {
 
       // Simulate playing state
       controller.setActive(true);
-      
+
       // Navigate away
       await controller.onNavigationAway();
-      
+
       // Should remember it was playing
       expect(controller.isActive, isTrue);
-      
+
       // Navigate back
       await controller.onNavigationReturn();
-      
+
       // Should still be active
       expect(controller.isActive, isTrue);
 
       controller.dispose();
     });
 
-    testWidgets('Error state is set correctly', (WidgetTester tester) async {
+    testWidgets('Error state is set correctly', (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,
@@ -132,7 +133,7 @@ void main() {
 
       // Simulate an error by having initialize throw
       when(mockVideoController.initialize()).thenThrow(Exception('Test error'));
-      
+
       // This would normally set error state when initialize fails
       // For now, manually verify error handling path exists
       expect(controller.hasError, isFalse);
@@ -141,7 +142,7 @@ void main() {
       controller.dispose();
     });
 
-    testWidgets('Retry mechanism respects max retries', (WidgetTester tester) async {
+    testWidgets('Retry mechanism respects max retries', (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: const VideoPlaybackConfig(maxRetries: 2),
@@ -149,20 +150,20 @@ void main() {
 
       // Should allow first retry
       await controller.retry();
-      
+
       // Should allow second retry
       await controller.retry();
-      
+
       // Third retry should be limited
       await controller.retry();
-      
+
       // Verify controller didn't crash
       expect(controller.state, isNot(equals(VideoPlaybackState.disposed)));
 
       controller.dispose();
     });
 
-    testWidgets('Event stream emits state changes', (WidgetTester tester) async {
+    testWidgets('Event stream emits state changes', (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,
@@ -173,10 +174,10 @@ void main() {
 
       // Change active state
       controller.setActive(true);
-      
+
       // Give stream time to emit
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       // Should have emitted at least one event
       expect(events, isNotEmpty);
       expect(events.first, isA<VideoStateChanged>());
@@ -185,7 +186,7 @@ void main() {
       controller.dispose();
     });
 
-    testWidgets('Volume control works correctly', (WidgetTester tester) async {
+    testWidgets('Volume control works correctly', (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.fullscreen, // Has volume 1.0
@@ -193,35 +194,35 @@ void main() {
 
       // Set custom volume
       await controller.setVolume(0.5);
-      
+
       // Verify volume would be set on real controller
       expect(controller.config.volume, equals(1.0)); // Config doesn't change
-      
+
       controller.dispose();
     });
 
-    testWidgets('Dispose cleans up properly', (WidgetTester tester) async {
+    testWidgets('Dispose cleans up properly', (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,
       );
 
       // Add a listener
-      bool listenerCalled = false;
+      var listenerCalled = false;
       controller.addListener(() {
         listenerCalled = true;
       });
 
       // Dispose
       controller.dispose();
-      
+
       // State should be disposed
       expect(controller.state, equals(VideoPlaybackState.disposed));
-      
+
       // Further operations should be safe
       controller.setActive(true);
       await controller.play();
-      
+
       // Listener shouldn't be called after dispose
       expect(listenerCalled, isFalse);
     });

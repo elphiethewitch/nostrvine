@@ -2,47 +2,34 @@
 // ABOUTME: Uses Nostr Kind 1 events for comments with proper e/p tags for threading
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../models/video_event.dart';
-import '../providers/comments_provider.dart';
-import '../services/social_service.dart';
-import '../services/auth_service.dart';
-import '../services/video_manager_interface.dart';
-import '../widgets/user_avatar.dart';
-import '../widgets/video_feed_item.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/providers/app_providers.dart';
+import 'package:openvine/providers/comments_provider.dart';
+import 'package:openvine/widgets/user_avatar.dart';
+import 'package:openvine/widgets/video_feed_item.dart';
 
-class CommentsScreen extends StatefulWidget {
+class CommentsScreen extends ConsumerStatefulWidget {
+  const CommentsScreen({
+    required this.videoEvent,
+    super.key,
+  });
   final VideoEvent videoEvent;
 
-  const CommentsScreen({
-    super.key,
-    required this.videoEvent,
-  });
-
   @override
-  State<CommentsScreen> createState() => _CommentsScreenState();
+  ConsumerState<CommentsScreen> createState() => _CommentsScreenState();
 }
 
-class _CommentsScreenState extends State<CommentsScreen> {
+class _CommentsScreenState extends ConsumerState<CommentsScreen> {
   final _commentController = TextEditingController();
   final _replyControllers = <String, TextEditingController>{};
   String? _replyingToCommentId;
   bool _isPosting = false;
-  late CommentsProvider _commentsProvider;
-  late SocialService _socialService;
-  late AuthService _authService;
-
+  // Using Riverpod commentsNotifierProvider instead
   @override
   void initState() {
     super.initState();
-    _socialService = context.read<SocialService>();
-    _authService = context.read<AuthService>();
-    _commentsProvider = CommentsProvider(
-      socialService: _socialService,
-      authService: _authService,
-      rootEventId: widget.videoEvent.id,
-      rootAuthorPubkey: widget.videoEvent.pubkey,
-    );
+    // Comments notifier is automatically initialized when watched
   }
 
   @override
@@ -51,27 +38,26 @@ class _CommentsScreenState extends State<CommentsScreen> {
     for (final controller in _replyControllers.values) {
       controller.dispose();
     }
-    _commentsProvider.dispose();
     super.dispose();
   }
 
   Future<void> _postComment({String? replyToId}) async {
-    final controller = replyToId != null 
-        ? _replyControllers[replyToId] 
-        : _commentController;
-    
+    final controller =
+        replyToId != null ? _replyControllers[replyToId] : _commentController;
+
     if (controller == null || controller.text.trim().isEmpty) return;
-    
+
     setState(() => _isPosting = true);
-    
+
     try {
-      await _socialService.postComment(
+      final socialService = ref.read(socialServiceProvider);
+      await socialService.postComment(
         content: controller.text.trim(),
         rootEventId: widget.videoEvent.id,
         rootEventAuthorPubkey: widget.videoEvent.pubkey,
         replyToEventId: replyToId,
       );
-      
+
       controller.clear();
       if (replyToId != null) {
         setState(() => _replyingToCommentId = null);
@@ -90,28 +76,22 @@ class _CommentsScreenState extends State<CommentsScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Video in background (paused)
-          Consumer<IVideoManager>(
-            builder: (context, videoManager, child) {
-              return VideoFeedItem(
-                video: widget.videoEvent,
-                isActive: false, // Keep video paused
-              );
-            },
-          ),
-          
-          // Comments overlay
-          DraggableScrollableSheet(
-            initialChildSize: 0.6,
-            minChildSize: 0.3,
-            maxChildSize: 0.9,
-            builder: (context, scrollController) {
-              return Container(
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            // Video in background (paused)
+            VideoFeedItem(
+              video: widget.videoEvent,
+              isActive: false, // Keep video paused
+            ),
+
+            // Comments overlay
+            DraggableScrollableSheet(
+              initialChildSize: 0.6,
+              minChildSize: 0.3,
+              maxChildSize: 0.9,
+              builder: (context, scrollController) => DecoratedBox(
                 decoration: const BoxDecoration(
                   color: Colors.black87,
                   borderRadius: BorderRadius.only(
@@ -131,10 +111,11 @@ class _CommentsScreenState extends State<CommentsScreen> {
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    
+
                     // Comments header
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
                       child: Row(
                         children: [
                           const Text(
@@ -153,69 +134,67 @@ class _CommentsScreenState extends State<CommentsScreen> {
                         ],
                       ),
                     ),
-                    
+
                     const Divider(color: Colors.white24, height: 1),
-                    
+
                     // Comments list
                     Expanded(
-                      child: ChangeNotifierProvider.value(
-                        value: _commentsProvider,
-                        child: Consumer<CommentsProvider>(
-                          builder: (context, provider, child) {
-                            if (provider.state.isLoading) {
-                              return const Center(
-                                child: CircularProgressIndicator(color: Colors.white),
-                              );
-                            }
-                            
-                            if (provider.state.error != null) {
-                              return Center(
-                                child: Text(
-                                  'Error loading comments: ${provider.state.error}',
-                                  style: const TextStyle(color: Colors.red),
-                                ),
-                              );
-                            }
-                            
-                            if (provider.state.topLevelComments.isEmpty) {
-                              return const Center(
-                                child: Text(
-                                  'No comments yet.\nBe the first to comment!',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: Colors.white70),
-                                ),
-                              );
-                            }
-                            
-                            return ListView.builder(
-                              controller: scrollController,
-                              padding: const EdgeInsets.only(bottom: 80),
-                              itemCount: provider.state.topLevelComments.length,
-                              itemBuilder: (context, index) {
-                                return _buildCommentThread(provider.state.topLevelComments[index]);
-                              },
+                      child: Builder(
+                        builder: (context) {
+                          final state = ref.watch(commentsNotifierProvider(widget.videoEvent.id, widget.videoEvent.pubkey));
+                          
+                          if (state.isLoading) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                  color: Colors.white),
                             );
-                          },
-                        ),
+                          }
+
+                          if (state.error != null) {
+                            return Center(
+                              child: Text(
+                                'Error loading comments: ${state.error}',
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                            );
+                          }
+
+                          if (state.topLevelComments.isEmpty) {
+                            return const Center(
+                              child: Text(
+                                'No comments yet.\nBe the first to comment!',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.white70),
+                              ),
+                            );
+                          }
+
+                          return ListView.builder(
+                            controller: scrollController,
+                            padding: const EdgeInsets.only(bottom: 80),
+                            itemCount: state.topLevelComments.length,
+                            itemBuilder: (context, index) =>
+                                _buildCommentThread(
+                                    state.topLevelComments[index]),
+                          );
+                        },
                       ),
                     ),
-                    
+
                     // Comment input
                     _buildCommentInput(),
                   ],
                 ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
+              ),
+            ),
+          ],
+        ),
+      );
 
   Widget _buildCommentThread(CommentNode node, {int depth = 0}) {
     final comment = node.comment;
     final isReplying = _replyingToCommentId == comment.id;
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -275,7 +254,8 @@ class _CommentsScreenState extends State<CommentsScreen> {
                                 _replyingToCommentId = null;
                               } else {
                                 _replyingToCommentId = comment.id;
-                                _replyControllers[comment.id] ??= TextEditingController();
+                                _replyControllers[comment.id] ??=
+                                    TextEditingController();
                               }
                             });
                           },
@@ -293,14 +273,15 @@ class _CommentsScreenState extends State<CommentsScreen> {
             ],
           ),
         ),
-        ...node.replies.map((reply) => _buildCommentThread(reply, depth: depth + 1)),
+        ...node.replies
+            .map((reply) => _buildCommentThread(reply, depth: depth + 1)),
       ],
     );
   }
 
   Widget _buildReplyInput(String parentId) {
     final controller = _replyControllers[parentId]!;
-    
+
     return Container(
       margin: const EdgeInsets.only(left: 44, top: 8),
       padding: const EdgeInsets.all(8),
@@ -324,7 +305,8 @@ class _CommentsScreenState extends State<CommentsScreen> {
             ),
           ),
           IconButton(
-            onPressed: _isPosting ? null : () => _postComment(replyToId: parentId),
+            onPressed:
+                _isPosting ? null : () => _postComment(replyToId: parentId),
             icon: _isPosting
                 ? const SizedBox(
                     width: 20,
@@ -341,50 +323,48 @@ class _CommentsScreenState extends State<CommentsScreen> {
     );
   }
 
-  Widget _buildCommentInput() {
-    return Container(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 8,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 8,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.grey[900],
-        border: Border(
-          top: BorderSide(color: Colors.grey[800]!),
+  Widget _buildCommentInput() => Container(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 8,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 8,
         ),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _commentController,
-              enableInteractiveSelection: true,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                hintText: 'Add a comment...',
-                hintStyle: TextStyle(color: Colors.white54),
-                border: InputBorder.none,
+        decoration: BoxDecoration(
+          color: Colors.grey[900],
+          border: Border(
+            top: BorderSide(color: Colors.grey[800]!),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _commentController,
+                enableInteractiveSelection: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  hintText: 'Add a comment...',
+                  hintStyle: TextStyle(color: Colors.white54),
+                  border: InputBorder.none,
+                ),
+                maxLines: null,
               ),
-              maxLines: null,
             ),
-          ),
-          IconButton(
-            onPressed: _isPosting ? null : () => _postComment(),
-            icon: _isPosting
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Icon(Icons.send, color: Colors.white),
-          ),
-        ],
-      ),
-    );
-  }
+            IconButton(
+              onPressed: _isPosting ? null : _postComment,
+              icon: _isPosting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.send, color: Colors.white),
+            ),
+          ],
+        ),
+      );
 }

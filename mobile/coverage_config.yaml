@@ -1,0 +1,29 @@
+# Coverage configuration for OpenVine test infrastructure
+minimum_coverage: 80
+fail_on_coverage_drop: true
+
+# Coverage thresholds by type
+thresholds:
+  unit: 90
+  widget: 80
+  integration: 70
+
+# Exclude patterns from coverage
+exclude:
+  - "**/*.g.dart"
+  - "**/*.freezed.dart"
+  - "**/*.mocks.dart"
+  - "lib/generated/**"
+  - "test/**"
+
+# Coverage report settings
+report:
+  html: true
+  lcov: true
+  console: true
+  
+# Enforcement rules
+enforcement:
+  block_pr_on_failure: true
+  require_improvement: true
+  allow_decrease: false

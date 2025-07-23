@@ -12,6 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_web_plugins: any
 flutter:
   plugin:
     platforms:

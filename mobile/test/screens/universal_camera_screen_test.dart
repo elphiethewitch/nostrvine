@@ -3,19 +3,23 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:openvine/screens/universal_camera_screen.dart';
-import 'package:openvine/services/upload_manager.dart';
-import 'package:openvine/services/nostr_key_manager.dart';
-import 'package:openvine/services/video_manager_interface.dart';
-import 'package:openvine/models/pending_upload.dart';
 import 'package:openvine/main.dart';
+import 'package:openvine/models/pending_upload.dart';
+import 'package:openvine/screens/universal_camera_screen.dart';
+import 'package:openvine/services/nostr_key_manager.dart';
+import 'package:openvine/services/upload_manager.dart';
+import 'package:openvine/services/video_manager_interface.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:openvine/providers/app_providers.dart';
 
 // Mock classes
 class MockUploadManager extends Mock implements UploadManager {}
+
 class MockNostrKeyManager extends Mock implements NostrKeyManager {}
+
 class MockVideoManager extends Mock implements IVideoManager {}
+
 class MockNavigatorObserver extends Mock implements NavigatorObserver {}
 
 // Fake for Route
@@ -48,14 +52,14 @@ void main() {
       when(() => mockKeyManager.publicKey).thenReturn('test-pubkey');
     });
 
-    testWidgets('should navigate to main feed when upload is published', 
-      (WidgetTester tester) async {
+    testWidgets('should navigate to main feed when upload is published',
+        (tester) async {
       // Create a test upload
       final testUpload = PendingUpload.create(
         localVideoPath: '/test/video.mp4',
         nostrPubkey: 'test-pubkey',
       );
-      
+
       final publishedUpload = testUpload.copyWith(
         status: UploadStatus.published,
         nostrEventId: 'test-event-id',
@@ -67,21 +71,20 @@ void main() {
 
       // Build our app and trigger a frame
       await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<UploadManager>.value(
-              value: mockUploadManager,
-            ),
-            Provider<NostrKeyManager>.value(
-              value: mockKeyManager,
-            ),
-            Provider<IVideoManager>.value(
-              value: mockVideoManager,
-            ),
-          ],
-          child: MaterialApp(
+        final container = ProviderContainer(
+        overrides: [
+          uploadManagerProvider.overrideWithValue(mockUploadManager),
+        ],
+      );
+      
+      return ProviderScope(
+        parent: container,
+        child: MaterialApp(
+          home: MaterialApp(
             navigatorObservers: [mockNavigator],
-            home: const UniversalCameraScreen(),
+            home: const UniversalCameraScreen(
+        ),
+      ),
             routes: {
               '/main': (context) => const MainNavigationScreen(),
             },
@@ -95,7 +98,7 @@ void main() {
       // Simulate upload status change by calling the listener
       // In real app, this would be triggered by UploadManager
       // but we need to simulate it for the test
-      
+
       // TODO: This test is limited because we can't easily trigger
       // the internal _onUploadStatusChanged method from outside.
       // A more comprehensive test would require refactoring the
@@ -103,23 +106,21 @@ void main() {
       // use a different testing approach.
     });
 
-    testWidgets('should clean up listeners on dispose', 
-      (WidgetTester tester) async {
+    testWidgets('should clean up listeners on dispose', (tester) async {
       await tester.pumpWidget(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider<UploadManager>.value(
-              value: mockUploadManager,
-            ),
-            Provider<NostrKeyManager>.value(
-              value: mockKeyManager,
-            ),
-            Provider<IVideoManager>.value(
-              value: mockVideoManager,
-            ),
-          ],
-          child: const MaterialApp(
-            home: UniversalCameraScreen(),
+        final container = ProviderContainer(
+        overrides: [
+          uploadManagerProvider.overrideWithValue(mockUploadManager),
+        ],
+      );
+      
+      return ProviderScope(
+        parent: container,
+        child: MaterialApp(
+          home: const MaterialApp(
+            home: UniversalCameraScreen(
+        ),
+      ),
           ),
         ),
       );

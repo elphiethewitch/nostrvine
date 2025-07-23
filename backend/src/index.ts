@@ -6,7 +6,7 @@
  */
 
 import { handleNIP96Info } from './handlers/nip96-info';
-import { handleNIP96Upload, handleUploadOptions, handleJobStatus, handleMediaServing } from './handlers/nip96-upload';
+import { handleNIP96Upload, handleUploadOptions, handleJobStatus, handleMediaServing, handleReleaseDownload, handleVineUrlCompat } from './handlers/nip96-upload';
 import { handleCloudinarySignedUpload, handleCloudinaryUploadOptions } from './handlers/cloudinary-upload';
 import { handleCloudinaryWebhook, handleCloudinaryWebhookOptions } from './handlers/cloudinary-webhook';
 import { handleVideoMetadata, handleVideoList, handleVideoMetadataOptions } from './handlers/video-metadata';
@@ -56,6 +56,9 @@ import {
 
 // Cleanup script
 import { handleCleanupRequest } from './scripts/cleanup-duplicates';
+
+// File check API
+import { handleFileCheckBySha256, handleBatchFileCheck, handleFileCheckOptions } from './handlers/file-check';
 
 // Export Durable Object
 export { UploadJobManager } from './services/upload-job-manager';
@@ -234,6 +237,20 @@ export default {
 				}
 			}
 
+			// File check endpoints - check if file exists before upload
+			if (pathname.startsWith('/api/check/') && method === 'GET') {
+				const sha256 = pathname.split('/api/check/')[1];
+				return wrapResponse(handleFileCheckBySha256(sha256, request, env));
+			}
+
+			if (pathname === '/api/check' && method === 'POST') {
+				return wrapResponse(handleBatchFileCheck(request, env));
+			}
+
+			if ((pathname === '/api/check' || pathname.startsWith('/api/check/')) && method === 'OPTIONS') {
+				return wrapResponse(Promise.resolve(handleFileCheckOptions()));
+			}
+
 			// Feature flag endpoints
 			if (pathname === '/api/feature-flags' && method === 'GET') {
 				return wrapResponse(handleListFeatureFlags(request, env, ctx));
@@ -373,6 +390,45 @@ export default {
 				}
 			}
 
+			// Releases download endpoint
+			if (pathname.startsWith('/releases/')) {
+				if (method === 'GET') {
+					return handleReleaseDownload(pathname.substring(10), request, env);
+				}
+			}
+
+			// Debug endpoint to list R2 bucket contents
+			if (pathname === '/debug/r2-list' && method === 'GET') {
+				try {
+					const listResult = await env.MEDIA_BUCKET.list();
+					return new Response(JSON.stringify({
+						bucket: 'nostrvine-media',
+						objects: listResult.objects?.map(obj => ({
+							key: obj.key,
+							size: obj.size,
+							uploaded: obj.uploaded
+						})) || [],
+						truncated: listResult.truncated
+					}), {
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*'
+						}
+					});
+				} catch (error) {
+					return new Response(JSON.stringify({
+						error: 'Failed to list bucket',
+						message: error.message
+					}), {
+						status: 500,
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*'
+						}
+					});
+				}
+			}
+
 			// NIP-96 upload endpoint (compatibility)
 			if (pathname === '/api/upload') {
 				if (method === 'POST') {
@@ -387,6 +443,149 @@ export default {
 			if (pathname.startsWith('/api/status/') && method === 'GET') {
 				const jobId = pathname.split('/api/status/')[1];
 				return handleJobStatus(jobId, env);
+			}
+
+			// Set vine URL mapping endpoint for bulk importer
+			if (pathname === '/api/set-vine-mapping' && method === 'POST') {
+				try {
+					const body = await request.json();
+					const { vineUrlPath, fileId } = body;
+					
+					if (!vineUrlPath || !fileId) {
+						return new Response(JSON.stringify({
+							error: 'Missing parameters',
+							message: 'Both vineUrlPath and fileId are required'
+						}), {
+							status: 400,
+							headers: {
+								'Content-Type': 'application/json',
+								'Access-Control-Allow-Origin': '*'
+							}
+						});
+					}
+
+					if (!env.METADATA_CACHE) {
+						return new Response(JSON.stringify({
+							error: 'Metadata cache not available'
+						}), {
+							status: 503,
+							headers: {
+								'Content-Type': 'application/json',
+								'Access-Control-Allow-Origin': '*'
+							}
+						});
+					}
+
+					const { MetadataStore } = await import('./services/metadata-store');
+					const metadataStore = new MetadataStore(env.METADATA_CACHE);
+					await metadataStore.setVineUrlMapping(vineUrlPath, fileId);
+
+					return new Response(JSON.stringify({
+						success: true,
+						message: `Mapped ${vineUrlPath} to ${fileId}`
+					}), {
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*'
+						}
+					});
+
+				} catch (error) {
+					console.error('Set vine mapping error:', error);
+					return new Response(JSON.stringify({
+						error: 'Internal server error',
+						message: error.message
+					}), {
+						status: 500,
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*'
+						}
+					});
+				}
+			}
+
+			// Handle OPTIONS for set vine mapping
+			if (pathname === '/api/set-vine-mapping' && method === 'OPTIONS') {
+				return new Response(null, {
+					status: 200,
+					headers: {
+						'Access-Control-Allow-Origin': '*',
+						'Access-Control-Allow-Methods': 'POST, OPTIONS',
+						'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+					}
+				});
+			}
+
+			// Hash check endpoint for bulk importer
+			if (pathname.startsWith('/api/check-hash/') && method === 'GET') {
+				const sha256 = pathname.split('/api/check-hash/')[1];
+				
+				if (!sha256 || sha256.length !== 64) {
+					return new Response(JSON.stringify({
+						error: 'Invalid SHA256 hash',
+						message: 'Provide a valid 64-character SHA256 hash'
+					}), {
+						status: 400,
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*'
+						}
+					});
+				}
+
+				try {
+					if (!env.METADATA_CACHE) {
+						return new Response(JSON.stringify({
+							exists: false,
+							error: 'Metadata cache not available'
+						}), {
+							status: 503,
+							headers: {
+								'Content-Type': 'application/json',
+								'Access-Control-Allow-Origin': '*'
+							}
+						});
+					}
+
+					const { MetadataStore } = await import('./services/metadata-store');
+					const metadataStore = new MetadataStore(env.METADATA_CACHE);
+					const result = await metadataStore.checkDuplicateBySha256(sha256);
+
+					if (!result) {
+						return new Response(JSON.stringify({
+							exists: false,
+							error: 'Check failed'
+						}), {
+							status: 500,
+							headers: {
+								'Content-Type': 'application/json',
+								'Access-Control-Allow-Origin': '*'
+							}
+						});
+					}
+
+					return new Response(JSON.stringify(result), {
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*',
+							'Cache-Control': 'public, max-age=300' // 5 minutes cache
+						}
+					});
+
+				} catch (error) {
+					console.error('Hash check error:', error);
+					return new Response(JSON.stringify({
+						exists: false,
+						error: 'Internal server error'
+					}), {
+						status: 500,
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*'
+						}
+					});
+				}
 			}
 
 			// Cleanup duplicates endpoint (admin only)
@@ -416,6 +615,14 @@ export default {
 						'Access-Control-Allow-Origin': '*'
 					}
 				})));
+			}
+
+			// Original Vine URL compatibility - serve files using original vine CDN paths
+			// Handle various Vine URL patterns like:
+			// /r/videos_h264high/, /r/videos/, /r/videos_h264low/, /r/thumbs/, /r/avatars/, /v/, /t/
+			if ((pathname.startsWith('/r/') || pathname.startsWith('/v/') || pathname.startsWith('/t/')) && method === 'GET') {
+				const vineUrlPath = pathname.substring(1); // Remove leading slash
+				return wrapResponse(handleVineUrlCompat(vineUrlPath, request, env));
 			}
 
 			// Media serving endpoint
@@ -485,11 +692,16 @@ export default {
 					'/v1/media/webhook (Legacy)',
 					'/api/upload (NIP-96)',
 					'/api/status/{jobId}',
+					'/api/check-hash/{sha256} (Check if file exists by hash)',
+					'/api/set-vine-mapping (Set mapping from original Vine URL to fileId)',
+					'/admin/cleanup-duplicates (Admin: Clean up duplicate files)',
+					'/r/videos_h264high/{vineId}, /r/videos/{vineId}, /v/{vineId}, /t/{vineId} (Vine URL compatibility)',
 					'/thumbnail/{videoId} (Get/generate thumbnail)',
 					'/thumbnail/{videoId}/upload (Upload custom thumbnail)',
 					'/thumbnail/{videoId}/list (List available thumbnails)',
 					'/health',
-					'/media/{fileId}'
+					'/media/{fileId}',
+					'/releases/{filename} (Download app releases)'
 				]
 			}), {
 				status: 404,

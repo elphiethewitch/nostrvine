@@ -18,6 +18,9 @@ class UserProfileAdapter extends TypeAdapter<UserProfile> {
     };
     return UserProfile(
       pubkey: fields[0] as String,
+      rawData: (fields[10] as Map).cast<String, dynamic>(),
+      createdAt: fields[11] as DateTime,
+      eventId: fields[12] as String,
       name: fields[1] as String?,
       displayName: fields[2] as String?,
       about: fields[3] as String?,
@@ -27,9 +30,6 @@ class UserProfileAdapter extends TypeAdapter<UserProfile> {
       nip05: fields[7] as String?,
       lud16: fields[8] as String?,
       lud06: fields[9] as String?,
-      rawData: (fields[10] as Map).cast<String, dynamic>(),
-      createdAt: fields[11] as DateTime,
-      eventId: fields[12] as String,
     );
   }
 

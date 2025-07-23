@@ -38,17 +38,19 @@ void main() {
       await analyticsService.initialize();
       final video = VideoEvent(
         id: '22e73ca1faedb07dd3e24c1dca52d849aa75c6e4090eb60c532820b782c93da3',
-        pubkey: 'ae73ca1faedb07dd3e24c1dca52d849aa75c6e4090eb60c532820b782c93da3',
+        pubkey:
+            'ae73ca1faedb07dd3e24c1dca52d849aa75c6e4090eb60c532820b782c93da3',
         createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
         content: 'Test video',
         timestamp: DateTime.now(),
       );
 
-      int requestCount = 0;
+      var requestCount = 0;
       mockClient = MockClient((request) async {
         if (request.url.path == '/analytics/view') {
           requestCount++;
-          return http.Response('{"success": true, "views": $requestCount}', 200);
+          return http.Response(
+              '{"success": true, "views": $requestCount}', 200);
         }
         return http.Response('Not Found', 404);
       });
@@ -68,16 +70,17 @@ void main() {
       // Arrange
       await analyticsService.initialize();
       await analyticsService.setAnalyticsEnabled(false);
-      
+
       final video = VideoEvent(
         id: '22e73ca1faedb07dd3e24c1dca52d849aa75c6e4090eb60c532820b782c93da3',
-        pubkey: 'ae73ca1faedb07dd3e24c1dca52d849aa75c6e4090eb60c532820b782c93da3',
+        pubkey:
+            'ae73ca1faedb07dd3e24c1dca52d849aa75c6e4090eb60c532820b782c93da3',
         createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
         content: 'Test video',
         timestamp: DateTime.now(),
       );
 
-      int requestCount = 0;
+      var requestCount = 0;
       mockClient = MockClient((request) async {
         requestCount++;
         return http.Response('{"success": true, "views": 1}', 200);
@@ -98,15 +101,15 @@ void main() {
       await analyticsService.initialize();
       final video = VideoEvent(
         id: '22e73ca1faedb07dd3e24c1dca52d849aa75c6e4090eb60c532820b782c93da3',
-        pubkey: 'ae73ca1faedb07dd3e24c1dca52d849aa75c6e4090eb60c532820b782c93da3',
+        pubkey:
+            'ae73ca1faedb07dd3e24c1dca52d849aa75c6e4090eb60c532820b782c93da3',
         createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
         content: 'Test video',
         timestamp: DateTime.now(),
       );
 
-      mockClient = MockClient((request) async {
-        return http.Response('{"error": "Rate limit exceeded"}', 429);
-      });
+      mockClient = MockClient((request) async =>
+          http.Response('{"error": "Rate limit exceeded"}', 429));
       analyticsService = AnalyticsService(client: mockClient);
       await analyticsService.initialize();
 
@@ -122,13 +125,14 @@ void main() {
       await analyticsService.initialize();
       final video = VideoEvent(
         id: '22e73ca1faedb07dd3e24c1dca52d849aa75c6e4090eb60c532820b782c93da3',
-        pubkey: 'ae73ca1faedb07dd3e24c1dca52d849aa75c6e4090eb60c532820b782c93da3',
+        pubkey:
+            'ae73ca1faedb07dd3e24c1dca52d849aa75c6e4090eb60c532820b782c93da3',
         createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
         content: 'Test video',
         timestamp: DateTime.now(),
       );
 
-      int requestCount = 0;
+      var requestCount = 0;
       mockClient = MockClient((request) async {
         requestCount++;
         return http.Response('{"success": true, "views": $requestCount}', 200);
@@ -137,7 +141,8 @@ void main() {
       await analyticsService.initialize();
 
       // Act - Track rapidly without delays
-      final futures = List.generate(5, (_) => analyticsService.trackVideoView(video));
+      final futures =
+          List.generate(5, (_) => analyticsService.trackVideoView(video));
       await Future.wait(futures);
 
       // Assert - All views should be tracked
@@ -150,7 +155,7 @@ void main() {
 
       // Act
       await analyticsService.setAnalyticsEnabled(false);
-      
+
       // Create new instance to simulate app restart
       final prefs = await SharedPreferences.getInstance();
       final savedValue = prefs.getBool('analytics_enabled');

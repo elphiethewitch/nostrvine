@@ -3,9 +3,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openvine/widgets/video_playback_widget.dart';
-import 'package:openvine/services/video_playback_controller.dart';
 import 'package:openvine/models/video_event.dart';
+import 'package:openvine/services/video_playback_controller.dart';
+import 'package:openvine/widgets/video_playback_widget.dart';
 
 void main() {
   group('Video Consolidation Verification', () {
@@ -25,7 +25,8 @@ void main() {
       );
     });
 
-    testWidgets('All factory methods create widgets successfully', (WidgetTester tester) async {
+    testWidgets('All factory methods create widgets successfully',
+        (tester) async {
       // Test feed factory
       final feedWidget = VideoPlaybackWidget.feed(
         video: testVideo,
@@ -52,7 +53,7 @@ void main() {
       expect(previewWidget.showPlayPauseIcon, isFalse);
     });
 
-    testWidgets('Configuration presets have expected values', (WidgetTester tester) async {
+    testWidgets('Configuration presets have expected values', (tester) async {
       // Feed: muted, autoplay, loops
       expect(VideoPlaybackConfig.feed.volume, equals(0.0));
       expect(VideoPlaybackConfig.feed.autoPlay, isTrue);
@@ -72,7 +73,7 @@ void main() {
       expect(VideoPlaybackConfig.preview.handleAppLifecycle, isFalse);
     });
 
-    testWidgets('VideoPlaybackWidget renders loading state', (WidgetTester tester) async {
+    testWidgets('VideoPlaybackWidget renders loading state', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -89,9 +90,9 @@ void main() {
       expect(find.text('Loading...'), findsOneWidget);
     });
 
-    testWidgets('Custom callbacks can be provided', (WidgetTester tester) async {
-      bool tapCalled = false;
-      bool doubleTapCalled = false;
+    testWidgets('Custom callbacks can be provided', (tester) async {
+      var tapCalled = false;
+      var doubleTapCalled = false;
       String? errorMessage;
 
       final widget = VideoPlaybackWidget.fullscreen(
@@ -115,10 +116,12 @@ void main() {
       expect(errorMessage, equals('Test error'));
     });
 
-    testWidgets('Controller state transitions are defined', (WidgetTester tester) async {
+    testWidgets('Controller state transitions are defined', (tester) async {
       // Verify all expected states exist
-      expect(VideoPlaybackState.values, contains(VideoPlaybackState.notInitialized));
-      expect(VideoPlaybackState.values, contains(VideoPlaybackState.initializing));
+      expect(VideoPlaybackState.values,
+          contains(VideoPlaybackState.notInitialized));
+      expect(
+          VideoPlaybackState.values, contains(VideoPlaybackState.initializing));
       expect(VideoPlaybackState.values, contains(VideoPlaybackState.ready));
       expect(VideoPlaybackState.values, contains(VideoPlaybackState.playing));
       expect(VideoPlaybackState.values, contains(VideoPlaybackState.paused));
@@ -127,7 +130,7 @@ void main() {
       expect(VideoPlaybackState.values, contains(VideoPlaybackState.disposed));
     });
 
-    testWidgets('Event types are properly defined', (WidgetTester tester) async {
+    testWidgets('Event types are properly defined', (tester) async {
       // Create sample events to verify they're constructable
       final stateChange = VideoStateChanged(VideoPlaybackState.playing);
       expect(stateChange.state, equals(VideoPlaybackState.playing));
@@ -144,7 +147,7 @@ void main() {
       expect(positionChange.duration, equals(const Duration(seconds: 10)));
     });
 
-    testWidgets('Consolidation provides unified API', (WidgetTester tester) async {
+    testWidgets('Consolidation provides unified API', (tester) async {
       // This test verifies that the consolidation provides a clean, unified API
       // for all video playback scenarios in the app
 

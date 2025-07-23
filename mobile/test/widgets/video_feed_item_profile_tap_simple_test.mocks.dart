@@ -954,6 +954,15 @@ class MockAnalyticsService extends _i1.Mock implements _i15.AnalyticsService {
       ) as bool);
 
   @override
+  String get serviceName => (super.noSuchMethod(
+        Invocation.getter(#serviceName),
+        returnValue: _i14.dummyValue<String>(
+          this,
+          Invocation.getter(#serviceName),
+        ),
+      ) as String);
+
+  @override
   bool get hasListeners => (super.noSuchMethod(
         Invocation.getter(#hasListeners),
         returnValue: false,
@@ -995,6 +1004,33 @@ class MockAnalyticsService extends _i1.Mock implements _i15.AnalyticsService {
       ) as _i5.Future<void>);
 
   @override
+  _i5.Future<void> trackDetailedVideoView(
+    _i4.VideoEvent? video, {
+    required String? source,
+    required String? eventType,
+    Duration? watchDuration,
+    Duration? totalDuration,
+    int? loopCount,
+    bool? completedVideo,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #trackDetailedVideoView,
+          [video],
+          {
+            #source: source,
+            #eventType: eventType,
+            #watchDuration: watchDuration,
+            #totalDuration: totalDuration,
+            #loopCount: loopCount,
+            #completedVideo: completedVideo,
+          },
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
   _i5.Future<void> trackVideoViews(
     List<_i4.VideoEvent>? videos, {
     String? source = 'mobile',
@@ -1013,6 +1049,42 @@ class MockAnalyticsService extends _i1.Mock implements _i15.AnalyticsService {
   void clearTrackedViews() => super.noSuchMethod(
         Invocation.method(
           #clearTrackedViews,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void onAppBackgrounded() => super.noSuchMethod(
+        Invocation.method(
+          #onAppBackgrounded,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void onExtendedBackground() => super.noSuchMethod(
+        Invocation.method(
+          #onExtendedBackground,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void onAppResumed() => super.noSuchMethod(
+        Invocation.method(
+          #onAppResumed,
+          [],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
+  void onPeriodicCleanup() => super.noSuchMethod(
+        Invocation.method(
+          #onPeriodicCleanup,
           [],
         ),
         returnValueForMissingStub: null,

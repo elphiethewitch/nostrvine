@@ -3,19 +3,23 @@
 
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
-import 'package:mockito/annotations.dart';
 import 'package:http/http.dart' as http;
+import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
+import 'package:nostr_sdk/event.dart';
 import 'package:openvine/services/direct_upload_service.dart';
 import 'package:openvine/services/nip98_auth_service.dart';
-import 'package:nostr_sdk/event.dart';
 
-@GenerateMocks([
-  Nip98AuthService,
-], customMocks: [
-  MockSpec<http.Client>(as: #MockHttpClient),
-])
+@GenerateMocks(
+  [
+    Nip98AuthService,
+  ],
+  customMocks: [
+    MockSpec<http.Client>(as: #MockHttpClient),
+  ],
+)
 import 'direct_upload_service_thumbnail_test.mocks.dart';
 
 void main() {
@@ -42,20 +46,24 @@ void main() {
 
       // Setup auth service mock
       when(mockAuthService.canCreateTokens).thenReturn(true);
-      when(mockAuthService.createAuthToken(
-        url: anyNamed('url'),
-        method: anyNamed('method'),
-      )).thenAnswer((_) async => Nip98Token(
-        token: 'test-token-base64',
-        signedEvent: Event(
-          'test-pubkey',
-          27235,
-          [],
-          '',
+      when(
+        mockAuthService.createAuthToken(
+          url: anyNamed('url'),
+          method: anyNamed('method'),
         ),
-        createdAt: DateTime.now(),
-        expiresAt: DateTime.now().add(Duration(minutes: 10)),
-      ));
+      ).thenAnswer(
+        (_) async => Nip98Token(
+          token: 'test-token-base64',
+          signedEvent: Event(
+            'test-pubkey',
+            27235,
+            [],
+            '',
+          ),
+          createdAt: DateTime.now(),
+          expiresAt: DateTime.now().add(const Duration(minutes: 10)),
+        ),
+      );
     });
 
     tearDown(() {
@@ -65,7 +73,8 @@ void main() {
     test('upload includes thumbnail when video file is valid', () async {
       // Create a test video file
       final videoFile = File('${tempDir.path}/test_video.mp4');
-      await videoFile.writeAsBytes(Uint8List.fromList(List.generate(1000, (i) => i % 256)));
+      await videoFile.writeAsBytes(
+          Uint8List.fromList(List.generate(1000, (i) => i % 256)));
 
       var uploadRequestReceived = false;
 
@@ -74,12 +83,14 @@ void main() {
         uploadRequestReceived = true;
 
         // Check if request is multipart
-        expect(request.headers['content-type'], contains('multipart/form-data'));
+        expect(
+            request.headers['content-type'], contains('multipart/form-data'));
 
         // Parse multipart data to check for thumbnail
         if (request is http.MultipartRequest) {
           // Check for video file
-          final hasVideoFile = request.files.any((file) => file.field == 'file');
+          final hasVideoFile =
+              request.files.any((file) => file.field == 'file');
           expect(hasVideoFile, isTrue);
 
           // Check for thumbnail file
@@ -103,7 +114,8 @@ void main() {
       await videoFile.delete();
 
       // Verify test structure (actual integration would need service modification)
-      expect(uploadRequestReceived, isFalse); // Would be true with proper injection
+      expect(uploadRequestReceived,
+          isFalse); // Would be true with proper injection
     });
 
     test('DirectUploadResult includes thumbnail URL from response', () {
@@ -121,7 +133,8 @@ void main() {
       expect(result.success, isTrue);
       expect(result.videoId, equals('video123'));
       expect(result.cdnUrl, equals('https://cdn.example.com/video123.mp4'));
-      expect(result.thumbnailUrl, equals('https://cdn.example.com/thumb123.jpg'));
+      expect(
+          result.thumbnailUrl, equals('https://cdn.example.com/thumb123.jpg'));
       expect(result.metadata?['size'], equals(1000));
     });
 
@@ -139,10 +152,11 @@ void main() {
 
     test('progress tracking includes thumbnail generation', () async {
       final progressValues = <double>[];
-      
+
       // Create a test video file
       final videoFile = File('${tempDir.path}/test_progress.mp4');
-      await videoFile.writeAsBytes(Uint8List.fromList(List.generate(1000, (i) => i % 256)));
+      await videoFile.writeAsBytes(
+          Uint8List.fromList(List.generate(1000, (i) => i % 256)));
 
       // Track progress
       void onProgress(double progress) {
@@ -156,7 +170,8 @@ void main() {
       await videoFile.delete();
 
       // Verify progress tracking structure
-      expect(progressValues, isEmpty); // Would contain values with proper integration
+      expect(progressValues,
+          isEmpty); // Would contain values with proper integration
     });
   });
 
@@ -172,7 +187,8 @@ void main() {
       expect(result.success, isTrue);
       expect(result.videoId, equals('test123'));
       expect(result.cdnUrl, equals('https://cdn.example.com/test123.mp4'));
-      expect(result.thumbnailUrl, equals('https://cdn.example.com/test123-thumb.jpg'));
+      expect(result.thumbnailUrl,
+          equals('https://cdn.example.com/test123-thumb.jpg'));
       expect(result.errorMessage, isNull);
       expect(result.metadata?['test'], equals('data'));
     });
@@ -192,9 +208,8 @@ void main() {
 
 // Mock HTTP client for testing
 class MockClient extends http.BaseClient {
-  final Future<http.Response> Function(http.BaseRequest) _handler;
-
   MockClient(this._handler);
+  final Future<http.Response> Function(http.BaseRequest) _handler;
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {

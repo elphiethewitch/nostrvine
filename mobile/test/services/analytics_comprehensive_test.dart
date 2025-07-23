@@ -30,10 +30,10 @@ void main() {
         capturedRequests.add(request);
         return http.Response('{"success": true}', 200);
       });
-      
+
       analyticsService = AnalyticsService(client: mockClient);
       await analyticsService.initialize();
-      
+
       final video = VideoEvent(
         id: 'test-event-id-123',
         pubkey: 'test-pubkey-456',
@@ -50,14 +50,15 @@ void main() {
       // Assert
       expect(capturedRequests.length, equals(1));
       final request = capturedRequests.first;
-      
+
       // Check endpoint
-      expect(request.url.toString(), equals('https://analytics.openvine.co/analytics/view'));
-      
+      expect(request.url.toString(),
+          equals('https://analytics.openvine.co/analytics/view'));
+
       // Check headers
       expect(request.headers['Content-Type'], equals('application/json'));
       expect(request.headers['User-Agent'], equals('OpenVine-Mobile/1.0'));
-      
+
       // Check body
       final bodyData = jsonDecode(request.body);
       expect(bodyData['eventId'], equals('test-event-id-123'));
@@ -71,26 +72,45 @@ void main() {
       // Test different response codes
       final testCases = [
         {'code': 200, 'body': '{"success": true}', 'expectSuccess': true},
-        {'code': 201, 'body': '{"success": true}', 'expectSuccess': false}, // Not 200
-        {'code': 400, 'body': '{"error": "Bad Request"}', 'expectSuccess': false},
-        {'code': 401, 'body': '{"error": "Unauthorized"}', 'expectSuccess': false},
-        {'code': 429, 'body': '{"error": "Rate Limited"}', 'expectSuccess': false},
-        {'code': 500, 'body': '{"error": "Server Error"}', 'expectSuccess': false},
+        {
+          'code': 201,
+          'body': '{"success": true}',
+          'expectSuccess': false
+        }, // Not 200
+        {
+          'code': 400,
+          'body': '{"error": "Bad Request"}',
+          'expectSuccess': false
+        },
+        {
+          'code': 401,
+          'body': '{"error": "Unauthorized"}',
+          'expectSuccess': false
+        },
+        {
+          'code': 429,
+          'body': '{"error": "Rate Limited"}',
+          'expectSuccess': false
+        },
+        {
+          'code': 500,
+          'body': '{"error": "Server Error"}',
+          'expectSuccess': false
+        },
       ];
 
       for (final testCase in testCases) {
         // Arrange
-        var loggedSuccess = false;
-        var loggedError = false;
-        var loggedRateLimit = false;
-        
-        mockClient = MockClient((request) async {
-          return http.Response(testCase['body'] as String, testCase['code'] as int);
-        });
-        
+        const loggedSuccess = false;
+        const loggedError = false;
+        const loggedRateLimit = false;
+
+        mockClient = MockClient((request) async =>
+            http.Response(testCase['body'] as String, testCase['code'] as int));
+
         analyticsService = AnalyticsService(client: mockClient);
         await analyticsService.initialize();
-        
+
         final video = VideoEvent(
           id: 'test-event-id',
           pubkey: 'test-pubkey',
@@ -114,10 +134,10 @@ void main() {
         await Future.delayed(const Duration(seconds: 10));
         return http.Response('{"success": true}', 200);
       });
-      
+
       analyticsService = AnalyticsService(client: mockClient);
       await analyticsService.initialize();
-      
+
       final video = VideoEvent(
         id: 'test-event-id',
         pubkey: 'test-pubkey',
@@ -135,13 +155,12 @@ void main() {
 
     test('should handle malformed JSON responses', () async {
       // Arrange
-      mockClient = MockClient((request) async {
-        return http.Response('Invalid JSON {{{', 200);
-      });
-      
+      mockClient =
+          MockClient((request) async => http.Response('Invalid JSON {{{', 200));
+
       analyticsService = AnalyticsService(client: mockClient);
       await analyticsService.initialize();
-      
+
       final video = VideoEvent(
         id: 'test-event-id',
         pubkey: 'test-pubkey',
@@ -164,27 +183,31 @@ void main() {
         requestTimes.add(DateTime.now());
         return http.Response('{"success": true}', 200);
       });
-      
+
       analyticsService = AnalyticsService(client: mockClient);
       await analyticsService.initialize();
-      
-      final videos = List.generate(3, (index) => VideoEvent(
-        id: 'test-event-id-$index',
-        pubkey: 'test-pubkey',
-        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        content: 'Test video $index',
-        timestamp: DateTime.now(),
-      ));
+
+      final videos = List.generate(
+        3,
+        (index) => VideoEvent(
+          id: 'test-event-id-$index',
+          pubkey: 'test-pubkey',
+          createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          content: 'Test video $index',
+          timestamp: DateTime.now(),
+        ),
+      );
 
       // Act
       await analyticsService.trackVideoViews(videos);
 
       // Assert
       expect(requestTimes.length, equals(3));
-      
+
       // Check that there's approximately 100ms delay between requests
-      for (int i = 1; i < requestTimes.length; i++) {
-        final delay = requestTimes[i].difference(requestTimes[i - 1]).inMilliseconds;
+      for (var i = 1; i < requestTimes.length; i++) {
+        final delay =
+            requestTimes[i].difference(requestTimes[i - 1]).inMilliseconds;
         expect(delay, greaterThanOrEqualTo(90)); // Allow some timing variance
         expect(delay, lessThanOrEqualTo(150));
       }
@@ -197,11 +220,11 @@ void main() {
         requestCount++;
         return http.Response('{"success": true}', 200);
       });
-      
+
       analyticsService = AnalyticsService(client: mockClient);
       await analyticsService.initialize();
       await analyticsService.setAnalyticsEnabled(false);
-      
+
       final video = VideoEvent(
         id: 'test-event-id',
         pubkey: 'test-pubkey',
@@ -224,10 +247,10 @@ void main() {
         capturedRequests.add(request);
         return http.Response('{"success": true}', 200);
       });
-      
+
       analyticsService = AnalyticsService(client: mockClient);
       await analyticsService.initialize();
-      
+
       final video = VideoEvent(
         id: 'test-event-id',
         pubkey: 'test-pubkey',
@@ -254,10 +277,10 @@ void main() {
         capturedRequests.add(request);
         return http.Response('{"success": true}', 200);
       });
-      
+
       analyticsService = AnalyticsService(client: mockClient);
       await analyticsService.initialize();
-      
+
       final video = VideoEvent(
         id: 'comprehensive-test-id',
         pubkey: 'comprehensive-test-pubkey',
@@ -274,14 +297,14 @@ void main() {
       // Assert
       final request = capturedRequests.first;
       final bodyData = jsonDecode(request.body);
-      
+
       // Verify all expected fields are present
       expect(bodyData.containsKey('eventId'), isTrue);
       expect(bodyData.containsKey('source'), isTrue);
       expect(bodyData.containsKey('creatorPubkey'), isTrue);
       expect(bodyData.containsKey('hashtags'), isTrue);
       expect(bodyData.containsKey('title'), isTrue);
-      
+
       // Verify no unexpected fields
       expect(bodyData.keys.length, equals(5));
     });
@@ -294,20 +317,25 @@ void main() {
         await Future.delayed(const Duration(milliseconds: 50));
         return http.Response('{"success": true}', 200);
       });
-      
+
       analyticsService = AnalyticsService(client: mockClient);
       await analyticsService.initialize();
-      
-      final videos = List.generate(5, (index) => VideoEvent(
-        id: 'concurrent-test-id-$index',
-        pubkey: 'test-pubkey',
-        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        content: 'Test video $index',
-        timestamp: DateTime.now(),
-      ));
+
+      final videos = List.generate(
+        5,
+        (index) => VideoEvent(
+          id: 'concurrent-test-id-$index',
+          pubkey: 'test-pubkey',
+          createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          content: 'Test video $index',
+          timestamp: DateTime.now(),
+        ),
+      );
 
       // Act - Send all requests concurrently
-      final futures = videos.map((video) => analyticsService.trackVideoView(video)).toList();
+      final futures = videos
+          .map((video) => analyticsService.trackVideoView(video))
+          .toList();
       await Future.wait(futures);
 
       // Assert - All requests should be sent
@@ -328,7 +356,7 @@ void main() {
             'hashtags': ['trending', 'viral'],
           },
           {
-            'eventId': 'event-id-2', 
+            'eventId': 'event-id-2',
             'views': 100,
             'creatorPubkey': 'pubkey-2',
             'title': 'Trending Video 2',
@@ -342,7 +370,7 @@ void main() {
       // Verify structure
       expect(expectedResponse.containsKey('vines'), isTrue);
       expect(expectedResponse['vines'], isList);
-      
+
       final firstVine = (expectedResponse['vines'] as List).first as Map;
       expect(firstVine.containsKey('eventId'), isTrue);
       expect(firstVine.containsKey('views'), isTrue);

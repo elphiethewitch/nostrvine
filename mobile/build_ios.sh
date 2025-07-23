@@ -38,11 +38,92 @@ cd ..
 # Build the iOS app
 echo "🚀 Building iOS app..."
 if [ "$1" = "release" ]; then
+    echo "🏗️  Building Flutter iOS release..."
     flutter build ios --release
+    
+    echo "📦 Creating Xcode archive..."
+    cd ios
+    
+    # Create archive using xcodebuild
+    ARCHIVE_NAME="Runner-$(date +%Y-%m-%d-%H%M%S).xcarchive"
+    ORGANIZER_PATH="$HOME/Library/Developer/Xcode/Archives/$(date +%Y-%m-%d)"
+    
+    # Create Organizer directory if it doesn't exist
+    mkdir -p "$ORGANIZER_PATH"
+    
+    xcodebuild -workspace Runner.xcworkspace \
+               -scheme Runner \
+               -configuration Release \
+               -destination generic/platform=iOS \
+               -archivePath "$ORGANIZER_PATH/$ARCHIVE_NAME" \
+               archive
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Archive created successfully!"
+        echo "📱 Archive location: $ORGANIZER_PATH/$ARCHIVE_NAME"
+        
+        # Refresh Xcode Organizer if Xcode is running
+        if pgrep -x "Xcode" > /dev/null; then
+            echo "🔄 Refreshing Xcode Organizer..."
+            osascript -e 'tell application "Xcode" to activate' 2>/dev/null || true
+        fi
+        
+        echo "🚀 Archive is now available in Xcode Organizer for distribution!"
+        echo "   • Open Xcode → Window → Organizer"
+        echo "   • Select your archive and click 'Distribute App'"
+        echo "   • Choose distribution method (App Store, Ad Hoc, etc.)"
+        
+        # Ask user if they want to export to IPA
+        echo ""
+        read -p "📦 Would you like to export to IPA for App Store distribution? (y/N): " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo "📦 Exporting archive to IPA..."
+            
+            # Create export options plist for App Store distribution
+            cat > build/ExportOptions.plist << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key>
+    <string>app-store</string>
+    <key>uploadBitcode</key>
+    <false/>
+    <key>uploadSymbols</key>
+    <true/>
+    <key>compileBitcode</key>
+    <false/>
+</dict>
+</plist>
+EOF
+            
+            # Export archive to IPA
+            xcodebuild -exportArchive \
+                       -archivePath "$ORGANIZER_PATH/$ARCHIVE_NAME" \
+                       -exportOptionsPlist build/ExportOptions.plist \
+                       -exportPath build/ipa
+            
+            if [ $? -eq 0 ]; then
+                echo "✅ IPA export successful!"
+                echo "📱 IPA location: $(pwd)/build/ipa/Runner.ipa"
+                echo "🚀 Ready for App Store upload via Xcode Organizer or Application Loader!"
+            else
+                echo "❌ IPA export failed. Archive is still available in Organizer."
+            fi
+        fi
+    else
+        echo "❌ Archive creation failed!"
+        exit 1
+    fi
+    
+    cd ..
 elif [ "$1" = "debug" ]; then
     flutter build ios --debug
 else
     echo "Usage: $0 [debug|release]"
+    echo "  debug   - Build debug version"
+    echo "  release - Build release version and create Xcode archive"
     echo "Building in debug mode by default..."
     flutter build ios --debug
 fi

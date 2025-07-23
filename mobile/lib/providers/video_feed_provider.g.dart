@@ -6,7 +6,7 @@ part of 'video_feed_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$videoFeedLoadingHash() => r'0183f299207a9321a8abbd4cfec08ce4177ecd02';
+String _$videoFeedLoadingHash() => r'5a3880107474b0dfe89252742f62772f581bf585';
 
 /// Provider to check if video feed is loading
 ///
@@ -25,7 +25,7 @@ final videoFeedLoadingProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef VideoFeedLoadingRef = AutoDisposeProviderRef<bool>;
-String _$videoFeedCountHash() => r'c156d066af736fb0cd6474b887049367538b8811';
+String _$videoFeedCountHash() => r'c9fc7b68a402d8e63cff499a4a44842466718db8';
 
 /// Provider to get current video count
 ///
@@ -44,7 +44,7 @@ final videoFeedCountProvider = AutoDisposeProvider<int>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef VideoFeedCountRef = AutoDisposeProviderRef<int>;
-String _$currentFeedModeHash() => r'3d901ca7b39ece6a524a72ad4d5337b13c631cd5';
+String _$currentFeedModeHash() => r'51e2a476506a909c456c5af5731812f3bba47337';
 
 /// Provider to get current feed mode
 ///
@@ -63,7 +63,7 @@ final currentFeedModeProvider = AutoDisposeProvider<FeedMode>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CurrentFeedModeRef = AutoDisposeProviderRef<FeedMode>;
-String _$hasVideosHash() => r'2f37ea0dfcce64ac0dbd93b4badd168ad9bbf11b';
+String _$hasVideosHash() => r'2780fade78b3238a1979632f42151a3400b482b7';
 
 /// Provider to check if we have videos
 ///
@@ -81,7 +81,7 @@ final hasVideosProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef HasVideosRef = AutoDisposeProviderRef<bool>;
-String _$videoFeedHash() => r'd130e28a141fd52e36384403f3ed57c308291a9e';
+String _$videoFeedHash() => r'1553a75d9015b5e3dec52307e13bf5bcb84d94b8';
 
 /// Main video feed provider that orchestrates all video-related state
 ///

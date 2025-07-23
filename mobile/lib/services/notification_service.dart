@@ -3,7 +3,7 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import '../utils/unified_logger.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 /// Types of notifications
 enum NotificationType {
@@ -15,12 +15,6 @@ enum NotificationType {
 
 /// Notification data structure
 class AppNotification {
-  final String title;
-  final String body;
-  final NotificationType type;
-  final Map<String, dynamic>? data;
-  final DateTime timestamp;
-
   AppNotification({
     required this.title,
     required this.body,
@@ -34,68 +28,81 @@ class AppNotification {
     required String videoTitle,
     required String nostrEventId,
     String? videoUrl,
-  }) {
-    return AppNotification(
-      title: 'Video Published!',
-      body: videoTitle.isEmpty ? 'Your vine is now live on Nostr' : '"$videoTitle" is now live on Nostr',
-      type: NotificationType.videoPublished,
-      data: {
-        'event_id': nostrEventId,
-        'video_url': videoUrl,
-        'action': 'open_feed',
-      },
-    );
-  }
+  }) =>
+      AppNotification(
+        title: 'Video Published!',
+        body: videoTitle.isEmpty
+            ? 'Your vine is now live on Nostr'
+            : '"$videoTitle" is now live on Nostr',
+        type: NotificationType.videoPublished,
+        data: {
+          'event_id': nostrEventId,
+          'video_url': videoUrl,
+          'action': 'open_feed',
+        },
+      );
 
   /// Create notification for upload completion
   factory AppNotification.uploadComplete({
     required String videoTitle,
-  }) {
-    return AppNotification(
-      title: 'Upload Complete',
-      body: videoTitle.isEmpty ? 'Your video is processing' : '"$videoTitle" is being processed',
-      type: NotificationType.uploadComplete,
-      data: {
-        'action': 'open_uploads',
-      },
-    );
-  }
+  }) =>
+      AppNotification(
+        title: 'Upload Complete',
+        body: videoTitle.isEmpty
+            ? 'Your video is processing'
+            : '"$videoTitle" is being processed',
+        type: NotificationType.uploadComplete,
+        data: {
+          'action': 'open_uploads',
+        },
+      );
 
   /// Create notification for upload failure
   factory AppNotification.uploadFailed({
     required String videoTitle,
     required String reason,
-  }) {
-    return AppNotification(
-      title: 'Upload Failed',
-      body: videoTitle.isEmpty ? 'Video upload failed: $reason' : '"$videoTitle" failed: $reason',
-      type: NotificationType.uploadFailed,
-      data: {
-        'action': 'retry_upload',
-        'reason': reason,
-      },
-    );
-  }
+  }) =>
+      AppNotification(
+        title: 'Upload Failed',
+        body: videoTitle.isEmpty
+            ? 'Video upload failed: $reason'
+            : '"$videoTitle" failed: $reason',
+        type: NotificationType.uploadFailed,
+        data: {
+          'action': 'retry_upload',
+          'reason': reason,
+        },
+      );
 
   /// Create notification for processing start
   factory AppNotification.processingStarted({
     required String videoTitle,
-  }) {
-    return AppNotification(
-      title: 'Processing Started',
-      body: videoTitle.isEmpty ? 'Your video is being processed' : 'Processing "$videoTitle"',
-      type: NotificationType.processingStarted,
-      data: {
-        'action': 'show_progress',
-      },
-    );
-  }
+  }) =>
+      AppNotification(
+        title: 'Processing Started',
+        body: videoTitle.isEmpty
+            ? 'Your video is being processed'
+            : 'Processing "$videoTitle"',
+        type: NotificationType.processingStarted,
+        data: {
+          'action': 'show_progress',
+        },
+      );
+  final String title;
+  final String body;
+  final NotificationType type;
+  final Map<String, dynamic>? data;
+  final DateTime timestamp;
 }
 
 /// Service for managing app notifications
 class NotificationService extends ChangeNotifier {
+  /// Factory constructor that returns the singleton instance
+  factory NotificationService() => instance;
+
+  NotificationService._();
   static NotificationService? _instance;
-  
+
   /// Singleton instance
   static NotificationService get instance {
     if (_instance == null || _instance!._disposed) {
@@ -103,53 +110,54 @@ class NotificationService extends ChangeNotifier {
     }
     return _instance!;
   }
-  
-  /// Factory constructor that returns the singleton instance
-  factory NotificationService() => instance;
-  
-  NotificationService._();
 
   final List<AppNotification> _notifications = [];
   bool _permissionsGranted = false;
   bool _disposed = false;
-  
+
   /// List of recent notifications
   List<AppNotification> get notifications => List.unmodifiable(_notifications);
-  
+
   /// Check if notification permissions are granted
   bool get hasPermissions => _permissionsGranted;
 
   /// Initialize notification service
   Future<void> initialize() async {
-    Log.debug('� Initializing NotificationService', name: 'NotificationService', category: LogCategory.system);
-    
+    Log.debug('🔧 Initializing NotificationService',
+        name: 'NotificationService', category: LogCategory.system);
+
     try {
       // Request notification permissions
       await _requestPermissions();
-      
-      Log.info('NotificationService initialized', name: 'NotificationService', category: LogCategory.system);
+
+      Log.info('NotificationService initialized',
+          name: 'NotificationService', category: LogCategory.system);
     } catch (e) {
-      Log.error('Failed to initialize notifications: $e', name: 'NotificationService', category: LogCategory.system);
+      Log.error('Failed to initialize notifications: $e',
+          name: 'NotificationService', category: LogCategory.system);
     }
   }
 
   /// Show a notification
   Future<void> show(AppNotification notification) async {
-    Log.debug('� Showing notification: ${notification.title}', name: 'NotificationService', category: LogCategory.system);
-    
+    Log.debug('📱 Showing notification: ${notification.title}',
+        name: 'NotificationService', category: LogCategory.system);
+
     // Add to internal list
     _addNotification(notification);
-    
+
     try {
       if (_permissionsGranted) {
         // Show platform notification
         await _showPlatformNotification(notification);
       } else {
         // Show in-app notification only
-        Log.warning('No notification permissions, showing in-app only', name: 'NotificationService', category: LogCategory.system);
+        Log.warning('No notification permissions, showing in-app only',
+            name: 'NotificationService', category: LogCategory.system);
       }
     } catch (e) {
-      Log.error('Failed to show notification: $e', name: 'NotificationService', category: LogCategory.system);
+      Log.error('Failed to show notification: $e',
+          name: 'NotificationService', category: LogCategory.system);
     }
   }
 
@@ -164,7 +172,7 @@ class NotificationService extends ChangeNotifier {
       nostrEventId: nostrEventId,
       videoUrl: videoUrl,
     );
-    
+
     await show(notification);
   }
 
@@ -183,7 +191,7 @@ class NotificationService extends ChangeNotifier {
       videoTitle: videoTitle,
       reason: reason,
     );
-    
+
     await show(notification);
   }
 
@@ -191,28 +199,30 @@ class NotificationService extends ChangeNotifier {
   void clearAll() {
     _notifications.clear();
     notifyListeners();
-    Log.debug('�️ Cleared all notifications', name: 'NotificationService', category: LogCategory.system);
+    Log.debug('📱️ Cleared all notifications',
+        name: 'NotificationService', category: LogCategory.system);
   }
 
   /// Clear notifications older than specified duration
   void clearOlderThan(Duration duration) {
     final cutoff = DateTime.now().subtract(duration);
     final initialCount = _notifications.length;
-    
-    _notifications.removeWhere((notification) => 
-        notification.timestamp.isBefore(cutoff));
-    
+
+    _notifications.removeWhere(
+      (notification) => notification.timestamp.isBefore(cutoff),
+    );
+
     final removedCount = initialCount - _notifications.length;
     if (removedCount > 0) {
       notifyListeners();
-      Log.debug('�️ Cleared $removedCount old notifications', name: 'NotificationService', category: LogCategory.system);
+      Log.debug('📱️ Cleared $removedCount old notifications',
+          name: 'NotificationService', category: LogCategory.system);
     }
   }
 
   /// Get notifications by type
-  List<AppNotification> getNotificationsByType(NotificationType type) {
-    return _notifications.where((n) => n.type == type).toList();
-  }
+  List<AppNotification> getNotificationsByType(NotificationType type) =>
+      _notifications.where((n) => n.type == type).toList();
 
   /// Request notification permissions from platform
   Future<void> _requestPermissions() async {
@@ -220,10 +230,12 @@ class NotificationService extends ChangeNotifier {
       // TODO: Implement proper notification permissions
       // For now, simulate granted permissions
       _permissionsGranted = true;
-      Log.info('Notification permissions granted (simulated)', name: 'NotificationService', category: LogCategory.system);
+      Log.info('Notification permissions granted (simulated)',
+          name: 'NotificationService', category: LogCategory.system);
     } catch (e) {
       _permissionsGranted = false;
-      Log.error('Failed to get notification permissions: $e', name: 'NotificationService', category: LogCategory.system);
+      Log.error('Failed to get notification permissions: $e',
+          name: 'NotificationService', category: LogCategory.system);
     }
   }
 
@@ -232,40 +244,43 @@ class NotificationService extends ChangeNotifier {
     try {
       // TODO: Implement actual platform notifications
       // This would use flutter_local_notifications or similar
-      Log.debug('� Platform notification: ${notification.title} - ${notification.body}', name: 'NotificationService', category: LogCategory.system);
-      
+      Log.debug(
+          '📱 Platform notification: ${notification.title} - ${notification.body}',
+          name: 'NotificationService',
+          category: LogCategory.system);
+
       // Simulate haptic feedback for important notifications
       if (notification.type == NotificationType.videoPublished) {
         HapticFeedback.mediumImpact();
       } else if (notification.type == NotificationType.uploadFailed) {
         HapticFeedback.heavyImpact();
       }
-      
     } catch (e) {
-      Log.error('Failed to show platform notification: $e', name: 'NotificationService', category: LogCategory.system);
+      Log.error('Failed to show platform notification: $e',
+          name: 'NotificationService', category: LogCategory.system);
     }
   }
 
   /// Add notification to internal list
   void _addNotification(AppNotification notification) {
     _notifications.insert(0, notification); // Add to beginning (newest first)
-    
+
     // Keep only recent notifications to avoid memory issues
     if (_notifications.length > 100) {
       _notifications.removeRange(100, _notifications.length);
     }
-    
+
     notifyListeners();
   }
 
   /// Get notification statistics
   Map<String, int> get stats {
     final stats = <String, int>{};
-    
+
     for (final type in NotificationType.values) {
       stats[type.name] = getNotificationsByType(type).length;
     }
-    
+
     return stats;
   }
 
@@ -273,12 +288,12 @@ class NotificationService extends ChangeNotifier {
   void dispose() {
     // Check if already disposed to prevent double disposal
     if (_disposed) return;
-    
+
     _disposed = true;
     _notifications.clear();
     super.dispose();
   }
-  
+
   /// Check if this service is still mounted/active
   bool get mounted => !_disposed;
 }

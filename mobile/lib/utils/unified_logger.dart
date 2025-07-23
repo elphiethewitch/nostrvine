@@ -11,10 +11,10 @@ enum LogLevel {
   info(800),
   warning(900),
   error(1000);
-  
+
   final int value;
   const LogLevel(this.value);
-  
+
   static LogLevel fromString(String level) {
     switch (level.toLowerCase()) {
       case 'verbose':
@@ -36,21 +36,21 @@ enum LogLevel {
 
 /// Log categories for filtering by functional area
 enum LogCategory {
-  relay('RELAY'),      // Nostr relay connections, subscriptions, events
-  video('VIDEO'),      // Video playback, upload, processing
-  ui('UI'),            // User interface interactions, navigation
-  auth('AUTH'),        // Authentication, key management, identity
-  storage('STORAGE'),  // Local storage, caching, persistence
-  api('API'),          // External API calls, network requests
-  system('SYSTEM');    // App lifecycle, initialization, configuration
-  
+  relay('RELAY'), // Nostr relay connections, subscriptions, events
+  video('VIDEO'), // Video playback, upload, processing
+  ui('UI'), // User interface interactions, navigation
+  auth('AUTH'), // Authentication, key management, identity
+  storage('STORAGE'), // Local storage, caching, persistence
+  api('API'), // External API calls, network requests
+  system('SYSTEM'); // App lifecycle, initialization, configuration
+
   final String name;
   const LogCategory(this.name);
-  
+
   static LogCategory? fromString(String category) {
     try {
       return LogCategory.values.firstWhere(
-        (cat) => cat.name.toLowerCase() == category.toLowerCase()
+        (cat) => cat.name.toLowerCase() == category.toLowerCase(),
       );
     } catch (_) {
       return null;
@@ -59,23 +59,23 @@ enum LogCategory {
 }
 
 /// Unified logger that outputs to both Flutter tool console and browser DevTools
-/// 
+///
 /// This logger combines the best of both worlds:
 /// - debugPrint: Shows in Flutter tool console (terminal)
 /// - developer.log: Shows in browser DevTools with structured logging
-/// 
+///
 /// Features both traditional log levels AND category-based filtering:
-/// 
+///
 /// Configure log level via:
 /// - Code: UnifiedLogger.setLogLevel(LogLevel.info)
 /// - Environment: LOG_LEVEL=info (or verbose, debug, warning, error)
 /// - Default: debug in debug mode, info in release mode
-/// 
+///
 /// Configure log categories via:
 /// - Code: UnifiedLogger.enableCategories({LogCategory.relay, LogCategory.video})
 /// - Environment: LOG_CATEGORIES=RELAY,VIDEO,AUTH
 /// - Default: all categories in debug mode, only SYSTEM+AUTH in release mode
-/// 
+///
 /// Usage examples:
 /// - Log.info('Connection established', category: LogCategory.relay)
 /// - Log.error('Video failed to load', category: LogCategory.video, error: e)
@@ -83,10 +83,10 @@ enum LogCategory {
 class UnifiedLogger {
   /// Current log level - only messages at or above this level will be logged
   static LogLevel _currentLevel = _getDefaultLogLevel();
-  
+
   /// Enabled categories - only messages in these categories will be logged
   static Set<LogCategory> _enabledCategories = _getDefaultCategories();
-  
+
   /// Get default log level from environment or mode
   static LogLevel _getDefaultLogLevel() {
     // Check environment variable first
@@ -97,13 +97,14 @@ class UnifiedLogger {
     // Default based on build mode
     return kDebugMode ? LogLevel.debug : LogLevel.info;
   }
-  
+
   /// Get default categories from environment or enable all
   static Set<LogCategory> _getDefaultCategories() {
     // Check environment variable first (comma-separated list)
     const envCategories = String.fromEnvironment('LOG_CATEGORIES');
     if (envCategories.isNotEmpty) {
-      final categories = envCategories.split(',')
+      final categories = envCategories
+          .split(',')
           .map((cat) => LogCategory.fromString(cat.trim()))
           .whereType<LogCategory>()
           .toSet();
@@ -113,57 +114,63 @@ class UnifiedLogger {
     // Users can enable specific categories when debugging
     return {LogCategory.system, LogCategory.auth};
   }
-  
+
   /// Set the minimum log level
   static void setLogLevel(LogLevel level) {
     _currentLevel = level;
     if (kDebugMode) {
-      Log.debug('Log level set to: ${level.name}', name: 'UnifiedLogger', category: LogCategory.system);
+      Log.debug('Log level set to: ${level.name}',
+          name: 'UnifiedLogger', category: LogCategory.system);
     }
   }
-  
+
   /// Enable specific categories
   static void enableCategories(Set<LogCategory> categories) {
     _enabledCategories = categories;
     if (kDebugMode) {
-      debugPrint('🔧 Enabled categories: ${categories.map((c) => c.name).join(', ')}');
+      debugPrint(
+          'Enabled categories: ${categories.map((c) => c.name).join(', ')}');
     }
   }
-  
+
   /// Enable a single category
   static void enableCategory(LogCategory category) {
     _enabledCategories.add(category);
     if (kDebugMode) {
-      Log.debug('Enabled category: ${category.name}', name: 'UnifiedLogger', category: LogCategory.system);
+      Log.debug('Enabled category: ${category.name}',
+          name: 'UnifiedLogger', category: LogCategory.system);
     }
   }
-  
+
   /// Disable a single category
   static void disableCategory(LogCategory category) {
     _enabledCategories.remove(category);
     if (kDebugMode) {
-      Log.debug('Disabled category: ${category.name}', name: 'UnifiedLogger', category: LogCategory.system);
+      Log.debug('Disabled category: ${category.name}',
+          name: 'UnifiedLogger', category: LogCategory.system);
     }
   }
-  
+
   /// Get the current log level
   static LogLevel get currentLevel => _currentLevel;
-  
+
   /// Get enabled categories
   static Set<LogCategory> get enabledCategories => _enabledCategories;
-  
+
   /// Check if a specific level is enabled
-  static bool isLevelEnabled(LogLevel level) => level.value >= _currentLevel.value;
-  
+  static bool isLevelEnabled(LogLevel level) =>
+      level.value >= _currentLevel.value;
+
   /// Check if a specific category is enabled
-  static bool isCategoryEnabled(LogCategory category) => _enabledCategories.contains(category);
+  static bool isCategoryEnabled(LogCategory category) =>
+      _enabledCategories.contains(category);
 
   /// Internal logging method that outputs to both destinations
   static void _log(
     String message, {
+    required LogLevel level,
     String? name,
     LogCategory? category,
-    required LogLevel level,
     Object? error,
     StackTrace? stackTrace,
   }) {
@@ -171,25 +178,26 @@ class UnifiedLogger {
     if (!isLevelEnabled(level)) {
       return;
     }
-    
+
     // Check if this category should be logged (if category specified)
     if (category != null && !isCategoryEnabled(category)) {
       return;
     }
-    
+
     // Create timestamp
     final now = DateTime.now();
-    final timestamp = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}.${now.millisecond.toString().padLeft(3, '0')}';
-    
+    final timestamp =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}.${now.millisecond.toString().padLeft(3, '0')}';
+
     // Format category prefix
     final categoryPrefix = category != null ? '[${category.name}] ' : '';
-    
+
     // Format message with timestamp and category
     final timestampedMessage = '[$timestamp] $categoryPrefix$message';
-    
+
     // Always output to Flutter tool console via debugPrint
     debugPrint(timestampedMessage);
-    
+
     // Also output to browser DevTools via developer.log (web only)
     if (kIsWeb) {
       developer.log(
@@ -223,11 +231,20 @@ class UnifiedLogger {
   }
 
   /// Error logging - actual errors with optional error object
-  static void error(String message, {String? name, LogCategory? category, Object? error, StackTrace? stackTrace}) {
-    _log(message, name: name, category: category, level: LogLevel.error, error: error, stackTrace: stackTrace);
+  static void error(String message,
+      {String? name,
+      LogCategory? category,
+      Object? error,
+      StackTrace? stackTrace}) {
+    _log(message,
+        name: name,
+        category: category,
+        level: LogLevel.error,
+        error: error,
+        stackTrace: stackTrace);
   }
 
-  /// Convenience method that matches developer.log signature  
+  /// Convenience method that matches developer.log signature
   static void log(
     String message, {
     String? name,
@@ -236,14 +253,22 @@ class UnifiedLogger {
     Object? error,
     StackTrace? stackTrace,
   }) {
-    _log(message, name: name, category: category, level: level, error: error, stackTrace: stackTrace);
+    _log(message,
+        name: name,
+        category: category,
+        level: level,
+        error: error,
+        stackTrace: stackTrace);
   }
-  
+
   /// Migration helper - replaces debugPrint calls
   /// In debug mode: logs at debug level
   /// In release mode: logs at info level
   static void print(String message, {String? name, LogCategory? category}) {
-    _log(message, name: name, category: category, level: kDebugMode ? LogLevel.debug : LogLevel.info);
+    _log(message,
+        name: name,
+        category: category,
+        level: kDebugMode ? LogLevel.debug : LogLevel.info);
   }
 }
 
@@ -257,31 +282,31 @@ class LogConfig {
     UnifiedLogger.setLogLevel(LogLevel.error);
     UnifiedLogger.enableCategories({LogCategory.system, LogCategory.auth});
   }
-  
+
   /// Enable only relay-related logs for debugging connection issues
   static void relayDebug() {
     UnifiedLogger.setLogLevel(LogLevel.debug);
     UnifiedLogger.enableCategories({LogCategory.relay, LogCategory.system});
   }
-  
+
   /// Enable only video-related logs for debugging playback issues
   static void videoDebug() {
     UnifiedLogger.setLogLevel(LogLevel.debug);
     UnifiedLogger.enableCategories({LogCategory.video, LogCategory.system});
   }
-  
+
   /// Enable UI and interaction logs for debugging user experience
   static void uiDebug() {
     UnifiedLogger.setLogLevel(LogLevel.debug);
     UnifiedLogger.enableCategories({LogCategory.ui, LogCategory.system});
   }
-  
+
   /// Enable all logs (development mode)
   static void verbose() {
     UnifiedLogger.setLogLevel(LogLevel.verbose);
     UnifiedLogger.enableCategories(Set.from(LogCategory.values));
   }
-  
+
   /// Completely disable logging
   static void disable() {
     UnifiedLogger.enableCategories(<LogCategory>{});

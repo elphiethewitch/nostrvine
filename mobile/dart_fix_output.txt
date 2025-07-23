@@ -1,0 +1,2439 @@
+Computing fixes in mobile...
+Applying fixes...
+
+example/video_system_integration_demo.dart
+  omit_local_variable_types - 5 fixes
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 2 fixes
+
+get_complete_kind0_events.dart
+  directives_ordering - 1 fix
+  noop_primitive_operations - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 2 fixes
+  unnecessary_brace_in_string_interps - 1 fix
+  unnecessary_lambdas - 1 fix
+
+integration_test/nip42_auth_integration_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 2 fixes
+  unnecessary_lambdas - 1 fix
+
+integration_test/thumbnail_integration_test.dart
+  avoid_types_on_closure_parameters - 2 fixes
+  directives_ordering - 1 fix
+  prefer_const_constructors - 2 fixes
+  require_trailing_commas - 1 fix
+
+integration_test/video_playback_real_test.dart
+  avoid_types_on_closure_parameters - 8 fixes
+  omit_local_variable_types - 1 fix
+
+integration_test/video_system_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 6 fixes
+
+lib/config/app_config.dart
+  prefer_expression_function_bodies - 1 fix
+
+lib/constants/app_constants.dart
+  prefer_int_literals - 1 fix
+
+lib/core/async/async_utils.dart
+  omit_local_variable_types - 4 fixes
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/core/websocket/reconnection_strategy.dart
+  prefer_int_literals - 1 fix
+  require_trailing_commas - 8 fixes
+  sort_constructors_first - 3 fixes
+
+lib/core/websocket/websocket_connection_state.dart
+  sort_constructors_first - 1 fix
+
+lib/core/websocket/websocket_manager.dart
+  always_put_required_named_parameters_first - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  prefer_int_literals - 1 fix
+  require_trailing_commas - 11 fixes
+  sort_constructors_first - 6 fixes
+
+lib/core/websocket/websocket_pool.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  prefer_int_literals - 3 fixes
+  require_trailing_commas - 12 fixes
+  sort_constructors_first - 7 fixes
+  unnecessary_breaks - 2 fixes
+
+lib/example/pause_resume_integration_example.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+
+lib/exceptions/video_exceptions.dart
+  sort_constructors_first - 2 fixes
+
+lib/features/app/startup/deferred_notification_initializer.dart
+  unused_import - 1 fix
+
+lib/features/app/startup/optimized_app_initializer.dart
+  always_use_package_imports - 3 fixes
+  directives_ordering - 1 fix
+
+lib/features/app/startup/startup_coordinator.dart
+  always_use_package_imports - 3 fixes
+  directives_ordering - 1 fix
+  prefer_int_literals - 2 fixes
+  sort_constructors_first - 1 fix
+
+lib/features/app/startup/startup_metrics.dart
+  prefer_expression_function_bodies - 2 fixes
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 3 fixes
+  unused_import - 1 fix
+
+lib/features/app/startup/startup_profiler.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 2 fixes
+
+lib/main.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 51 fixes
+  avoid_types_on_closure_parameters - 3 fixes
+  directives_ordering - 1 fix
+  prefer_const_constructors - 2 fixes
+  prefer_expression_function_bodies - 2 fixes
+  prefer_int_literals - 1 fix
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 2 fixes
+  unnecessary_lambdas - 1 fix
+
+lib/models/cloudinary_models.dart
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 4 fixes
+  unnecessary_raw_strings - 1 fix
+
+lib/models/comment.dart
+  always_put_required_named_parameters_first - 1 fix
+  prefer_expression_function_bodies - 4 fixes
+  sort_constructors_first - 2 fixes
+
+lib/models/curation_set.dart
+  always_put_required_named_parameters_first - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  prefer_single_quotes - 1 fix
+  sort_constructors_first - 2 fixes
+  unnecessary_breaks - 6 fixes
+
+lib/models/nip94_metadata.dart
+  always_use_package_imports - 1 fix
+  prefer_expression_function_bodies - 9 fixes
+  sort_constructors_first - 7 fixes
+
+lib/models/notification_model.dart
+  always_put_required_named_parameters_first - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  sort_constructors_first - 2 fixes
+
+lib/models/pending_upload.dart
+  prefer_expression_function_bodies - 3 fixes
+  prefer_int_literals - 3 fixes
+  sort_constructors_first - 2 fixes
+
+lib/models/ready_event_data.dart
+  prefer_expression_function_bodies - 4 fixes
+  sort_constructors_first - 2 fixes
+
+lib/models/user_profile.dart
+  always_put_required_named_parameters_first - 1 fix
+  prefer_expression_function_bodies - 5 fixes
+  sort_constructors_first - 3 fixes
+
+lib/models/video_event.dart
+  always_use_package_imports - 1 fix
+  directives_ordering - 1 fix
+  omit_local_variable_types - 3 fixes
+  prefer_expression_function_bodies - 3 fixes
+  sort_constructors_first - 3 fixes
+  unnecessary_await_in_return - 1 fix
+  unnecessary_breaks - 26 fixes
+
+lib/models/video_feed_item.dart
+  always_use_package_imports - 1 fix
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  sort_constructors_first - 3 fixes
+
+lib/models/video_state.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  sort_constructors_first - 2 fixes
+  sort_unnamed_constructors_first - 1 fix
+
+lib/models/vine_draft.dart
+  prefer_expression_function_bodies - 3 fixes
+  sort_constructors_first - 3 fixes
+
+lib/providers/analytics_providers.dart
+  always_use_package_imports - 3 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 15 fixes
+  unnecessary_lambdas - 1 fix
+
+lib/providers/comments_provider.dart
+  always_use_package_imports - 4 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 5 fixes
+  prefer_expression_function_bodies - 3 fixes
+  require_trailing_commas - 4 fixes
+  sort_constructors_first - 3 fixes
+
+lib/providers/curation_providers.dart
+  always_use_package_imports - 6 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 4 fixes
+  require_trailing_commas - 9 fixes
+
+lib/providers/feed_mode_providers.dart
+  always_use_package_imports - 1 fix
+  directives_ordering - 1 fix
+
+lib/providers/profile_stats_provider.dart
+  always_use_package_imports - 2 fixes
+  prefer_expression_function_bodies - 2 fixes
+  sort_constructors_first - 2 fixes
+
+lib/providers/profile_videos_provider.dart
+  always_use_package_imports - 4 fixes
+  directives_ordering - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/providers/social_providers.dart
+  always_use_package_imports - 5 fixes
+  directives_ordering - 1 fix
+  require_trailing_commas - 3 fixes
+  unnecessary_lambdas - 4 fixes
+
+lib/providers/user_profile_providers.dart
+  always_use_package_imports - 5 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  require_trailing_commas - 13 fixes
+  unnecessary_lambdas - 1 fix
+
+lib/providers/video_events_providers.dart
+  always_use_package_imports - 8 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  require_trailing_commas - 18 fixes
+  unnecessary_breaks - 5 fixes
+  unnecessary_lambdas - 1 fix
+
+lib/providers/video_feed_provider.dart
+  always_use_package_imports - 8 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 3 fixes
+  require_trailing_commas - 6 fixes
+
+lib/providers/video_manager_provider.dart
+  always_use_package_imports - 12 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_expression_function_bodies - 6 fixes
+  sort_constructors_first - 1 fix
+
+lib/providers/video_manager_providers.dart
+  always_use_package_imports - 6 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 3 fixes
+  require_trailing_commas - 17 fixes
+  unnecessary_lambdas - 1 fix
+
+lib/screens/activity_screen.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 13 fixes
+  avoid_escaping_inner_quotes - 1 fix
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 10 fixes
+  sort_constructors_first - 3 fixes
+
+lib/screens/camera_settings_screen.dart
+  always_use_package_imports - 1 fix
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 8 fixes
+  prefer_int_literals - 2 fixes
+
+lib/screens/comments_screen.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 7 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 5 fixes
+  sort_constructors_first - 1 fix
+  unnecessary_lambdas - 1 fix
+  use_decorated_box - 1 fix
+
+lib/screens/debug_video_test.dart
+  always_use_package_imports - 6 fixes
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 1 fix
+
+lib/screens/explore_screen.dart
+  always_use_package_imports - 12 fixes
+  avoid_escaping_inner_quotes - 1 fix
+  avoid_void_async - 1 fix
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 4 fixes
+  unnecessary_breaks - 2 fixes
+  unnecessary_lambdas - 3 fixes
+
+lib/screens/explore_video_feed_screen.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 6 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 1 fix
+  unnecessary_breaks - 3 fixes
+
+lib/screens/explore_video_screen.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 5 fixes
+  avoid_void_async - 2 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/screens/hashtag_feed_screen.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 5 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  prefer_single_quotes - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/screens/key_import_screen.dart
+  always_use_package_imports - 3 fixes
+  avoid_escaping_inner_quotes - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  prefer_int_literals - 1 fix
+
+lib/screens/macos_camera_screen.dart
+  always_use_package_imports - 7 fixes
+  avoid_types_on_closure_parameters - 2 fixes
+  directives_ordering - 1 fix
+  noop_primitive_operations - 2 fixes
+  omit_local_variable_types - 2 fixes
+  prefer_expression_function_bodies - 3 fixes
+  prefer_int_literals - 1 fix
+  prefer_single_quotes - 1 fix
+  sort_constructors_first - 1 fix
+  unnecessary_brace_in_string_interps - 2 fixes
+
+lib/screens/notification_settings_screen.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 5 fixes
+
+lib/screens/notifications_screen.dart
+  always_use_package_imports - 5 fixes
+  avoid_escaping_inner_quotes - 1 fix
+  directives_ordering - 1 fix
+  require_trailing_commas - 1 fix
+  unnecessary_breaks - 9 fixes
+
+lib/screens/profile_screen.dart
+  always_use_package_imports - 17 fixes
+  avoid_escaping_inner_quotes - 2 fixes
+  avoid_types_on_closure_parameters - 3 fixes
+  avoid_void_async - 7 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 14 fixes
+  prefer_expression_function_bodies - 13 fixes
+  prefer_int_literals - 1 fix
+  require_trailing_commas - 4 fixes
+  sort_constructors_first - 2 fixes
+  unnecessary_lambdas - 2 fixes
+  use_colored_box - 1 fix
+  use_decorated_box - 12 fixes
+
+lib/screens/profile_screen_scrollable.dart
+  always_use_package_imports - 17 fixes
+  avoid_escaping_inner_quotes - 1 fix
+  avoid_types_on_closure_parameters - 2 fixes
+  avoid_void_async - 5 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 8 fixes
+  prefer_int_literals - 1 fix
+  sort_constructors_first - 1 fix
+  unnecessary_lambdas - 2 fixes
+  use_colored_box - 1 fix
+  use_decorated_box - 5 fixes
+
+lib/screens/profile_setup_screen.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 8 fixes
+  avoid_escaping_inner_quotes - 3 fixes
+  avoid_types_on_closure_parameters - 1 fix
+  directives_ordering - 1 fix
+  omit_local_variable_types - 4 fixes
+  prefer_const_constructors - 2 fixes
+  prefer_expression_function_bodies - 5 fixes
+  prefer_int_literals - 3 fixes
+  require_trailing_commas - 8 fixes
+  sort_constructors_first - 1 fix
+  use_decorated_box - 1 fix
+
+lib/screens/relay_settings_screen.dart
+  always_use_package_imports - 3 fixes
+  avoid_types_on_closure_parameters - 1 fix
+  directives_ordering - 1 fix
+  noop_primitive_operations - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  unnecessary_brace_in_string_interps - 1 fix
+  unnecessary_breaks - 3 fixes
+  unnecessary_to_list_in_spreads - 1 fix
+
+lib/screens/search_screen.dart
+  always_use_package_imports - 6 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 7 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 3 fixes
+
+lib/screens/universal_camera_screen.dart
+  always_use_package_imports - 9 fixes
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 3 fixes
+  use_colored_box - 1 fix
+
+lib/screens/video_feed_screen.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 9 fixes
+  avoid_escaping_inner_quotes - 1 fix
+  avoid_types_on_closure_parameters - 1 fix
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 5 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 2 fixes
+  unnecessary_breaks - 8 fixes
+  unnecessary_lambdas - 1 fix
+  use_colored_box - 2 fixes
+
+lib/screens/video_metadata_screen.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 6 fixes
+  directives_ordering - 1 fix
+  prefer_const_constructors - 8 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 1 fix
+  unnecessary_lambdas - 1 fix
+
+lib/screens/vine_drafts_screen.dart
+  always_use_package_imports - 3 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 4 fixes
+  unnecessary_breaks - 2 fixes
+
+lib/screens/vine_preview_screen.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 6 fixes
+  avoid_void_async - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 1 fix
+  unnecessary_lambdas - 1 fix
+
+lib/screens/web_auth_screen.dart
+  always_use_package_imports - 3 fixes
+  avoid_void_async - 5 fixes
+  directives_ordering - 1 fix
+  noop_primitive_operations - 2 fixes
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 4 fixes
+  prefer_int_literals - 1 fix
+  unnecessary_brace_in_string_interps - 2 fixes
+
+lib/screens/welcome_screen.dart
+  always_use_package_imports - 3 fixes
+  avoid_void_async - 1 fix
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  prefer_int_literals - 1 fix
+
+lib/scripts/bulk_thumbnail_generator.dart
+  always_use_package_imports - 3 fixes
+  omit_local_variable_types - 2 fixes
+  prefer_const_constructors - 2 fixes
+  prefer_expression_function_bodies - 2 fixes
+  require_trailing_commas - 3 fixes
+  sort_constructors_first - 1 fix
+  unnecessary_breaks - 4 fixes
+
+lib/scripts/debugprint_to_unified_logger_migration.dart
+  omit_local_variable_types - 5 fixes
+  prefer_final_locals - 1 fix
+  unnecessary_brace_in_string_interps - 2 fixes
+  unnecessary_raw_strings - 5 fixes
+
+lib/scripts/migrate_logging.dart
+  always_use_package_imports - 1 fix
+  avoid_escaping_inner_quotes - 6 fixes
+
+lib/services/age_verification_service.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+
+lib/services/analytics_service.dart
+  always_use_package_imports - 3 fixes
+  directives_ordering - 1 fix
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/services/api_service.dart
+  sort_constructors_first - 2 fixes
+  unnecessary_lambdas - 1 fix
+
+lib/services/auth_service.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 7 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 4 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 6 fixes
+
+lib/services/blurhash_service.dart
+  always_use_package_imports - 1 fix
+  omit_local_variable_types - 5 fixes
+  prefer_const_declarations - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  prefer_int_literals - 1 fix
+  sort_constructors_first - 3 fixes
+  use_raw_strings - 1 fix
+
+lib/services/camera/camera_provider.dart
+  always_put_required_named_parameters_first - 1 fix
+  sort_constructors_first - 2 fixes
+
+lib/services/camera/macos_camera_provider.dart
+  always_use_package_imports - 3 fixes
+  omit_local_variable_types - 5 fixes
+  prefer_const_constructors - 3 fixes
+  prefer_const_declarations - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  use_colored_box - 4 fixes
+
+lib/services/camera/mobile_camera_provider.dart
+  always_use_package_imports - 2 fixes
+  avoid_types_on_closure_parameters - 1 fix
+  omit_local_variable_types - 4 fixes
+  prefer_int_literals - 1 fix
+
+lib/services/camera/native_macos_camera.dart
+  always_use_package_imports - 1 fix
+  unnecessary_import - 1 fix
+
+lib/services/camera/unsupported_camera_provider.dart
+  always_use_package_imports - 1 fix
+  avoid_escaping_inner_quotes - 1 fix
+  prefer_expression_function_bodies - 1 fix
+
+lib/services/camera/web_camera_provider.dart
+  always_use_package_imports - 2 fixes
+  prefer_int_literals - 1 fix
+
+lib/services/camera_service.dart
+  always_use_package_imports - 1 fix
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  prefer_int_literals - 1 fix
+  sort_constructors_first - 2 fixes
+
+lib/services/circuit_breaker_service.dart
+  always_use_package_imports - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  prefer_int_literals - 1 fix
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 2 fixes
+  unnecessary_lambdas - 1 fix
+
+lib/services/cloudinary_upload_service.dart
+  always_use_package_imports - 3 fixes
+  directives_ordering - 1 fix
+  prefer_const_declarations - 1 fix
+  prefer_expression_function_bodies - 5 fixes
+  prefer_int_literals - 1 fix
+  sort_constructors_first - 7 fixes
+  unnecessary_string_interpolations - 1 fix
+
+lib/services/connection_status_service.dart
+  always_use_package_imports - 1 fix
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 3 fixes
+
+lib/services/content_blocklist_service.dart
+  always_use_package_imports - 2 fixes
+  prefer_expression_function_bodies - 3 fixes
+  sort_constructors_first - 1 fix
+
+lib/services/content_deletion_service.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 3 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 3 fixes
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 3 fixes
+  unnecessary_lambdas - 1 fix
+
+lib/services/content_moderation_service.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 1 fix
+  directives_ordering - 1 fix
+  omit_local_variable_types - 4 fixes
+  prefer_expression_function_bodies - 2 fixes
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 3 fixes
+  unnecessary_breaks - 8 fixes
+  unnecessary_lambdas - 1 fix
+
+lib/services/content_reporting_service.dart
+  always_put_required_named_parameters_first - 2 fixes
+  always_use_package_imports - 3 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 5 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 3 fixes
+  unnecessary_lambdas - 1 fix
+
+lib/services/curated_list_service.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 3 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 5 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 2 fixes
+  unnecessary_lambdas - 1 fix
+  unnecessary_overrides - 1 fix
+
+lib/services/curation_service.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 8 fixes
+  avoid_escaping_inner_quotes - 4 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_expression_function_bodies - 4 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 1 fix
+  unnecessary_brace_in_string_interps - 2 fixes
+
+lib/services/default_content_service.dart
+  always_use_package_imports - 2 fixes
+  prefer_expression_function_bodies - 2 fixes
+
+lib/services/direct_upload_service.dart
+  always_use_package_imports - 4 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+  prefer_expression_function_bodies - 4 fixes
+  prefer_int_literals - 2 fixes
+  sort_constructors_first - 5 fixes
+
+lib/services/explore_video_manager.dart
+  always_use_package_imports - 5 fixes
+  avoid_escaping_inner_quotes - 1 fix
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/services/feature_flag_service.dart
+  always_put_required_named_parameters_first - 3 fixes
+  always_use_package_imports - 1 fix
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_expression_function_bodies - 4 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 7 fixes
+
+lib/services/global_video_registry.dart
+  always_use_package_imports - 1 fix
+  directives_ordering - 1 fix
+  omit_local_variable_types - 7 fixes
+  require_trailing_commas - 14 fixes
+  sort_constructors_first - 2 fixes
+
+lib/services/hashtag_service.dart
+  always_use_package_imports - 2 fixes
+  prefer_expression_function_bodies - 3 fixes
+  sort_constructors_first - 2 fixes
+
+lib/services/identity_manager_service.dart
+  always_use_package_imports - 3 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 3 fixes
+
+lib/services/key_migration_service.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 5 fixes
+  avoid_escaping_inner_quotes - 1 fix
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_is_not_empty - 1 fix
+  sort_constructors_first - 2 fixes
+
+lib/services/key_storage_service.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  sort_constructors_first - 5 fixes
+  unnecessary_lambdas - 1 fix
+
+lib/services/logging_config_service.dart
+  always_use_package_imports - 1 fix
+  directives_ordering - 1 fix
+  prefer_const_declarations - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/services/network/rate_limiter.dart
+  sort_constructors_first - 4 fixes
+
+lib/services/nip05_service.dart
+  noop_primitive_operations - 3 fixes
+  sort_constructors_first - 1 fix
+  unnecessary_brace_in_string_interps - 3 fixes
+
+lib/services/nip07_interop.dart
+  always_put_required_named_parameters_first - 1 fix
+  directives_ordering - 1 fix
+  noop_primitive_operations - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 1 fix
+  unnecessary_brace_in_string_interps - 1 fix
+
+lib/services/nip07_service.dart
+  always_use_package_imports - 2 fixes
+  noop_primitive_operations - 2 fixes
+  prefer_expression_function_bodies - 5 fixes
+  sort_constructors_first - 8 fixes
+  unnecessary_brace_in_string_interps - 2 fixes
+
+lib/services/nip98_auth_service.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  sort_constructors_first - 3 fixes
+
+lib/services/nostr_connection_manager.dart
+  always_use_package_imports - 2 fixes
+
+lib/services/nostr_key_manager.dart
+  always_use_package_imports - 1 fix
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+  prefer_const_constructors - 11 fixes
+  prefer_expression_function_bodies - 3 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 2 fixes
+
+lib/services/nostr_service.dart
+  always_use_package_imports - 5 fixes
+  annotate_overrides - 6 fixes
+  avoid_types_on_closure_parameters - 1 fix
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  prefer_final_locals - 2 fixes
+  prefer_single_quotes - 13 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 2 fixes
+  unnecessary_await_in_return - 2 fixes
+
+lib/services/nostr_service_interface.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/services/nostr_video_bridge.dart
+  always_use_package_imports - 8 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  sort_constructors_first - 1 fix
+  unnecessary_lambdas - 1 fix
+
+lib/services/notification_service.dart
+  always_use_package_imports - 1 fix
+  prefer_expression_function_bodies - 5 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 7 fixes
+
+lib/services/notification_service_enhanced.dart
+  always_use_package_imports - 5 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 2 fixes
+
+lib/services/platform_secure_storage.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  sort_constructors_first - 3 fixes
+
+lib/services/profile_cache_service.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+
+lib/services/secure_key_storage_service.dart
+  always_use_package_imports - 4 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 3 fixes
+
+lib/services/seen_videos_service.dart
+  always_use_package_imports - 1 fix
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+  prefer_expression_function_bodies - 2 fixes
+
+lib/services/share_service.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  sort_constructors_first - 1 fix
+
+lib/services/social_service.dart
+  always_use_package_imports - 4 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 10 fixes
+  prefer_expression_function_bodies - 5 fixes
+  sort_constructors_first - 1 fix
+  unnecessary_lambdas - 1 fix
+
+lib/services/stream_upload_service.dart
+  always_use_package_imports - 3 fixes
+  prefer_expression_function_bodies - 6 fixes
+  prefer_final_locals - 1 fix
+  prefer_int_literals - 1 fix
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 8 fixes
+
+lib/services/stubs/js_stub.dart
+  avoid_unused_constructor_parameters - 1 fix
+
+lib/services/stubs/js_util_stub.dart
+  prefer_expression_function_bodies - 1 fix
+
+lib/services/subscription_manager.dart
+  always_use_package_imports - 2 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 2 fixes
+
+lib/services/thumbnail_api_service.dart
+  always_use_package_imports - 1 fix
+  omit_local_variable_types - 1 fix
+  require_trailing_commas - 11 fixes
+  sort_constructors_first - 1 fix
+
+lib/services/upload_manager.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 5 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_expression_function_bodies - 6 fixes
+  prefer_int_literals - 2 fixes
+  require_trailing_commas - 5 fixes
+  sort_constructors_first - 3 fixes
+  unnecessary_await_in_return - 1 fix
+  unnecessary_parenthesis - 1 fix
+
+lib/services/user_profile_service.dart
+  always_use_package_imports - 6 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 3 fixes
+  require_trailing_commas - 4 fixes
+  sort_constructors_first - 2 fixes
+  unnecessary_brace_in_string_interps - 1 fix
+  unnecessary_lambdas - 4 fixes
+
+lib/services/video_cache_service.dart
+  always_use_package_imports - 4 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 6 fixes
+  prefer_expression_function_bodies - 4 fixes
+
+lib/services/video_controller_manager.dart
+  always_use_package_imports - 4 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/services/video_event_cache_service.dart
+  avoid_function_literals_in_foreach_calls - 1 fix
+
+lib/services/video_event_publisher.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 6 fixes
+  avoid_void_async - 1 fix
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 1 fix
+  unnecessary_breaks - 10 fixes
+
+lib/services/video_event_service.dart
+  always_use_package_imports - 9 fixes
+  avoid_unused_constructor_parameters - 1 fix
+  directives_ordering - 1 fix
+  omit_local_variable_types - 15 fixes
+  prefer_const_constructors - 5 fixes
+  prefer_expression_function_bodies - 9 fixes
+  prefer_final_locals - 4 fixes
+  require_trailing_commas - 3 fixes
+  sort_constructors_first - 2 fixes
+  unnecessary_lambdas - 10 fixes
+
+lib/services/video_frame_extractor.dart
+  always_use_package_imports - 1 fix
+  directives_ordering - 1 fix
+
+lib/services/video_manager_interface.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 3 fixes
+  sort_constructors_first - 5 fixes
+
+lib/services/video_manager_service.dart
+  always_use_package_imports - 8 fixes
+  annotate_overrides - 3 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 4 fixes
+  prefer_const_constructors - 3 fixes
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 1 fix
+  unnecessary_brace_in_string_interps - 3 fixes
+
+lib/services/video_network_service.dart
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/services/video_performance_monitor.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 2 fixes
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 5 fixes
+  prefer_const_declarations - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  prefer_int_literals - 9 fixes
+  require_trailing_commas - 13 fixes
+  sort_constructors_first - 15 fixes
+
+lib/services/video_playback_controller.dart
+  always_use_package_imports - 3 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 3 fixes
+  prefer_int_literals - 3 fixes
+  require_trailing_commas - 9 fixes
+  sort_constructors_first - 5 fixes
+  unnecessary_breaks - 2 fixes
+
+lib/services/video_sharing_service.dart
+  always_use_package_imports - 5 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_declarations - 1 fix
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 3 fixes
+
+lib/services/video_subscription_service.dart
+  always_put_required_named_parameters_first - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 1 fix
+
+lib/services/video_thumbnail_service.dart
+  always_use_package_imports - 1 fix
+  directives_ordering - 1 fix
+
+lib/services/video_visibility_manager.dart
+  always_use_package_imports - 1 fix
+  require_trailing_commas - 7 fixes
+  sort_constructors_first - 1 fix
+  unnecessary_null_checks - 1 fix
+
+lib/services/vine_recording_controller.dart
+  always_use_package_imports - 4 fixes
+  directives_ordering - 1 fix
+  prefer_conditional_assignment - 1 fix
+  prefer_const_constructors - 2 fixes
+  prefer_expression_function_bodies - 1 fix
+  prefer_single_quotes - 1 fix
+  sort_constructors_first - 1 fix
+  unnecessary_null_checks - 1 fix
+  use_colored_box - 2 fixes
+
+lib/services/web_auth_service.dart
+  always_use_package_imports - 2 fixes
+  avoid_unused_constructor_parameters - 1 fix
+  noop_primitive_operations - 1 fix
+  prefer_expression_function_bodies - 3 fixes
+  sort_constructors_first - 6 fixes
+  unnecessary_brace_in_string_interps - 1 fix
+
+lib/services/web_camera_service.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 1 fix
+  avoid_types_on_closure_parameters - 3 fixes
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+  sort_constructors_first - 1 fix
+  use_colored_box - 1 fix
+
+lib/services/web_camera_service_stub.dart
+  always_put_required_named_parameters_first - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 1 fix
+  use_colored_box - 1 fix
+
+lib/services/web_socket_html.dart
+  always_use_package_imports - 2 fixes
+  annotate_overrides - 1 fix
+  directives_ordering - 1 fix
+  sort_constructors_first - 1 fix
+  use_rethrow_when_possible - 1 fix
+
+lib/services/web_socket_io.dart
+  annotate_overrides - 1 fix
+  directives_ordering - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/services/web_socket_stub.dart
+  always_use_package_imports - 1 fix
+
+lib/services/websocket_adapter.dart
+  always_use_package_imports - 1 fix
+  unused_import - 1 fix
+
+lib/services/websocket_connection_manager.dart
+  always_use_package_imports - 1 fix
+  avoid_void_async - 1 fix
+  directives_ordering - 1 fix
+  prefer_int_literals - 1 fix
+  sort_constructors_first - 1 fix
+  unnecessary_breaks - 3 fixes
+  unnecessary_lambdas - 1 fix
+
+lib/services/websocket_factory_html.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+
+lib/services/websocket_factory_io.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+
+lib/services/websocket_factory_stub.dart
+  always_use_package_imports - 1 fix
+
+lib/state/curation_state.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+
+lib/state/user_profile_state.dart
+  always_use_package_imports - 1 fix
+
+lib/state/video_feed_state.dart
+  always_use_package_imports - 1 fix
+  avoid_escaping_inner_quotes - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+
+lib/state/video_manager_state.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+
+lib/theme/vine_theme.dart
+  avoid_multiple_declarations_per_line - 1 fix
+  omit_local_variable_types - 5 fixes
+  prefer_expression_function_bodies - 1 fix
+  prefer_final_in_for_each - 1 fix
+  prefer_final_locals - 1 fix
+
+lib/utils/async_utils.dart
+  always_use_package_imports - 1 fix
+  omit_local_variable_types - 2 fixes
+  prefer_expression_function_bodies - 1 fix
+  unnecessary_lambdas - 1 fix
+  use_super_parameters - 1 fix
+
+lib/utils/debug_logger_config.dart
+  always_use_package_imports - 1 fix
+
+lib/utils/feed_navigation.dart
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 1 fix
+
+lib/utils/hashtag_extractor.dart
+  omit_local_variable_types - 3 fixes
+  prefer_expression_function_bodies - 2 fixes
+  sort_constructors_first - 1 fix
+  unnecessary_raw_strings - 2 fixes
+
+lib/utils/nostr_encoding.dart
+  omit_local_variable_types - 5 fixes
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 1 fix
+
+lib/utils/nostr_timestamp.dart
+  prefer_expression_function_bodies - 1 fix
+
+lib/utils/secure_key_container.dart
+  always_use_package_imports - 2 fixes
+  omit_local_variable_types - 3 fixes
+  prefer_expression_function_bodies - 3 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 4 fixes
+  unnecessary_lambdas - 1 fix
+
+lib/utils/string_utils.dart
+  prefer_expression_function_bodies - 1 fix
+
+lib/utils/unified_logger.dart
+  always_put_required_named_parameters_first - 1 fix
+  require_trailing_commas - 1 fix
+
+lib/widgets/age_verification_dialog.dart
+  always_use_package_imports - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/widgets/app_lifecycle_handler.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 1 fix
+  unnecessary_breaks - 2 fixes
+
+lib/widgets/character_counter_widget.dart
+  always_put_required_named_parameters_first - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/widgets/clickable_hashtag_text.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 4 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  require_trailing_commas - 3 fixes
+  sort_constructors_first - 1 fix
+
+lib/widgets/content_warning.dart
+  always_put_required_named_parameters_first - 3 fixes
+  always_use_package_imports - 1 fix
+  prefer_const_constructors - 2 fixes
+  prefer_expression_function_bodies - 3 fixes
+  sort_constructors_first - 3 fixes
+  use_decorated_box - 1 fix
+
+lib/widgets/feed_transition_indicator.dart
+  always_put_required_named_parameters_first - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  prefer_int_literals - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/widgets/global_upload_indicator.dart
+  always_use_package_imports - 4 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  require_trailing_commas - 1 fix
+  unnecessary_breaks - 4 fixes
+
+lib/widgets/hashtag_input_widget.dart
+  always_put_required_named_parameters_first - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/widgets/notification_badge.dart
+  always_put_required_named_parameters_first - 2 fixes
+  prefer_expression_function_bodies - 1 fix
+  prefer_int_literals - 1 fix
+  sort_constructors_first - 2 fixes
+
+lib/widgets/notification_list_item.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  sort_constructors_first - 1 fix
+  unnecessary_null_checks - 1 fix
+
+lib/widgets/share_video_menu.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 11 fixes
+  avoid_void_async - 10 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 14 fixes
+  require_trailing_commas - 5 fixes
+  sort_constructors_first - 5 fixes
+  use_decorated_box - 1 fix
+
+lib/widgets/upload_progress_indicator.dart
+  always_put_required_named_parameters_first - 2 fixes
+  always_use_package_imports - 1 fix
+  prefer_expression_function_bodies - 3 fixes
+  sort_constructors_first - 2 fixes
+
+lib/widgets/user_avatar.dart
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/widgets/video_explore_tile.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 2 fixes
+  prefer_expression_function_bodies - 1 fix
+  sort_constructors_first - 1 fix
+  use_decorated_box - 1 fix
+
+lib/widgets/video_feed_item.dart
+  always_put_required_named_parameters_first - 2 fixes
+  always_use_package_imports - 14 fixes
+  avoid_void_async - 3 fixes
+  directives_ordering - 1 fix
+  noop_primitive_operations - 2 fixes
+  omit_local_variable_types - 2 fixes
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 15 fixes
+  require_trailing_commas - 8 fixes
+  sort_constructors_first - 2 fixes
+  unnecessary_brace_in_string_interps - 2 fixes
+  unnecessary_breaks - 4 fixes
+  unnecessary_null_checks - 1 fix
+  use_colored_box - 2 fixes
+
+lib/widgets/video_fullscreen_overlay.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 11 fixes
+  avoid_void_async - 4 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 11 fixes
+  prefer_int_literals - 1 fix
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 1 fix
+  use_colored_box - 2 fixes
+  use_decorated_box - 1 fix
+
+lib/widgets/video_icon_placeholder.dart
+  prefer_expression_function_bodies - 2 fixes
+  prefer_int_literals - 1 fix
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 2 fixes
+
+lib/widgets/video_overlay_modal.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 4 fixes
+  avoid_void_async - 2 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  sort_constructors_first - 1 fix
+
+lib/widgets/video_overlay_modal_compact.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 4 fixes
+  avoid_void_async - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 3 fixes
+  prefer_int_literals - 2 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 1 fix
+  use_decorated_box - 1 fix
+
+lib/widgets/video_playback_widget.dart
+  always_put_required_named_parameters_first - 4 fixes
+  always_use_package_imports - 3 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 10 fixes
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 1 fix
+  use_colored_box - 1 fix
+
+lib/widgets/video_player_widget.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 6 fixes
+  sort_constructors_first - 1 fix
+  use_colored_box - 2 fixes
+
+lib/widgets/video_preview_tile.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 5 fixes
+  directives_ordering - 1 fix
+  prefer_const_constructors - 2 fixes
+  sort_constructors_first - 1 fix
+  use_colored_box - 2 fixes
+
+lib/widgets/video_thumbnail_widget.dart
+  always_put_required_named_parameters_first - 2 fixes
+  always_use_package_imports - 4 fixes
+  omit_local_variable_types - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  require_trailing_commas - 8 fixes
+  sort_constructors_first - 2 fixes
+
+lib/widgets/vine_recording_controls.dart
+  always_put_required_named_parameters_first - 4 fixes
+  always_use_package_imports - 3 fixes
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 4 fixes
+  prefer_int_literals - 2 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 4 fixes
+  unnecessary_lambdas - 1 fix
+
+lib/widgets/visibility_aware_video.dart
+  always_put_required_named_parameters_first - 1 fix
+  always_use_package_imports - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 3 fixes
+  sort_constructors_first - 2 fixes
+
+overrides/cryptography_flutter-2.3.2/lib/cryptography_flutter_web.dart
+  directives_ordering - 1 fix
+
+test/builders/auth_state_builder.dart
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  sort_constructors_first - 1 fix
+
+test/builders/nostr_event_builder.dart
+  prefer_expression_function_bodies - 5 fixes
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 1 fix
+
+test/builders/user_profile_builder.dart
+  prefer_expression_function_bodies - 3 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 1 fix
+
+test/builders/video_event_builder.dart
+  prefer_expression_function_bodies - 3 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 1 fix
+  unnecessary_parenthesis - 2 fixes
+
+test/core/async/async_utils_test.dart
+  omit_local_variable_types - 12 fixes
+  prefer_const_declarations - 2 fixes
+  prefer_final_locals - 2 fixes
+
+test/core/websocket/reconnection_strategy_test.dart
+  omit_local_variable_types - 5 fixes
+  prefer_const_constructors - 23 fixes
+  prefer_int_literals - 1 fix
+  require_trailing_commas - 2 fixes
+  unnecessary_lambdas - 2 fixes
+
+test/core/websocket/websocket_connection_state_test.dart
+  prefer_const_constructors - 3 fixes
+  require_trailing_commas - 3 fixes
+
+test/core/websocket/websocket_manager_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 9 fixes
+  require_trailing_commas - 2 fixes
+
+test/core/websocket/websocket_pool_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 3 fixes
+  prefer_const_constructors - 18 fixes
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 1 fix
+
+test/debug_relay_auth.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 3 fixes
+  require_trailing_commas - 1 fix
+  unnecessary_brace_in_string_interps - 1 fix
+
+test/debug_video_event_service.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_final_fields - 1 fix
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 1 fix
+
+test/examples/example_service_test.dart
+  require_trailing_commas - 1 fix
+
+test/features/app/startup/startup_coordinator_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+
+test/features/video/network/video_network_service_minimal_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 3 fixes
+  sort_constructors_first - 1 fix
+  unnecessary_overrides - 1 fix
+
+test/features/video/network/video_network_service_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  unnecessary_overrides - 1 fix
+
+test/generated/auth_result_test.dart
+  non_constant_identifier_names - 1 fix
+  unused_import - 1 fix
+
+test/generated/auth_service_test.dart
+  non_constant_identifier_names - 1 fix
+  unused_import - 1 fix
+
+test/generated/feed_screen_v2_test.dart
+  avoid_types_on_closure_parameters - 5 fixes
+  directives_ordering - 1 fix
+
+test/generated/video_event_service_benchmark.dart
+  non_constant_identifier_names - 1 fix
+  omit_local_variable_types - 2 fixes
+  unnecessary_import - 1 fix
+  unused_import - 1 fix
+
+test/generated/video_event_service_test.dart
+  require_trailing_commas - 1 fix
+  unnecessary_lambdas - 2 fixes
+
+test/generated/video_upload_integration_test.dart
+  directives_ordering - 1 fix
+
+test/helpers/pipeline_test_factory.dart
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  require_trailing_commas - 10 fixes
+  sort_constructors_first - 2 fixes
+  unnecessary_breaks - 7 fixes
+  unnecessary_lambdas - 2 fixes
+
+test/helpers/service_test_factory.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 1 fix
+
+test/helpers/test_helpers.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 3 fixes
+  prefer_const_declarations - 1 fix
+  prefer_expression_function_bodies - 10 fixes
+  require_trailing_commas - 4 fixes
+  sort_constructors_first - 2 fixes
+
+test/helpers/test_subscription_manager.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 2 fixes
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 2 fixes
+
+test/helpers/test_video_files.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 3 fixes
+  prefer_const_constructors - 1 fix
+  prefer_const_declarations - 1 fix
+  prefer_expression_function_bodies - 6 fixes
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 2 fixes
+
+test/in_memory/in_memory_nostr_service.dart
+  annotate_overrides - 1 fix
+  omit_local_variable_types - 1 fix
+
+test/in_memory/in_memory_storage_service.dart
+  prefer_expression_function_bodies - 2 fixes
+
+test/infrastructure/mass_test_generation_test.dart
+  avoid_escaping_inner_quotes - 4 fixes
+  require_trailing_commas - 31 fixes
+
+test/infrastructure/test_infrastructure_setup_test.dart
+  avoid_escaping_inner_quotes - 1 fix
+  require_trailing_commas - 30 fixes
+
+test/integration/analytics_integration_test.dart
+  directives_ordering - 1 fix
+
+test/integration/comment_posting_integration_test.dart
+  avoid_types_on_closure_parameters - 6 fixes
+  directives_ordering - 1 fix
+  require_trailing_commas - 11 fixes
+
+test/integration/comment_posting_simple_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 9 fixes
+
+test/integration/hashtag_filtering_integration_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 1 fix
+
+test/integration/hashtag_navigation_test.dart
+  avoid_types_on_closure_parameters - 2 fixes
+  directives_ordering - 1 fix
+
+test/integration/nostr_relay_integration_test.dart
+  directives_ordering - 1 fix
+  prefer_const_declarations - 1 fix
+  require_trailing_commas - 1 fix
+
+test/integration/nostr_service_integration_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 1 fix
+
+test/integration/pipeline_failure_scenarios_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+  require_trailing_commas - 1 fix
+  unnecessary_await_in_return - 1 fix
+  unnecessary_breaks - 2 fixes
+
+test/integration/pipeline_integration_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 12 fixes
+  unnecessary_lambdas - 9 fixes
+
+test/integration/profile_editing_integration_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 3 fixes
+  require_trailing_commas - 4 fixes
+  sort_constructors_first - 2 fixes
+
+test/integration/profile_update_relay_test.dart
+  avoid_relative_lib_imports - 5 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  require_trailing_commas - 4 fixes
+
+test/integration/real_file_pipeline_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+  prefer_const_declarations - 1 fix
+  require_trailing_commas - 1 fix
+
+test/integration/revine_end_to_end_test.dart
+  avoid_escaping_inner_quotes - 2 fixes
+  require_trailing_commas - 4 fixes
+
+test/integration/simple_nostr_test.dart
+  directives_ordering - 1 fix
+
+test/integration/simple_pipeline_demo_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 3 fixes
+  require_trailing_commas - 1 fix
+  unnecessary_await_in_return - 1 fix
+
+test/integration/subscription_fix_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 4 fixes
+
+test/integration/thumbnail_api_integration_test.dart
+  prefer_int_literals - 4 fixes
+  require_trailing_commas - 19 fixes
+
+test/integration/upload_publish_flow_test.dart
+  avoid_types_on_closure_parameters - 4 fixes
+  directives_ordering - 1 fix
+  require_trailing_commas - 9 fixes
+
+test/integration/video_event_service_relay_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_interpolation_to_compose_strings - 1 fix
+  require_trailing_commas - 4 fixes
+  unnecessary_brace_in_string_interps - 2 fixes
+
+test/integration/video_event_service_simple_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 7 fixes
+
+test/integration/video_event_thumbnail_integration_test.dart
+  omit_local_variable_types - 1 fix
+  prefer_int_literals - 2 fixes
+  require_trailing_commas - 5 fixes
+
+test/integration/video_playback_consolidation_test.dart
+  avoid_types_on_closure_parameters - 10 fixes
+  unnecessary_lambdas - 1 fix
+
+test/integration/video_system_behavior_test.dart
+  prefer_expression_function_bodies - 1 fix
+
+test/integration/vine_tag_integration_test.dart
+  directives_ordering - 1 fix
+
+test/integration/web_camera_recording_test.dart
+  avoid_types_on_closure_parameters - 7 fixes
+  omit_local_variable_types - 1 fix
+  unnecessary_lambdas - 1 fix
+
+test/load_testing/performance_benchmarks.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 20 fixes
+  prefer_const_constructors - 8 fixes
+  prefer_int_literals - 5 fixes
+  require_trailing_commas - 20 fixes
+  sort_constructors_first - 7 fixes
+
+test/load_testing/video_system_load_tests.dart
+  omit_local_variable_types - 32 fixes
+  prefer_const_constructors - 9 fixes
+  require_trailing_commas - 12 fixes
+  unnecessary_breaks - 3 fixes
+  unnecessary_import - 1 fix
+
+test/manual_profile_fetch_test.dart
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 3 fixes
+  prefer_const_declarations - 2 fixes
+  require_trailing_commas - 2 fixes
+
+test/manual_thumbnail_test.dart
+  avoid_escaping_inner_quotes - 1 fix
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 5 fixes
+
+test/mocks/mock_subscription_manager.dart
+  directives_ordering - 1 fix
+  sort_constructors_first - 1 fix
+  use_super_parameters - 1 fix
+
+test/mocks/mock_upload_manager.dart
+  directives_ordering - 1 fix
+
+test/mocks/mock_video_manager.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 5 fixes
+  prefer_expression_function_bodies - 4 fixes
+  prefer_final_fields - 7 fixes
+  sort_constructors_first - 1 fix
+  unnecessary_breaks - 5 fixes
+
+test/providers/analytics_provider_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 4 fixes
+
+test/providers/feed_mode_provider_test.dart
+  directives_ordering - 1 fix
+
+test/providers/profile_stats_provider_test.dart
+  directives_ordering - 1 fix
+
+test/providers/profile_videos_provider_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 2 fixes
+  require_trailing_commas - 8 fixes
+
+test/providers/social_provider_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+  require_trailing_commas - 5 fixes
+
+test/providers/user_profile_provider_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 4 fixes
+  require_trailing_commas - 1 fix
+
+test/providers/video_events_provider_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 10 fixes
+  require_trailing_commas - 1 fix
+  unnecessary_null_checks - 1 fix
+
+test/providers/video_feed_provider_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 3 fixes
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 2 fixes
+  unnecessary_lambdas - 2 fixes
+
+test/providers/video_manager_provider_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  prefer_final_locals - 1 fix
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 1 fix
+  unnecessary_await_in_return - 1 fix
+
+test/revine_fix_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 2 fixes
+
+test/revine_profile_display_test.dart
+  omit_local_variable_types - 1 fix
+  require_trailing_commas - 2 fixes
+
+test/screens/camera_screen_test.dart
+  avoid_types_on_closure_parameters - 4 fixes
+
+test/screens/camera_settings_screen_test.dart
+  avoid_types_on_closure_parameters - 8 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+
+test/screens/feed_screen_scroll_test.dart
+  omit_local_variable_types - 6 fixes
+  prefer_expression_function_bodies - 1 fix
+
+test/screens/profile_screen_navigation_test.dart
+  avoid_types_on_closure_parameters - 6 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 4 fixes
+  prefer_expression_function_bodies - 1 fix
+  unnecessary_null_checks - 1 fix
+
+test/screens/profile_screen_refresh_test.dart
+  avoid_types_on_closure_parameters - 2 fixes
+
+test/screens/profile_screen_test.dart
+  avoid_types_on_closure_parameters - 7 fixes
+  body_might_complete_normally_nullable - 1 fix
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+
+test/screens/profile_setup_screen_test.dart
+  avoid_types_on_closure_parameters - 20 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 7 fixes
+
+test/screens/relay_settings_screen_test.dart
+  avoid_types_on_closure_parameters - 9 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+
+test/screens/universal_camera_screen_test.dart
+  avoid_types_on_closure_parameters - 2 fixes
+  directives_ordering - 1 fix
+
+test/screens/vine_drafts_screen_future_delayed_test.dart
+  avoid_types_on_closure_parameters - 3 fixes
+  require_trailing_commas - 1 fix
+
+test/services/age_verification_service_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 1 fix
+
+test/services/analytics_comprehensive_test.dart
+  omit_local_variable_types - 1 fix
+  prefer_const_declarations - 3 fixes
+  prefer_expression_function_bodies - 2 fixes
+  prefer_final_locals - 3 fixes
+  require_trailing_commas - 2 fixes
+
+test/services/analytics_service_batch_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+  require_trailing_commas - 3 fixes
+  unnecessary_lambdas - 1 fix
+
+test/services/analytics_service_test.dart
+  omit_local_variable_types - 3 fixes
+  prefer_expression_function_bodies - 1 fix
+
+test/services/api_service_rate_limit_test.dart
+  omit_local_variable_types - 1 fix
+  prefer_expression_function_bodies - 3 fixes
+  require_trailing_commas - 3 fixes
+
+test/services/api_service_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 2 fixes
+  require_trailing_commas - 7 fixes
+
+test/services/auth_service_expiration_tag_test.dart
+  prefer_const_declarations - 1 fix
+  require_trailing_commas - 2 fixes
+  unused_import - 2 fixes
+
+test/services/auth_service_timestamp_test.dart
+  unused_import - 1 fix
+
+test/services/blurhash_service_test.dart
+  unnecessary_parenthesis - 1 fix
+
+test/services/cloudinary_upload_service_test.dart
+  unnecessary_lambdas - 1 fix
+
+test/services/curation_service_analytics_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 2 fixes
+  unnecessary_lambdas - 1 fix
+
+test/services/curation_service_editors_picks_test.dart
+  avoid_escaping_inner_quotes - 3 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  require_trailing_commas - 6 fixes
+
+test/services/curation_service_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+
+test/services/curation_service_trending_fetch_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 1 fix
+
+test/services/direct_upload_service_integration_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_declarations - 1 fix
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 1 fix
+  unnecessary_brace_in_string_interps - 1 fix
+
+test/services/direct_upload_service_test.dart
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 3 fixes
+  require_trailing_commas - 7 fixes
+  unnecessary_lambdas - 1 fix
+
+test/services/direct_upload_service_thumbnail_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+  require_trailing_commas - 3 fixes
+  sort_constructors_first - 1 fix
+
+test/services/discovery_feed_loading_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 2 fixes
+
+test/services/explore_video_manager_fix_verification_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 2 fixes
+
+test/services/explore_video_manager_trending_sync_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+
+test/services/global_video_registry_test.dart
+  directives_ordering - 1 fix
+  sort_constructors_first - 1 fix
+
+test/services/identity_switching_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 2 fixes
+
+test/services/key_migration_service_extraction_test.dart
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 3 fixes
+  unnecessary_non_null_assertion - 1 fix
+
+test/services/key_storage_refactored_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+  require_trailing_commas - 1 fix
+  unnecessary_lambdas - 1 fix
+
+test/services/key_storage_service_future_delayed_test.dart
+  require_trailing_commas - 2 fixes
+
+test/services/key_storage_timeout_test.dart
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 4 fixes
+  require_trailing_commas - 2 fixes
+  unnecessary_await_in_return - 4 fixes
+  unnecessary_lambdas - 2 fixes
+
+test/services/mixed_arrival_scenario_test.dart
+  omit_local_variable_types - 5 fixes
+
+test/services/network/rate_limiter_test.dart
+  omit_local_variable_types - 11 fixes
+
+test/services/nip05_service_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 14 fixes
+
+test/services/nip42_auth_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 3 fixes
+  unnecessary_lambdas - 1 fix
+
+test/services/nostr_connection_manager_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 8 fixes
+
+test/services/nostr_service_connection_test.dart
+  omit_local_variable_types - 2 fixes
+
+test/services/nostr_service_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 2 fixes
+
+test/services/nostr_service_v2_test.dart
+  omit_local_variable_types - 1 fix
+  require_trailing_commas - 1 fix
+
+test/services/profile_cache_test.dart
+  directives_ordering - 1 fix
+
+test/services/profile_editing_race_condition_test.dart
+  directives_ordering - 1 fix
+
+test/services/profile_editing_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 12 fixes
+
+test/services/rate_limiter_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 3 fixes
+  prefer_const_constructors - 9 fixes
+
+test/services/repost_system_test.dart
+  avoid_relative_lib_imports - 1 fix
+
+test/services/social_service_test.dart
+  directives_ordering - 1 fix
+  prefer_const_declarations - 27 fixes
+  require_trailing_commas - 26 fixes
+
+test/services/thumbnail_api_service_test.dart
+  prefer_const_constructors - 2 fixes
+  prefer_const_declarations - 1 fix
+  prefer_int_literals - 5 fixes
+  require_trailing_commas - 1 fix
+  unused_import - 1 fix
+
+test/services/timestamp_test.dart
+  prefer_const_declarations - 1 fix
+
+test/services/upload_manager_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 5 fixes
+
+test/services/video_event_cache_service_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 3 fixes
+  prefer_const_constructors - 2 fixes
+  require_trailing_commas - 7 fixes
+
+test/services/video_event_processor_test.dart
+  require_trailing_commas - 1 fix
+
+test/services/video_event_publisher_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 5 fixes
+
+test/services/video_event_publisher_thumbnail_test.dart
+  directives_ordering - 1 fix
+  prefer_is_empty - 1 fix
+  require_trailing_commas - 9 fixes
+
+test/services/video_event_service_repost_test.dart
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 3 fixes
+
+test/services/video_manager_blocklist_test.dart
+  directives_ordering - 1 fix
+  prefer_const_declarations - 4 fixes
+
+test/services/video_manager_consolidation_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 1 fix
+  require_trailing_commas - 11 fixes
+
+test/services/video_manager_consolidation_unit_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 6 fixes
+  unnecessary_await_in_return - 1 fix
+  unnecessary_lambdas - 1 fix
+
+test/services/video_network_service_test.dart
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 1 fix
+
+test/services/video_playback_controller_async_test.dart
+  always_declare_return_types - 2 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+  prefer_const_constructors - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  prefer_function_declarations_over_variables - 2 fixes
+  require_trailing_commas - 1 fix
+  unnecessary_const - 1 fix
+  unnecessary_lambdas - 1 fix
+
+test/services/video_playback_controller_mock_test.dart
+  avoid_types_on_closure_parameters - 8 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_int_literals - 2 fixes
+
+test/services/video_playback_controller_test.dart
+  avoid_types_on_closure_parameters - 25 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  prefer_int_literals - 3 fixes
+  unnecessary_lambdas - 1 fix
+
+test/services/video_smart_ordering_test.dart
+  directives_ordering - 1 fix
+
+test/services/video_subscription_service_test.dart
+  directives_ordering - 1 fix
+
+test/services/video_thumbnail_service_test.dart
+  directives_ordering - 1 fix
+
+test/services/video_visibility_manager_test.dart
+  omit_local_variable_types - 2 fixes
+  prefer_int_literals - 4 fixes
+
+test/services/vine_recording_controller_async_test.dart
+  always_declare_return_types - 2 fixes
+  omit_local_variable_types - 2 fixes
+  prefer_function_declarations_over_variables - 2 fixes
+  unnecessary_lambdas - 1 fix
+
+test/services/vine_tag_requirement_test.dart
+  require_trailing_commas - 2 fixes
+  unused_import - 2 fixes
+
+test/services/websocket_connection_manager_test.dart
+  invalid_null_aware_operator - 1 fix
+  omit_local_variable_types - 1 fix
+
+test/test_relay_subscriptions.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 3 fixes
+  require_trailing_commas - 1 fix
+  unnecessary_brace_in_string_interps - 1 fix
+
+test/tools/future_delayed_detector_test.dart
+  avoid_escaping_inner_quotes - 1 fix
+  require_trailing_commas - 23 fixes
+
+test/tools/naming_convention_test.dart
+  omit_local_variable_types - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 4 fixes
+  unnecessary_raw_strings - 1 fix
+
+test/unit/mocks/mock_video_manager_test.dart
+  omit_local_variable_types - 6 fixes
+  unnecessary_lambdas - 1 fix
+
+test/unit/models/video_state_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  unnecessary_lambdas - 12 fixes
+
+test/unit/nostr_sdk/filter_h_tag_test.dart
+  directives_ordering - 1 fix
+
+test/unit/nostr_sdk/filter_hashtag_test.dart
+  directives_ordering - 1 fix
+
+test/unit/providers/comments_provider_test.dart
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 8 fixes
+
+test/unit/providers/video_feed_provider_v2_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+
+test/unit/services/classic_vines_priority_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  sort_constructors_first - 1 fix
+
+test/unit/services/error_handling_test.dart
+  omit_local_variable_types - 7 fixes
+  prefer_expression_function_bodies - 2 fixes
+  require_trailing_commas - 1 fix
+  unnecessary_import - 1 fix
+  unused_import - 1 fix
+
+test/unit/services/hashtag_service_test.dart
+  avoid_escaping_inner_quotes - 1 fix
+  directives_ordering - 1 fix
+  prefer_const_constructors - 4 fixes
+
+test/unit/services/memory_management_test.dart
+  omit_local_variable_types - 10 fixes
+  prefer_const_constructors - 2 fixes
+  require_trailing_commas - 1 fix
+  unnecessary_import - 1 fix
+  unused_import - 2 fixes
+
+test/unit/services/nostr_video_bridge_future_delayed_tdd_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 3 fixes
+  require_trailing_commas - 3 fixes
+
+test/unit/services/nostr_video_bridge_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 4 fixes
+  prefer_const_declarations - 2 fixes
+  prefer_final_locals - 2 fixes
+  require_trailing_commas - 2 fixes
+
+test/unit/services/social_service_comment_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 20 fixes
+
+test/unit/services/subscription_manager_filter_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+  require_trailing_commas - 7 fixes
+
+test/unit/services/upload_manager_function_extraction_test.dart
+  prefer_const_constructors - 7 fixes
+  prefer_expression_function_bodies - 1 fix
+  prefer_int_literals - 4 fixes
+  sort_constructors_first - 1 fix
+
+test/unit/services/upload_manager_get_by_path_test.dart
+  directives_ordering - 1 fix
+  unnecessary_lambdas - 24 fixes
+  use_raw_strings - 3 fixes
+
+test/unit/services/upload_manager_test.dart
+  directives_ordering - 1 fix
+  use_raw_strings - 2 fixes
+
+test/unit/services/video_cache_service_basic_test.dart
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 2 fixes
+
+test/unit/services/video_cache_service_tdd_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 4 fixes
+
+test/unit/services/video_event_integration_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  require_trailing_commas - 12 fixes
+  unnecessary_lambdas - 1 fix
+
+test/unit/services/video_event_processor_test.dart
+  directives_ordering - 1 fix
+  prefer_interpolation_to_compose_strings - 1 fix
+  require_trailing_commas - 42 fixes
+  unnecessary_lambdas - 1 fix
+
+test/unit/services/video_event_publisher_custom_metadata_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 15 fixes
+  prefer_const_declarations - 2 fixes
+  require_trailing_commas - 11 fixes
+  use_raw_strings - 2 fixes
+
+test/unit/services/video_event_publisher_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 21 fixes
+  use_raw_strings - 1 fix
+
+test/unit/services/video_event_service_deduplication_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_declarations - 2 fixes
+  sort_constructors_first - 1 fix
+
+test/unit/services/video_event_service_subscription_test.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 2 fixes
+  require_trailing_commas - 8 fixes
+  sort_constructors_first - 1 fix
+
+test/unit/services/video_manager_dual_array_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 4 fixes
+  require_trailing_commas - 19 fixes
+
+test/unit/services/video_manager_integration_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 4 fixes
+  require_trailing_commas - 3 fixes
+  unnecessary_lambdas - 1 fix
+
+test/unit/services/video_manager_interface_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 3 fixes
+  require_trailing_commas - 2 fixes
+  unnecessary_set_literal - 1 fix
+
+test/unit/services/video_manager_service_load_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 23 fixes
+  prefer_const_declarations - 2 fixes
+  require_trailing_commas - 1 fix
+  unnecessary_lambdas - 1 fix
+
+test/unit/services/video_manager_service_test.dart
+  omit_local_variable_types - 4 fixes
+  prefer_const_constructors - 1 fix
+  require_trailing_commas - 1 fix
+  unnecessary_const - 1 fix
+  unnecessary_lambdas - 1 fix
+
+test/unit/services/video_manager_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 4 fixes
+  prefer_const_constructors - 5 fixes
+  require_trailing_commas - 2 fixes
+  sort_constructors_first - 1 fix
+
+test/unit/services/video_preloading_test.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 1 fix
+  unnecessary_lambdas - 1 fix
+
+test/utils/async_utils_rate_limiter_test.dart
+  omit_local_variable_types - 1 fix
+  require_trailing_commas - 2 fixes
+
+test/utils/async_utils_test.dart
+  omit_local_variable_types - 11 fixes
+  prefer_int_literals - 2 fixes
+  unnecessary_lambdas - 2 fixes
+
+test/utils/hashtag_extractor_test.dart
+  require_trailing_commas - 3 fixes
+
+test/widget/screens/feed_screen_v2_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 3 fixes
+  require_trailing_commas - 7 fixes
+
+test/widget/screens/hashtag_feed_screen_test.dart
+  avoid_types_on_closure_parameters - 9 fixes
+  directives_ordering - 1 fix
+  prefer_const_constructors - 4 fixes
+  prefer_expression_function_bodies - 1 fix
+
+test/widget/tdd/accessibility_ui_test.dart
+  directives_ordering - 1 fix
+
+test/widget/tdd/error_handling_ui_test.dart
+  unused_import - 2 fixes
+
+test/widget/tdd/feed_screen_behavior_test.dart
+  unused_import - 2 fixes
+
+test/widget/tdd/video_feed_item_behavior_test.dart
+  unused_import - 2 fixes
+
+test/widget/tdd/video_state_transitions_test.dart
+  unused_import - 2 fixes
+
+test/widget/widgets/video_player_widget_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 4 fixes
+  prefer_const_constructors - 7 fixes
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 28 fixes
+
+test/widget_test.dart
+  avoid_types_on_closure_parameters - 1 fix
+
+test/widgets/age_verification_dialog_test.dart
+  avoid_types_on_closure_parameters - 6 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 4 fixes
+
+test/widgets/clickable_hashtag_text_test.dart
+  avoid_types_on_closure_parameters - 9 fixes
+  prefer_const_constructors - 8 fixes
+
+test/widgets/explore_screen_popular_now_test.dart
+  avoid_types_on_closure_parameters - 2 fixes
+  directives_ordering - 1 fix
+
+test/widgets/profile_screen_update_test.dart
+  avoid_types_on_closure_parameters - 11 fixes
+  directives_ordering - 1 fix
+  prefer_const_constructors - 10 fixes
+  prefer_const_declarations - 1 fix
+  prefer_expression_function_bodies - 1 fix
+  prefer_final_locals - 1 fix
+
+test/widgets/video_alignment_test.dart
+  avoid_types_on_closure_parameters - 1 fix
+  unused_import - 1 fix
+
+test/widgets/video_consolidation_verification_test.dart
+  avoid_types_on_closure_parameters - 7 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+
+test/widgets/video_feed_item_comment_display_test.dart
+  avoid_types_on_closure_parameters - 1 fix
+  prefer_const_constructors - 1 fix
+
+test/widgets/video_feed_item_follow_test.dart
+  avoid_types_on_closure_parameters - 4 fixes
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+
+test/widgets/video_feed_item_lazy_comments_test.dart
+  avoid_types_on_closure_parameters - 1 fix
+  directives_ordering - 1 fix
+  prefer_const_constructors - 2 fixes
+
+test/widgets/video_feed_item_like_test.dart
+  avoid_types_on_closure_parameters - 9 fixes
+  directives_ordering - 1 fix
+  prefer_const_constructors - 1 fix
+
+test/widgets/video_feed_item_profile_tap_simple_test.dart
+  avoid_types_on_closure_parameters - 2 fixes
+  directives_ordering - 1 fix
+  prefer_expression_function_bodies - 1 fix
+
+test/widgets/video_feed_item_profile_tap_test.dart
+  avoid_types_on_closure_parameters - 3 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+  prefer_expression_function_bodies - 1 fix
+
+test/widgets/video_playback_widget_test.dart
+  avoid_types_on_closure_parameters - 20 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+  prefer_const_constructors - 2 fixes
+  prefer_expression_function_bodies - 1 fix
+  require_trailing_commas - 1 fix
+  unnecessary_const - 4 fixes
+  use_colored_box - 2 fixes
+
+test/widgets/visibility_aware_video_test.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_expression_function_bodies - 2 fixes
+  prefer_int_literals - 1 fix
+  sort_constructors_first - 1 fix
+
+test_direct_nostr_v2.dart
+  avoid_types_on_closure_parameters - 1 fix
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 1 fix
+  prefer_const_declarations - 1 fix
+  sort_constructors_first - 1 fix
+
+test_editors_picks_debug.dart
+  avoid_escaping_inner_quotes - 5 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+  prefer_const_declarations - 1 fix
+
+test_editors_picks_simple.dart
+  avoid_escaping_inner_quotes - 2 fixes
+  unused_import - 1 fix
+
+test_improved_video_parsing.dart
+  directives_ordering - 1 fix
+  require_trailing_commas - 1 fix
+
+test_nostr_sdk.dart
+  avoid_types_on_closure_parameters - 1 fix
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 2 fixes
+  prefer_const_declarations - 1 fix
+
+test_nostr_sdk_auth_issue.dart
+  avoid_types_on_closure_parameters - 2 fixes
+  directives_ordering - 1 fix
+  omit_local_variable_types - 2 fixes
+  prefer_const_constructors - 6 fixes
+  prefer_const_declarations - 3 fixes
+
+test_thumbnail_end_to_end.dart
+  directives_ordering - 1 fix
+  prefer_const_constructors - 3 fixes
+
+test_video_event_service_debug.dart
+  directives_ordering - 1 fix
+  omit_local_variable_types - 1 fix
+  prefer_const_constructors - 1 fix
+
+tools/check_aboutme_comments.dart
+  avoid_function_literals_in_foreach_calls - 1 fix
+  omit_local_variable_types - 2 fixes
+  prefer_interpolation_to_compose_strings - 1 fix
+
+tools/check_future_delayed.dart
+  avoid_escaping_inner_quotes - 2 fixes
+  require_trailing_commas - 2 fixes
+
+tools/detect_future_delayed.dart
+  omit_local_variable_types - 9 fixes
+  prefer_const_declarations - 1 fix
+  prefer_final_locals - 3 fixes
+  sort_constructors_first - 1 fix
+
+tools/generate_tests.dart
+  prefer_expression_function_bodies - 2 fixes
+  prefer_final_locals - 1 fix
+  prefer_interpolation_to_compose_strings - 1 fix
+  require_trailing_commas - 5 fixes
+  unnecessary_breaks - 4 fixes
+  unnecessary_raw_strings - 2 fixes
+  unused_import - 1 fix
+
+tools/max_file_length.dart
+  omit_local_variable_types - 1 fix
+  prefer_interpolation_to_compose_strings - 1 fix
+
+tools/max_function_length.dart
+  omit_local_variable_types - 5 fixes
+  prefer_interpolation_to_compose_strings - 1 fix
+  require_trailing_commas - 1 fix
+  sort_constructors_first - 1 fix
+
+4478 fixes made in 415 files.

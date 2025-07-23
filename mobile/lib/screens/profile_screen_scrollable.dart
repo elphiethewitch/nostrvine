@@ -1,39 +1,34 @@
 // ABOUTME: Instagram-style scrollable profile screen implementation
 // ABOUTME: Uses CustomScrollView with slivers for smooth scrolling experience
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
-import 'package:nostr_sdk/event.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../services/auth_service.dart';
-import '../services/user_profile_service.dart';
-import '../services/social_service.dart';
-import '../services/video_event_service.dart';
-import '../services/analytics_service.dart';
-import '../providers/profile_stats_provider.dart';
-import '../providers/profile_videos_provider.dart';
-import '../models/video_event.dart';
-import '../theme/vine_theme.dart';
-import '../utils/nostr_encoding.dart';
-import 'profile_setup_screen.dart';
-import 'debug_video_test.dart';
-import 'universal_camera_screen.dart';
-import 'key_import_screen.dart';
-import 'relay_settings_screen.dart';
-import '../widgets/video_fullscreen_overlay.dart';
-import '../utils/unified_logger.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/providers/app_providers.dart';
+import 'package:openvine/providers/profile_stats_provider.dart';
+import 'package:openvine/providers/profile_videos_provider.dart';
+import 'package:openvine/screens/universal_camera_screen.dart';
+import 'package:openvine/services/auth_service.dart';
+import 'package:openvine/services/social_service.dart';
+import 'package:openvine/services/user_profile_service.dart';
+import 'package:openvine/theme/vine_theme.dart';
+import 'package:openvine/utils/nostr_encoding.dart';
+import 'package:openvine/utils/unified_logger.dart';
+import 'package:openvine/widgets/video_fullscreen_overlay.dart';
 
-class ProfileScreenScrollable extends StatefulWidget {
-  final String? profilePubkey;
-  
+class ProfileScreenScrollable extends ConsumerStatefulWidget {
   const ProfileScreenScrollable({super.key, this.profilePubkey});
+  final String? profilePubkey;
 
   @override
-  State<ProfileScreenScrollable> createState() => _ProfileScreenScrollableState();
+  ConsumerState<ProfileScreenScrollable> createState() =>
+      _ProfileScreenScrollableState();
 }
 
-class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with TickerProviderStateMixin {
+class _ProfileScreenScrollableState extends ConsumerState<ProfileScreenScrollable>
+    with TickerProviderStateMixin {
   late TabController _tabController;
   bool _isOwnProfile = true;
   String? _targetPubkey;
@@ -44,67 +39,77 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeProfile();
     });
   }
-  
+
   void _initializeProfile() {
-    final authService = context.read<AuthService>();
+    final authService = ref.read(authServiceProvider);
     final currentUserPubkey = authService.currentPublicKeyHex;
-    
+
     if (!authService.isAuthenticated || currentUserPubkey == null) {
-      Log.warning('AuthService not ready, deferring profile initialization', name: 'ProfileScreen', category: LogCategory.ui);
+      Log.warning('AuthService not ready, deferring profile initialization',
+          name: 'ProfileScreen', category: LogCategory.ui);
       Future.delayed(const Duration(milliseconds: 100), _initializeProfile);
       return;
     }
-    
+
     _playingVideoId = null;
-    
+
     setState(() {
       _targetPubkey = widget.profilePubkey ?? currentUserPubkey;
       _isOwnProfile = _targetPubkey == currentUserPubkey;
     });
-    
+
     if (_targetPubkey != null) {
       _loadProfileStats();
       _loadProfileVideos();
-      
+
       if (!_isOwnProfile) {
         _loadUserProfile();
       }
     }
   }
-  
+
   void _loadProfileStats() {
     if (_targetPubkey == null) return;
-    final profileStatsProvider = context.read<ProfileStatsProvider>();
-    profileStatsProvider.loadProfileStats(_targetPubkey!);
+    ref.read(profileStatsNotifierProvider.notifier).loadStats(_targetPubkey!);
   }
-  
+
   void _loadProfileVideos() {
     if (_targetPubkey == null) {
-      Log.error('Cannot load profile videos: _targetPubkey is null', name: 'ProfileScreen', category: LogCategory.ui);
+      Log.error('Cannot load profile videos: _targetPubkey is null',
+          name: 'ProfileScreen', category: LogCategory.ui);
       return;
     }
-    
-    Log.debug('Loading profile videos for: ${_targetPubkey!.substring(0, 8)}... (isOwnProfile: $_isOwnProfile)', name: 'ProfileScreen', category: LogCategory.ui);
+
+    Log.debug(
+        'Loading profile videos for: ${_targetPubkey!.substring(0, 8)}... (isOwnProfile: $_isOwnProfile)',
+        name: 'ProfileScreen',
+        category: LogCategory.ui);
     try {
-      final profileVideosProvider = context.read<ProfileVideosProvider>();
-      profileVideosProvider.loadVideosForUser(_targetPubkey!).then((_) {
-        Log.info('Profile videos load completed for ${_targetPubkey!.substring(0, 8)}', name: 'ProfileScreen', category: LogCategory.ui);
+      ref.read(profileVideosNotifierProvider.notifier).loadVideosForUser(_targetPubkey!).then((_) {
+        Log.info(
+            'Profile videos load completed for ${_targetPubkey!.substring(0, 8)}',
+            name: 'ProfileScreen',
+            category: LogCategory.ui);
       }).catchError((error) {
-        Log.error('Profile videos load failed for ${_targetPubkey!.substring(0, 8)}: $error', name: 'ProfileScreen', category: LogCategory.ui);
+        Log.error(
+            'Profile videos load failed for ${_targetPubkey!.substring(0, 8)}: $error',
+            name: 'ProfileScreen',
+            category: LogCategory.ui);
       });
     } catch (e) {
-      Log.error('Error initiating profile videos load: $e', name: 'ProfileScreen', category: LogCategory.ui);
+      Log.error('Error initiating profile videos load: $e',
+          name: 'ProfileScreen', category: LogCategory.ui);
     }
   }
-  
+
   void _loadUserProfile() {
     if (_targetPubkey == null) return;
-    final userProfileService = context.read<UserProfileService>();
+    final userProfileService = ref.read(userProfileServiceProvider);
     userProfileService.fetchProfile(_targetPubkey!);
   }
 
@@ -117,29 +122,40 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
 
   @override
   Widget build(BuildContext context) {
-    return Consumer5<AuthService, UserProfileService, SocialService, ProfileStatsProvider, ProfileVideosProvider>(
-      builder: (context, authService, userProfileService, socialService, profileStatsProvider, profileVideosProvider, child) {
-        final authProfile = _isOwnProfile ? authService.currentProfile : null;
-        final cachedProfile = !_isOwnProfile ? userProfileService.getCachedProfile(_targetPubkey!) : null;
-        final userName = authProfile?.displayName ?? cachedProfile?.displayName ?? 'Anonymous';
-        
-        return Scaffold(
-          backgroundColor: VineTheme.backgroundColor,
-          body: Stack(
-            children: [
-              DefaultTabController(
-                length: 3,
-                child: NestedScrollView(
-                  controller: _scrollController,
-                  headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
-                    return [
+    final authService = ref.watch(authServiceProvider);
+    final userProfileService = ref.watch(userProfileServiceProvider);
+    final socialService = ref.watch(socialServiceProvider);
+    
+    // Get the current user's pubkey for stats/videos
+    final targetPubkey = _targetPubkey ?? authService.currentPublicKeyHex ?? '';
+    final profileStatsAsync = ref.watch(profileStatsProvider(targetPubkey));
+    final profileVideosAsync = ref.watch(profileVideosProvider(targetPubkey));
+    
+    final authProfile = _isOwnProfile ? authService.currentProfile : null;
+    final cachedProfile = !_isOwnProfile
+        ? userProfileService.getCachedProfile(_targetPubkey!)
+        : null;
+    final userName = authProfile?.displayName ??
+        cachedProfile?.displayName ??
+              'Anonymous';
+
+          return Scaffold(
+            backgroundColor: VineTheme.backgroundColor,
+            body: Stack(
+              children: [
+                DefaultTabController(
+                  length: 3,
+                  child: NestedScrollView(
+                    controller: _scrollController,
+                    headerSliverBuilder: (context, innerBoxIsScrolled) => [
                       // App Bar
                       SliverAppBar(
                         backgroundColor: VineTheme.vineGreen,
                         pinned: true,
                         title: Row(
                           children: [
-                            const Icon(Icons.lock_outline, color: VineTheme.whiteText, size: 16),
+                            const Icon(Icons.lock_outline,
+                                color: VineTheme.whiteText, size: 16),
                             const SizedBox(width: 4),
                             Text(
                               userName,
@@ -154,7 +170,8 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                         actions: [
                           if (_isOwnProfile) ...[
                             IconButton(
-                              icon: const Icon(Icons.add_box_outlined, color: Colors.white),
+                              icon: const Icon(Icons.add_box_outlined,
+                                  color: Colors.white),
                               onPressed: _createNewVine,
                             ),
                             Material(
@@ -162,7 +179,9 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                               child: InkWell(
                                 borderRadius: BorderRadius.circular(20),
                                 onTap: () {
-                                  Log.debug('📱 Hamburger menu tapped', name: 'ProfileScreen', category: LogCategory.ui);
+                                  Log.debug('📱 Hamburger menu tapped',
+                                      name: 'ProfileScreen',
+                                      category: LogCategory.ui);
                                   _showOptionsMenu();
                                 },
                                 child: const Padding(
@@ -177,28 +196,30 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                             ),
                           ] else ...[
                             IconButton(
-                              icon: const Icon(Icons.more_vert, color: Colors.white),
+                              icon: const Icon(Icons.more_vert,
+                                  color: Colors.white),
                               onPressed: _showUserOptions,
                             ),
                           ],
                         ],
                       ),
-                      
+
                       // Profile Header
                       SliverToBoxAdapter(
-                        child: _buildScrollableProfileHeader(authService, userProfileService, profileStatsProvider),
+                        child: _buildScrollableProfileHeader(authService,
+                            userProfileService, profileStatsAsync),
                       ),
-                      
+
                       // Stats Row
                       SliverToBoxAdapter(
-                        child: _buildStatsRow(profileStatsProvider),
+                        child: _buildStatsRow(profileStatsAsync),
                       ),
-                      
+
                       // Action Buttons
                       SliverToBoxAdapter(
                         child: _buildActionButtons(socialService),
                       ),
-                      
+
                       // Sticky Tab Bar
                       SliverPersistentHeader(
                         pinned: true,
@@ -217,43 +238,41 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                           ),
                         ),
                       ),
-                    ];
-                  },
-                  body: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildSliverVinesGrid(profileVideosProvider),
-                      _buildSliverLikedGrid(socialService),
-                      _buildSliverRepostsGrid(),
                     ],
+                    body: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildSliverVinesGrid(profileVideosAsync),
+                        _buildSliverLikedGrid(socialService),
+                        _buildSliverRepostsGrid(),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              
-              // Video overlay for full-screen playback
-              if (_playingVideoId != null)
-                _buildVideoOverlay(),
-            ],
-          ),
-        );
-      },
-    );
+
+                // Video overlay for full-screen playback
+                if (_playingVideoId != null) _buildVideoOverlay(),
+              ],
+            ),
+          );
   }
 
   Widget _buildScrollableProfileHeader(
-    AuthService authService, 
+    AuthService authService,
     UserProfileService userProfileService,
-    ProfileStatsProvider profileStatsProvider,
+    AsyncValue<ProfileStats> profileStatsAsync,
   ) {
     final authProfile = _isOwnProfile ? authService.currentProfile : null;
-    final cachedProfile = !_isOwnProfile ? userProfileService.getCachedProfile(_targetPubkey!) : null;
-    
+    final cachedProfile = !_isOwnProfile
+        ? userProfileService.getCachedProfile(_targetPubkey!)
+        : null;
+
     final profilePictureUrl = authProfile?.picture ?? cachedProfile?.picture;
     final displayName = authProfile?.displayName ?? cachedProfile?.displayName;
-    final hasCustomName = displayName != null && 
-                          !displayName.startsWith('npub1') &&
-                          displayName != 'Anonymous';
-    
+    final hasCustomName = displayName != null &&
+        !displayName.startsWith('npub1') &&
+        displayName != 'Anonymous';
+
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -275,10 +294,10 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                 children: [
                   const Icon(Icons.person_add, color: Colors.white, size: 24),
                   const SizedBox(width: 12),
-                  Expanded(
+                  const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text(
                           'Complete Your Profile',
                           style: TextStyle(
@@ -299,24 +318,26 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                     ),
                   ),
                   ElevatedButton(
-                    onPressed: () => _setupProfile(),
+                    onPressed: _setupProfile,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: Colors.purple,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     child: const Text(
                       'Set Up',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                      style:
+                          TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
               ),
             ),
-          
+
           // Profile picture and stats row
           Row(
             children: [
@@ -336,45 +357,52 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                 child: CircleAvatar(
                   radius: 40,
                   backgroundColor: Colors.grey,
-                  backgroundImage: profilePictureUrl != null && profilePictureUrl.isNotEmpty
-                      ? NetworkImage(profilePictureUrl)
-                      : null,
+                  backgroundImage:
+                      profilePictureUrl != null && profilePictureUrl.isNotEmpty
+                          ? NetworkImage(profilePictureUrl)
+                          : null,
                   child: profilePictureUrl == null || profilePictureUrl.isEmpty
                       ? const Icon(Icons.person, color: Colors.white, size: 40)
                       : null,
                 ),
               ),
-              
+
               const SizedBox(width: 20),
-              
+
               // Stats
               Expanded(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     _buildDynamicStatColumn(
-                      profileStatsProvider.hasData ? profileStatsProvider.stats!.videoCount : null,
+                      profileStatsAsync.hasValue
+                          ? profileStatsAsync.value!.videoCount
+                          : null,
                       'Vines',
-                      profileStatsProvider.isLoading,
+                      profileStatsAsync.isLoading,
                     ),
                     _buildDynamicStatColumn(
-                      profileStatsProvider.hasData ? profileStatsProvider.stats!.followers : null,
+                      profileStatsAsync.hasValue
+                          ? profileStatsAsync.value!.followers
+                          : null,
                       'Followers',
-                      profileStatsProvider.isLoading,
+                      profileStatsAsync.isLoading,
                     ),
                     _buildDynamicStatColumn(
-                      profileStatsProvider.hasData ? profileStatsProvider.stats!.following : null,
+                      profileStatsAsync.hasValue
+                          ? profileStatsAsync.value!.following
+                          : null,
                       'Following',
-                      profileStatsProvider.isLoading,
+                      profileStatsAsync.isLoading,
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Name and bio
           Align(
             alignment: Alignment.centerLeft,
@@ -392,8 +420,9 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                       ),
                     ),
                     // Add NIP-05 verification badge if verified
-                    if ((authProfile?.nip05 ?? cachedProfile?.nip05) != null && 
-                        (authProfile?.nip05 ?? cachedProfile?.nip05)!.isNotEmpty) ...[
+                    if ((authProfile?.nip05 ?? cachedProfile?.nip05) != null &&
+                        (authProfile?.nip05 ?? cachedProfile?.nip05)!
+                            .isNotEmpty) ...[
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.all(3),
@@ -412,7 +441,7 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                 ),
                 const SizedBox(height: 4),
                 // Show NIP-05 identifier if present
-                if ((authProfile?.nip05 ?? cachedProfile?.nip05) != null && 
+                if ((authProfile?.nip05 ?? cachedProfile?.nip05) != null &&
                     (authProfile?.nip05 ?? cachedProfile?.nip05)!.isNotEmpty)
                   Text(
                     authProfile?.nip05 ?? cachedProfile?.nip05 ?? '',
@@ -422,7 +451,8 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                     ),
                   ),
                 const SizedBox(height: 4),
-                if ((authProfile?.about ?? cachedProfile?.about) != null && (authProfile?.about ?? cachedProfile?.about)!.isNotEmpty)
+                if ((authProfile?.about ?? cachedProfile?.about) != null &&
+                    (authProfile?.about ?? cachedProfile?.about)!.isNotEmpty)
                   SelectableText(
                     (authProfile?.about ?? cachedProfile?.about)!,
                     style: const TextStyle(
@@ -435,9 +465,10 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                 // Public key display with copy functionality
                 if (_targetPubkey != null)
                   GestureDetector(
-                    onTap: () => _copyNpubToClipboard(),
+                    onTap: _copyNpubToClipboard,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.grey[800],
                         borderRadius: BorderRadius.circular(6),
@@ -472,8 +503,9 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
     );
   }
 
-  Widget _buildSliverVinesGrid(ProfileVideosProvider profileVideosProvider) {
-    if (profileVideosProvider.isLoading && profileVideosProvider.videoCount == 0) {
+  Widget _buildSliverVinesGrid(AsyncValue<List<VideoEvent>> profileVideosAsync) {
+    if (profileVideosAsync.isLoading &&
+        (profileVideosAsync.value?.isEmpty ?? true)) {
       return const SliverFillRemaining(
         child: Center(
           child: CircularProgressIndicator(color: VineTheme.vineGreen),
@@ -481,7 +513,7 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
       );
     }
 
-    if (profileVideosProvider.hasError) {
+    if (profileVideosAsync.hasError) {
       return SliverFillRemaining(
         child: Center(
           child: Column(
@@ -491,17 +523,18 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
               const SizedBox(height: 16),
               const Text(
                 'Error loading videos',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style:
+                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Text(
-                profileVideosProvider.error ?? 'Unknown error',
+                profileVideosAsync.error?.toString() ?? 'Unknown error',
                 style: const TextStyle(color: Colors.grey, fontSize: 12),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => profileVideosProvider.refreshVideos(),
+                onPressed: () => ref.read(profileVideosNotifierProvider.notifier).refreshVideos(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: VineTheme.vineGreen,
                   foregroundColor: VineTheme.whiteText,
@@ -514,7 +547,7 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
       );
     }
 
-    if (!profileVideosProvider.hasVideos) {
+    if (profileVideosAsync.value?.isEmpty ?? true) {
       return SliverFillRemaining(
         child: Center(
           child: Column(
@@ -532,9 +565,9 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
               ),
               const SizedBox(height: 8),
               Text(
-                _isOwnProfile 
-                  ? 'Share your first video to see it here'
-                  : 'This user hasn\'t shared any videos yet',
+                _isOwnProfile
+                    ? 'Share your first video to see it here'
+                    : "This user hasn't shared any videos yet",
                 style: const TextStyle(
                   color: Colors.grey,
                   fontSize: 14,
@@ -543,13 +576,18 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
               const SizedBox(height: 32),
               IconButton(
                 onPressed: () async {
-                  Log.debug('Manual refresh videos requested for ${_targetPubkey?.substring(0, 8)}', name: 'ProfileScreen', category: LogCategory.ui);
+                  Log.debug(
+                      'Manual refresh videos requested for ${_targetPubkey?.substring(0, 8)}',
+                      name: 'ProfileScreen',
+                      category: LogCategory.ui);
                   if (_targetPubkey != null) {
                     try {
-                      await profileVideosProvider.refreshVideos();
-                      Log.info('Manual refresh completed', name: 'ProfileScreen', category: LogCategory.ui);
+                      await ref.read(profileVideosNotifierProvider.notifier).refreshVideos();
+                      Log.info('Manual refresh completed',
+                          name: 'ProfileScreen', category: LogCategory.ui);
                     } catch (e) {
-                      Log.error('Manual refresh failed: $e', name: 'ProfileScreen', category: LogCategory.ui);
+                      Log.error('Manual refresh failed: $e',
+                          name: 'ProfileScreen', category: LogCategory.ui);
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('Refresh failed: $e')),
@@ -558,7 +596,8 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                     }
                   }
                 },
-                icon: const Icon(Icons.refresh, color: VineTheme.vineGreen, size: 28),
+                icon: const Icon(Icons.refresh,
+                    color: VineTheme.vineGreen, size: 28),
                 tooltip: 'Refresh',
               ),
             ],
@@ -576,12 +615,12 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
               crossAxisCount: 3,
               crossAxisSpacing: 2,
               mainAxisSpacing: 2,
-              childAspectRatio: 1.0,
+              childAspectRatio: 1,
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
-                if (index >= profileVideosProvider.videoCount) {
-                  return Container(
+                if (index >= (profileVideosAsync.value?.length ?? 0)) {
+                  return DecoratedBox(
                     decoration: BoxDecoration(
                       color: VineTheme.cardBackground,
                       borderRadius: BorderRadius.circular(4),
@@ -595,11 +634,12 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                   );
                 }
 
-                final videoEvent = profileVideosProvider.videos[index];
-                
+                final videoEvent = profileVideosAsync.value?[index];
+                if (videoEvent == null) return Container();
+
                 return GestureDetector(
                   onTap: () => _openVine(videoEvent),
-                  child: Container(
+                  child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: VineTheme.cardBackground,
                       borderRadius: BorderRadius.circular(4),
@@ -610,16 +650,18 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                         Positioned.fill(
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(4),
-                            child: videoEvent.thumbnailUrl != null && videoEvent.thumbnailUrl!.isNotEmpty
+                            child: videoEvent.thumbnailUrl != null &&
+                                    videoEvent.thumbnailUrl!.isNotEmpty
                                 ? CachedNetworkImage(
                                     imageUrl: videoEvent.thumbnailUrl!,
                                     fit: BoxFit.cover,
-                                    placeholder: (context, url) => Container(
+                                    placeholder: (context, url) => DecoratedBox(
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(4),
                                         gradient: LinearGradient(
                                           colors: [
-                                            VineTheme.vineGreen.withValues(alpha: 0.3),
+                                            VineTheme.vineGreen
+                                                .withValues(alpha: 0.3),
                                             Colors.blue.withValues(alpha: 0.3),
                                           ],
                                         ),
@@ -631,12 +673,14 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                                         ),
                                       ),
                                     ),
-                                    errorWidget: (context, url, error) => Container(
+                                    errorWidget: (context, url, error) =>
+                                        DecoratedBox(
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(4),
                                         gradient: LinearGradient(
                                           colors: [
-                                            VineTheme.vineGreen.withValues(alpha: 0.3),
+                                            VineTheme.vineGreen
+                                                .withValues(alpha: 0.3),
                                             Colors.blue.withValues(alpha: 0.3),
                                           ],
                                         ),
@@ -650,12 +694,13 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                                       ),
                                     ),
                                   )
-                                : Container(
+                                : DecoratedBox(
                                     decoration: BoxDecoration(
                                       borderRadius: BorderRadius.circular(4),
                                       gradient: LinearGradient(
                                         colors: [
-                                          VineTheme.vineGreen.withValues(alpha: 0.3),
+                                          VineTheme.vineGreen
+                                              .withValues(alpha: 0.3),
                                           Colors.blue.withValues(alpha: 0.3),
                                         ],
                                       ),
@@ -670,7 +715,7 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                                   ),
                           ),
                         ),
-                        
+
                         // Play icon overlay
                         const Center(
                           child: Icon(
@@ -679,14 +724,15 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                             size: 32,
                           ),
                         ),
-                        
+
                         // Duration indicator
                         if (videoEvent.duration != null)
                           Positioned(
                             bottom: 4,
                             right: 4,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 4, vertical: 2),
                               decoration: BoxDecoration(
                                 color: Colors.black.withValues(alpha: 0.7),
                                 borderRadius: BorderRadius.circular(4),
@@ -706,28 +752,12 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
                   ),
                 );
               },
-              childCount: profileVideosProvider.hasMore
-                  ? profileVideosProvider.videoCount + 1
-                  : profileVideosProvider.videoCount,
+              childCount: profileVideosAsync.value?.length ?? 0,
             ),
           ),
         ),
         // Load more trigger
-        if (profileVideosProvider.hasMore && !profileVideosProvider.isLoadingMore)
-          SliverToBoxAdapter(
-            child: Container(
-              height: 80,
-              alignment: Alignment.center,
-              child: ElevatedButton(
-                onPressed: () => profileVideosProvider.loadMoreVideos(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: VineTheme.vineGreen,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Load More'),
-              ),
-            ),
-          ),
+        // TODO: Implement load more with new AsyncValue pattern
       ],
     );
   }
@@ -795,41 +825,40 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
   }
 
   // Helper methods (copied from original)
-  Widget _buildDynamicStatColumn(int? count, String label, bool isLoading) {
-    return Column(
-      children: [
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          child: isLoading
-              ? const Text(
-                  '—',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
+  Widget _buildDynamicStatColumn(int? count, String label, bool isLoading) =>
+      Column(
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: isLoading
+                ? const Text(
+                    '—',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  )
+                : Text(
+                    count != null ? _formatCount(count) : '—',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
                   ),
-                )
-              : Text(
-                  count != null ? _formatCount(count) : '—',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
-                ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.grey,
-            fontSize: 12,
           ),
-        ),
-      ],
-    );
-  }
-  
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.grey,
+              fontSize: 12,
+            ),
+          ),
+        ],
+      );
+
   String _formatCount(int count) {
     if (count >= 1000000) {
       return '${(count / 1000000).toStringAsFixed(1)}M';
@@ -840,164 +869,165 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
     }
   }
 
-  Widget _buildStatsRow(ProfileStatsProvider profileStatsProvider) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: VineTheme.cardBackground,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          Column(
-            children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: profileStatsProvider.isLoading
-                    ? const Text(
-                        '—',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      )
-                    : Text(
-                        _formatCount(profileStatsProvider.stats?.totalViews ?? 0),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-              ),
-              Text(
-                'Total Views',
-                style: TextStyle(
-                  color: Colors.grey.shade300,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          Column(
-            children: [
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: profileStatsProvider.isLoading
-                    ? const Text(
-                        '—',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      )
-                    : Text(
-                        _formatCount(profileStatsProvider.stats?.totalLikes ?? 0),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-              ),
-              Text(
-                'Total Likes',
-                style: TextStyle(
-                  color: Colors.grey.shade300,
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButtons(SocialService socialService) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Row(
-        children: [
-          if (_isOwnProfile) ...[
-            Expanded(
-              child: ElevatedButton(
-                onPressed: _editProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[800],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text('Edit Profile'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: _shareProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[800],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text('Share Profile'),
-              ),
-            ),
-          ] else ...[
-            Expanded(
-              child: Consumer<SocialService>(
-                builder: (context, socialService, child) {
-                  final isFollowing = socialService.isFollowing(_targetPubkey!);
-                  return ElevatedButton(
-                    onPressed: isFollowing ? _unfollowUser : _followUser,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isFollowing ? Colors.grey[700] : Colors.purple,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(isFollowing ? 'Following' : 'Follow'),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            ElevatedButton(
-              onPressed: _sendMessage,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[800],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Icon(Icons.mail_outline),
+  Widget _buildStatsRow(AsyncValue<ProfileStats> profileStatsAsync) => Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: VineTheme.cardBackground,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
             ),
           ],
-        ],
-      ),
-    );
-  }
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Column(
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: profileStatsAsync.isLoading
+                      ? const Text(
+                          '—',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        )
+                      : Text(
+                          _formatCount(
+                              profileStatsAsync.value?.totalViews ?? 0),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                ),
+                Text(
+                  'Total Views',
+                  style: TextStyle(
+                    color: Colors.grey.shade300,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            Column(
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: profileStatsAsync.isLoading
+                      ? const Text(
+                          '—',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        )
+                      : Text(
+                          _formatCount(
+                              profileStatsAsync.value?.totalLikes ?? 0),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                ),
+                Text(
+                  'Total Likes',
+                  style: TextStyle(
+                    color: Colors.grey.shade300,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+  Widget _buildActionButtons(SocialService socialService) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Row(
+          children: [
+            if (_isOwnProfile) ...[
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _editProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[800],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Edit Profile'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _shareProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey[800],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Share Profile'),
+                ),
+              ),
+            ] else ...[
+              Expanded(
+                child: Builder(
+                  builder: (context) {
+                    final isFollowing =
+                        socialService.isFollowing(_targetPubkey!);
+                    return ElevatedButton(
+                      onPressed: isFollowing ? _unfollowUser : _followUser,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            isFollowing ? Colors.grey[700] : Colors.purple,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(isFollowing ? 'Following' : 'Follow'),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: _sendMessage,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[800],
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Icon(Icons.mail_outline),
+              ),
+            ],
+          ],
+        ),
+      );
 
   // All the action methods
   void _createNewVine() {
@@ -1017,11 +1047,11 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
     // Implementation from original file
   }
 
-  void _setupProfile() async {
+  Future<void> _setupProfile() async {
     // Implementation from original file
   }
 
-  void _editProfile() async {
+  Future<void> _editProfile() async {
     // Implementation from original file
   }
 
@@ -1031,11 +1061,11 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
     );
   }
 
-  void _followUser() async {
+  Future<void> _followUser() async {
     // Implementation from original file
   }
 
-  void _unfollowUser() async {
+  Future<void> _unfollowUser() async {
     // Implementation from original file
   }
 
@@ -1052,48 +1082,48 @@ class _ProfileScreenScrollableState extends State<ProfileScreenScrollable> with 
   }
 
   Widget _buildVideoOverlay() {
-    return Consumer<ProfileVideosProvider>(
-      builder: (context, profileVideosProvider, child) {
-        VideoEvent video = profileVideosProvider.videos.firstWhere(
-          (v) => v.id == _playingVideoId,
-          orElse: () => VideoEvent(
-            id: _playingVideoId!,
-            pubkey: _targetPubkey ?? '',
-            createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-            content: 'Video not found',
-            timestamp: DateTime.now(),
-          ),
-        );
-
-        if (video.content == 'Video not found') {
-          final videoEventService = Provider.of<VideoEventService>(context, listen: false);
-          final allVideos = videoEventService.videoEvents;
-          final foundVideo = allVideos.firstWhere(
-            (v) => v.id == _playingVideoId,
-            orElse: () => video,
-          );
-          video = foundVideo;
-        }
-
-        return VideoFullscreenOverlay(
-          video: video,
-          onClose: () {
-            setState(() {
-              _playingVideoId = null;
-            });
-          },
-        );
-      },
+    final authService = ref.read(authServiceProvider);
+    final targetPubkey = _targetPubkey ?? authService.currentPublicKeyHex ?? '';
+    final profileVideosAsync = ref.watch(profileVideosProvider(targetPubkey));
+    var video = (profileVideosAsync.value ?? []).firstWhere(
+      (v) => v.id == _playingVideoId,
+      orElse: () => VideoEvent(
+        id: _playingVideoId!,
+        pubkey: _targetPubkey ?? '',
+        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        content: 'Video not found',
+        timestamp: DateTime.now(),
+      ),
     );
+
+          if (video.content == 'Video not found') {
+            final videoEventService =
+                ref.read(videoEventServiceProvider);
+            final allVideos = videoEventService.videoEvents;
+            final foundVideo = allVideos.firstWhere(
+              (v) => v.id == _playingVideoId,
+              orElse: () => video,
+            );
+            video = foundVideo;
+          }
+
+          return VideoFullscreenOverlay(
+            video: video,
+            onClose: () {
+              setState(() {
+                _playingVideoId = null;
+              });
+            },
+          );
   }
 
-  void _copyNpubToClipboard() async {
+  Future<void> _copyNpubToClipboard() async {
     if (_targetPubkey == null) return;
-    
+
     try {
       final npub = NostrEncoding.encodePublicKey(_targetPubkey!);
       await Clipboard.setData(ClipboardData(text: npub));
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1134,15 +1164,13 @@ class _SliverAppBarDelegate extends SliverPersistentHeaderDelegate {
   double get maxExtent => _tabBar.preferredSize.height;
 
   @override
-  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: VineTheme.backgroundColor,
-      child: _tabBar,
-    );
-  }
+  Widget build(
+          BuildContext context, double shrinkOffset, bool overlapsContent) =>
+      ColoredBox(
+        color: VineTheme.backgroundColor,
+        child: _tabBar,
+      );
 
   @override
-  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) {
-    return false;
-  }
+  bool shouldRebuild(_SliverAppBarDelegate oldDelegate) => false;
 }

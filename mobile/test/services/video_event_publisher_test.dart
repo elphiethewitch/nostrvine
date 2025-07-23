@@ -2,20 +2,24 @@
 // ABOUTME: Tests polling logic, event processing, retry mechanisms, and state management
 
 import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:openvine/services/video_event_publisher.dart';
-import 'package:openvine/services/upload_manager.dart';
-import 'package:openvine/services/nostr_service_interface.dart';
-import 'package:openvine/services/auth_service.dart';
-import 'package:openvine/models/ready_event_data.dart';
-import 'package:openvine/models/pending_upload.dart';
 import 'package:nostr_sdk/nostr_sdk.dart';
+import 'package:openvine/models/pending_upload.dart';
+import 'package:openvine/models/ready_event_data.dart';
+import 'package:openvine/services/auth_service.dart';
+import 'package:openvine/services/nostr_service_interface.dart';
+import 'package:openvine/services/upload_manager.dart';
+import 'package:openvine/services/video_event_publisher.dart';
 
 // Mock classes
 class MockUploadManager extends Mock implements UploadManager {}
+
 class MockNostrService extends Mock implements INostrService {}
+
 class MockAuthService extends Mock implements AuthService {}
+
 class MockEvent extends Mock implements Event {}
 
 void main() {
@@ -41,24 +45,26 @@ void main() {
       // Set up mock methods
       when(() => mockUploadManager.getUploadsByStatus(any()))
           .thenReturn(<PendingUpload>[]);
-      when(() => mockUploadManager.getUpload(any()))
-          .thenReturn(null);
+      when(() => mockUploadManager.getUpload(any())).thenReturn(null);
       when(() => mockUploadManager.addListener(any())).thenReturn(null);
       when(() => mockUploadManager.removeListener(any())).thenReturn(null);
-      when(() => mockNostrService.broadcastEvent(any()))
-          .thenAnswer((_) async => NostrBroadcastResult(
-            event: MockEvent(),
-            successCount: 1,
-            totalRelays: 1,
-            results: {'relay1': true},
-            errors: {},
-          ));
+      when(() => mockNostrService.broadcastEvent(any())).thenAnswer(
+        (_) async => NostrBroadcastResult(
+          event: MockEvent(),
+          successCount: 1,
+          totalRelays: 1,
+          results: {'relay1': true},
+          errors: {},
+        ),
+      );
       when(() => mockAuthService.isAuthenticated).thenReturn(true);
-      when(() => mockAuthService.createAndSignEvent(
-        kind: any(named: 'kind'),
-        content: any(named: 'content'),
-        tags: any(named: 'tags'),
-      )).thenAnswer((_) async => MockEvent());
+      when(
+        () => mockAuthService.createAndSignEvent(
+          kind: any(named: 'kind'),
+          content: any(named: 'content'),
+          tags: any(named: 'tags'),
+        ),
+      ).thenAnswer((_) async => MockEvent());
 
       publisher = VideoEventPublisher(
         uploadManager: mockUploadManager,
@@ -86,10 +92,10 @@ void main() {
       test('should start polling when initialized', () async {
         // Act
         await publisher.initialize();
-        
+
         // Assert
         expect(publisher.publishingStats['is_polling_active'], true);
-        
+
         // Complete the fetch to avoid hanging
         fetchCompleter.complete([]);
       });
@@ -99,11 +105,12 @@ void main() {
       test('should handle empty ready events list', () async {
         // Arrange
         await publisher.initialize();
-        
+
         // Act
         fetchCompleter.complete([]);
-        await Future.delayed(const Duration(milliseconds: 10)); // Allow processing
-        
+        await Future.delayed(
+            const Duration(milliseconds: 10)); // Allow processing
+
         // Assert
         expect(publisher.publishingStats['total_published'], 0);
         expect(publisher.publishingStats['total_failed'], 0);
@@ -115,7 +122,9 @@ void main() {
           publicId: 'test-public-id',
           secureUrl: 'https://cloudinary.com/test.mp4',
           contentSuggestion: 'Test video content',
-          tags: [['tag', 'value']],
+          tags: [
+            ['tag', 'value']
+          ],
           metadata: {},
           processedAt: DateTime.now(),
           originalUploadId: 'upload-123',
@@ -123,11 +132,12 @@ void main() {
         );
 
         await publisher.initialize();
-        
+
         // Act
         fetchCompleter.complete([readyEvent]);
-        await Future.delayed(const Duration(milliseconds: 50)); // Allow processing
-        
+        await Future.delayed(
+            const Duration(milliseconds: 50)); // Allow processing
+
         // Assert - should attempt to process the event
         // Note: This will fail due to missing private key, but shows the flow works
         expect(publisher.publishingStats['total_failed'], 1);
@@ -136,11 +146,12 @@ void main() {
       test('should handle fetch errors gracefully', () async {
         // Arrange
         await publisher.initialize();
-        
+
         // Act
         fetchCompleter.completeError(Exception('Network error'));
-        await Future.delayed(const Duration(milliseconds: 10)); // Allow error handling
-        
+        await Future.delayed(
+            const Duration(milliseconds: 10)); // Allow error handling
+
         // Assert - should not crash and maintain polling state
         expect(publisher.publishingStats['is_polling_active'], true);
       });
@@ -161,11 +172,11 @@ void main() {
         );
 
         await publisher.initialize();
-        
+
         // Act
         fetchCompleter.complete([invalidEvent]);
         await Future.delayed(const Duration(milliseconds: 10));
-        
+
         // Assert - should not process invalid events
         expect(publisher.publishingStats['total_published'], 0);
         expect(publisher.publishingStats['total_failed'], 0);
@@ -177,7 +188,9 @@ void main() {
           publicId: 'test-public-id',
           secureUrl: 'https://cloudinary.com/test.mp4',
           contentSuggestion: 'Test video',
-          tags: [['custom', 'tag']],
+          tags: [
+            ['custom', 'tag']
+          ],
           metadata: {},
           processedAt: DateTime.now(),
           originalUploadId: 'upload-123',
@@ -205,27 +218,28 @@ void main() {
       test('should adjust polling based on app state', () {
         // Arrange
         final stats = publisher.publishingStats;
-        
+
         // Initially app should be active
         expect(stats['is_app_active'], true);
-        
+
         // This test is limited without actual app lifecycle simulation
         // In a real app, the SystemChannels.lifecycle would trigger these changes
       });
 
       test('should adapt polling interval based on pending uploads', () {
         // Arrange
-        when(() => mockUploadManager.getUploadsByStatus(UploadStatus.processing))
+        when(() =>
+                mockUploadManager.getUploadsByStatus(UploadStatus.processing))
             .thenReturn([
-              PendingUpload.create(
-                localVideoPath: '/path/to/video.mp4', 
-                nostrPubkey: 'test-pubkey',
-              ),
-            ]);
+          PendingUpload.create(
+            localVideoPath: '/path/to/video.mp4',
+            nostrPubkey: 'test-pubkey',
+          ),
+        ]);
 
         // Act - this would normally trigger interval update
         final stats = publisher.publishingStats;
-        
+
         // Assert - polling should be active
         expect(stats['is_polling_active'], false); // Not started yet
       });
@@ -235,7 +249,7 @@ void main() {
       test('should provide comprehensive statistics', () {
         // Act
         final stats = publisher.publishingStats;
-        
+
         // Assert
         expect(stats, containsPair('total_published', 0));
         expect(stats, containsPair('total_failed', 0));
@@ -270,11 +284,11 @@ void main() {
         );
 
         await publisher.initialize();
-        
+
         // Act
         fetchCompleter.complete([readyEvent]);
         await Future.delayed(const Duration(milliseconds: 50));
-        
+
         // Assert - should track the failure
         expect(publisher.publishingStats['total_failed'], 1);
       });
@@ -293,7 +307,7 @@ void main() {
         // Act
         final forceCheckFuture = publisher.forceCheck();
         newCompleter.complete([]);
-        
+
         // Assert - should complete without error
         await expectLater(forceCheckFuture, completes);
       });
@@ -309,32 +323,36 @@ void main() {
           description: 'Test Description',
           hashtags: ['test', 'video'],
         );
-        
+
         // Update the mock upload to have required fields
         final readyUpload = mockUpload.copyWith(
           status: UploadStatus.readyToPublish,
           videoId: 'test-video-id',
           cdnUrl: 'https://cdn.example.com/test-video.mp4',
         );
-        
-        when(() => mockUploadManager.getUploadsByStatus(UploadStatus.readyToPublish))
-            .thenReturn([readyUpload]);
-        when(() => mockUploadManager.updateUploadStatus(
-          any(),
-          any(),
-          nostrEventId: any(named: 'nostrEventId'),
-        )).thenAnswer((_) async {});
-        
+
+        when(() => mockUploadManager.getUploadsByStatus(
+            UploadStatus.readyToPublish)).thenReturn([readyUpload]);
+        when(
+          () => mockUploadManager.updateUploadStatus(
+            any(),
+            any(),
+            nostrEventId: any(named: 'nostrEventId'),
+          ),
+        ).thenAnswer((_) async {});
+
         // Act
         await publisher.publishDirectUpload(readyUpload);
-        
+
         // Assert
-        verify(() => mockAuthService.createAndSignEvent(
-          kind: 22,
-          content: any(named: 'content'),
-          tags: any(named: 'tags'),
-        )).called(1);
-        
+        verify(
+          () => mockAuthService.createAndSignEvent(
+            kind: 22,
+            content: any(named: 'content'),
+            tags: any(named: 'tags'),
+          ),
+        ).called(1);
+
         verify(() => mockNostrService.broadcastEvent(any())).called(1);
       });
 
@@ -347,7 +365,7 @@ void main() {
           fetchReadyEvents: () => fetchCompleter.future,
           cleanupRemoteEvent: (publicId) async {},
         );
-        
+
         final mockUpload = PendingUpload.create(
           localVideoPath: '/path/to/video.mp4',
           nostrPubkey: 'test-pubkey',
@@ -356,14 +374,14 @@ void main() {
           videoId: 'test-video-id',
           cdnUrl: 'https://cdn.example.com/test-video.mp4',
         );
-        
+
         // Act
         final result = await publisherNoAuth.publishDirectUpload(mockUpload);
-        
+
         // Assert
         expect(result, false);
         verifyNever(() => mockNostrService.broadcastEvent(any()));
-        
+
         // Cleanup
         publisherNoAuth.dispose();
       });
@@ -371,7 +389,7 @@ void main() {
       test('should handle unauthenticated user gracefully', () async {
         // Arrange
         when(() => mockAuthService.isAuthenticated).thenReturn(false);
-        
+
         final mockUpload = PendingUpload.create(
           localVideoPath: '/path/to/video.mp4',
           nostrPubkey: 'test-pubkey',
@@ -380,17 +398,19 @@ void main() {
           videoId: 'test-video-id',
           cdnUrl: 'https://cdn.example.com/test-video.mp4',
         );
-        
+
         // Act
         final result = await publisher.publishDirectUpload(mockUpload);
-        
+
         // Assert
         expect(result, false);
-        verifyNever(() => mockAuthService.createAndSignEvent(
-          kind: any(named: 'kind'),
-          content: any(named: 'content'),
-          tags: any(named: 'tags'),
-        ));
+        verifyNever(
+          () => mockAuthService.createAndSignEvent(
+            kind: any(named: 'kind'),
+            content: any(named: 'content'),
+            tags: any(named: 'tags'),
+          ),
+        );
       });
     });
 
@@ -399,10 +419,10 @@ void main() {
         // Arrange
         publisher.startPolling();
         expect(publisher.publishingStats['is_polling_active'], true);
-        
+
         // Act
         publisher.dispose();
-        
+
         // Assert
         expect(publisher.publishingStats['is_polling_active'], false);
       });
@@ -451,7 +471,10 @@ void main() {
         publicId: 'test-id',
         secureUrl: 'https://test.com/video.mp4',
         contentSuggestion: 'This is a test video with some content',
-        tags: [['tag1', 'value1'], ['tag2', 'value2']],
+        tags: [
+          ['tag1', 'value1'],
+          ['tag2', 'value2']
+        ],
         metadata: {},
         processedAt: DateTime.now(),
         originalUploadId: 'upload-123',

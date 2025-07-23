@@ -1,20 +1,19 @@
 // ABOUTME: Widget for displaying individual notification items in the notifications list
 // ABOUTME: Shows actor avatar, notification message, timestamp, and action buttons
 
-import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../models/notification_model.dart';
-import '../theme/app_theme.dart';
+import 'package:flutter/material.dart';
+import 'package:openvine/models/notification_model.dart';
+import 'package:openvine/theme/app_theme.dart';
 
 class NotificationListItem extends StatelessWidget {
-  final NotificationModel notification;
-  final VoidCallback onTap;
-
   const NotificationListItem({
-    super.key,
     required this.notification,
     required this.onTap,
+    super.key,
   });
+  final NotificationModel notification;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +33,7 @@ class NotificationListItem extends StatelessWidget {
               // Avatar or icon
               _buildLeadingWidget(isDarkMode),
               const SizedBox(width: 12),
-              
+
               // Content
               Expanded(
                 child: Column(
@@ -43,13 +42,13 @@ class NotificationListItem extends StatelessWidget {
                     // Main message
                     _buildMessage(context, isDarkMode),
                     const SizedBox(height: 4),
-                    
+
                     // Additional content (comment text, etc.)
                     if (_hasAdditionalContent()) ...[
                       const SizedBox(height: 4),
                       _buildAdditionalContent(isDarkMode),
                     ],
-                    
+
                     // Timestamp
                     const SizedBox(height: 4),
                     Text(
@@ -62,7 +61,7 @@ class NotificationListItem extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               // Thumbnail or action button
               if (notification.targetVideoThumbnail != null)
                 _buildVideoThumbnail(isDarkMode),
@@ -108,11 +107,12 @@ class NotificationListItem extends StatelessWidget {
                     height: 48,
                     color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
                   ),
-                  errorWidget: (context, url, error) => _buildDefaultAvatar(isDarkMode),
+                  errorWidget: (context, url, error) =>
+                      _buildDefaultAvatar(isDarkMode),
                 )
               : _buildDefaultAvatar(isDarkMode),
         ),
-        
+
         // Type icon overlay
         Positioned(
           right: 0,
@@ -140,23 +140,21 @@ class NotificationListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildDefaultAvatar(bool isDarkMode) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: OpenVineTheme.primaryPurple.withValues(alpha: 0.2),
-        shape: BoxShape.circle,
-      ),
-      child: Center(
-        child: Icon(
-          Icons.person,
-          color: OpenVineTheme.primaryPurple,
-          size: 24,
+  Widget _buildDefaultAvatar(bool isDarkMode) => Container(
+        width: 48,
+        height: 48,
+        decoration: BoxDecoration(
+          color: OpenVineTheme.primaryPurple.withValues(alpha: 0.2),
+          shape: BoxShape.circle,
         ),
-      ),
-    );
-  }
+        child: const Center(
+          child: Icon(
+            Icons.person,
+            color: OpenVineTheme.primaryPurple,
+            size: 24,
+          ),
+        ),
+      );
 
   Widget _buildMessage(BuildContext context, bool isDarkMode) {
     final textStyle = TextStyle(
@@ -171,7 +169,7 @@ class NotificationListItem extends StatelessWidget {
           style: textStyle,
           children: [
             TextSpan(
-              text: notification.actorName!,
+              text: notification.actorName,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             TextSpan(
@@ -201,7 +199,7 @@ class NotificationListItem extends StatelessWidget {
 
   Widget _buildAdditionalContent(bool isDarkMode) {
     String? content;
-    
+
     if (notification.type == NotificationType.comment) {
       content = notification.metadata?['comment'] as String?;
     } else if (notification.type == NotificationType.mention) {
@@ -228,37 +226,35 @@ class NotificationListItem extends StatelessWidget {
     );
   }
 
-  Widget _buildVideoThumbnail(bool isDarkMode) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: CachedNetworkImage(
-          imageUrl: notification.targetVideoThumbnail!,
-          width: 64,
-          height: 64,
-          fit: BoxFit.cover,
-          placeholder: (context, url) => Container(
+  Widget _buildVideoThumbnail(bool isDarkMode) => Padding(
+        padding: const EdgeInsets.only(left: 8),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: CachedNetworkImage(
+            imageUrl: notification.targetVideoThumbnail!,
             width: 64,
             height: 64,
-            color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
-            child: const Center(
-              child: CircularProgressIndicator(strokeWidth: 2),
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(
+              width: 64,
+              height: 64,
+              color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
+              child: const Center(
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
             ),
-          ),
-          errorWidget: (context, url, error) => Container(
-            width: 64,
-            height: 64,
-            color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
-            child: Icon(
-              Icons.video_library,
-              color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+            errorWidget: (context, url, error) => Container(
+              width: 64,
+              height: 64,
+              color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
+              child: Icon(
+                Icons.video_library,
+                color: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+              ),
             ),
           ),
         ),
-      ),
-    );
-  }
+      );
 
   Color _getIconBackgroundColor() {
     switch (notification.type) {

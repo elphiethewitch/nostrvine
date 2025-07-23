@@ -2,14 +2,17 @@
 // ABOUTME: Tests upload lifecycle, retry logic, and local storage integration
 
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
-import 'package:openvine/services/upload_manager.dart';
-import 'package:openvine/services/cloudinary_upload_service.dart';
 import 'package:openvine/models/pending_upload.dart';
+import 'package:openvine/services/cloudinary_upload_service.dart';
+import 'package:openvine/services/upload_manager.dart';
 
 // Mock classes
-class MockCloudinaryUploadService extends Mock implements CloudinaryUploadService {}
+class MockCloudinaryUploadService extends Mock
+    implements CloudinaryUploadService {}
+
 class MockFile extends Mock implements File {}
 
 void main() {
@@ -22,7 +25,7 @@ void main() {
       mockCloudinaryService = MockCloudinaryUploadService();
       mockVideoFile = MockFile();
       uploadManager = UploadManager(cloudinaryService: mockCloudinaryService);
-      
+
       // Setup default mocks
       when(() => mockVideoFile.path).thenReturn('/path/to/video.mp4');
       when(() => mockVideoFile.existsSync()).thenReturn(true);
@@ -41,7 +44,7 @@ void main() {
       test('should provide correct upload statistics', () {
         // Act
         final stats = uploadManager.uploadStats;
-        
+
         // Assert
         expect(stats['total'], 0);
         expect(stats['pending'], 0);
@@ -56,17 +59,21 @@ void main() {
     group('startUpload', () {
       test('should create pending upload with correct data', () async {
         // Arrange
-        when(() => mockCloudinaryService.uploadVideo(
-          videoFile: any(named: 'videoFile'),
-          nostrPubkey: any(named: 'nostrPubkey'),
-          title: any(named: 'title'),
-          description: any(named: 'description'),
-          hashtags: any(named: 'hashtags'),
-          onProgress: any(named: 'onProgress'),
-        )).thenAnswer((_) async => UploadResult.success(
-          cloudinaryPublicId: 'test-id',
-          cloudinaryUrl: 'https://test.com/video.mp4',
-        ));
+        when(
+          () => mockCloudinaryService.uploadVideo(
+            videoFile: any(named: 'videoFile'),
+            nostrPubkey: any(named: 'nostrPubkey'),
+            title: any(named: 'title'),
+            description: any(named: 'description'),
+            hashtags: any(named: 'hashtags'),
+            onProgress: any(named: 'onProgress'),
+          ),
+        ).thenAnswer(
+          (_) async => UploadResult.success(
+            cloudinaryPublicId: 'test-id',
+            cloudinaryUrl: 'https://test.com/video.mp4',
+          ),
+        );
 
         // Act
         final upload = await uploadManager.startUpload(
@@ -76,7 +83,7 @@ void main() {
           description: 'Test Description',
           hashtags: ['test', 'upload'],
         );
-        
+
         // Assert
         expect(upload.localVideoPath, '/path/to/video.mp4');
         expect(upload.nostrPubkey, 'test-pubkey');
@@ -89,36 +96,42 @@ void main() {
 
       test('should start upload process automatically', () async {
         // Arrange
-        when(() => mockCloudinaryService.uploadVideo(
-          videoFile: any(named: 'videoFile'),
-          nostrPubkey: any(named: 'nostrPubkey'),
-          title: any(named: 'title'),
-          description: any(named: 'description'),
-          hashtags: any(named: 'hashtags'),
-          onProgress: any(named: 'onProgress'),
-        )).thenAnswer((_) async => UploadResult.success(
-          cloudinaryPublicId: 'test-id',
-          cloudinaryUrl: 'https://test.com/video.mp4',
-        ));
+        when(
+          () => mockCloudinaryService.uploadVideo(
+            videoFile: any(named: 'videoFile'),
+            nostrPubkey: any(named: 'nostrPubkey'),
+            title: any(named: 'title'),
+            description: any(named: 'description'),
+            hashtags: any(named: 'hashtags'),
+            onProgress: any(named: 'onProgress'),
+          ),
+        ).thenAnswer(
+          (_) async => UploadResult.success(
+            cloudinaryPublicId: 'test-id',
+            cloudinaryUrl: 'https://test.com/video.mp4',
+          ),
+        );
 
         // Act
         await uploadManager.startUpload(
           videoFile: mockVideoFile,
           nostrPubkey: 'test-pubkey',
         );
-        
+
         // Give some time for async operation to start
         await Future.delayed(const Duration(milliseconds: 10));
-        
+
         // Assert
-        verify(() => mockCloudinaryService.uploadVideo(
-          videoFile: mockVideoFile,
-          nostrPubkey: 'test-pubkey',
-          title: null,
-          description: null,
-          hashtags: null,
-          onProgress: any(named: 'onProgress'),
-        )).called(1);
+        verify(
+          () => mockCloudinaryService.uploadVideo(
+            videoFile: mockVideoFile,
+            nostrPubkey: 'test-pubkey',
+            title: null,
+            description: null,
+            hashtags: null,
+            onProgress: any(named: 'onProgress'),
+          ),
+        ).called(1);
       });
     });
 
@@ -126,10 +139,11 @@ void main() {
       test('should filter uploads by status correctly', () {
         // Note: This test is limited because we can't easily test Hive persistence
         // in unit tests without a full Hive setup
-        
+
         // Act & Assert
         expect(uploadManager.getUploadsByStatus(UploadStatus.pending), isEmpty);
-        expect(uploadManager.getUploadsByStatus(UploadStatus.uploading), isEmpty);
+        expect(
+            uploadManager.getUploadsByStatus(UploadStatus.uploading), isEmpty);
         expect(uploadManager.getUploadsByStatus(UploadStatus.failed), isEmpty);
       });
     });
@@ -145,7 +159,7 @@ void main() {
       test('should handle cancellation of non-existent upload', () async {
         // Act & Assert - should not throw
         await uploadManager.cancelUpload('non-existent-id');
-        
+
         verify(() => mockCloudinaryService.cancelUpload(any())).called(1);
       });
     });
@@ -166,7 +180,7 @@ void main() {
         nostrPubkey: 'test-pubkey',
         title: 'Test Video',
       );
-      
+
       // Assert
       expect(upload.localVideoPath, '/path/to/video.mp4');
       expect(upload.nostrPubkey, 'test-pubkey');
@@ -182,19 +196,19 @@ void main() {
         localVideoPath: '/path/to/video.mp4',
         nostrPubkey: 'test-pubkey',
       );
-      
+
       // Test different statuses
       expect(baseUpload.progressValue, 0.0); // pending
-      
+
       final uploading = baseUpload.copyWith(
         status: UploadStatus.uploading,
         uploadProgress: 0.5,
       );
       expect(uploading.progressValue, 0.5);
-      
+
       final processing = baseUpload.copyWith(status: UploadStatus.processing);
       expect(processing.progressValue, 0.8);
-      
+
       final published = baseUpload.copyWith(status: UploadStatus.published);
       expect(published.progressValue, 1.0);
     });
@@ -204,17 +218,17 @@ void main() {
         localVideoPath: '/path/to/video.mp4',
         nostrPubkey: 'test-pubkey',
       );
-      
+
       // Fresh upload - cannot retry
       expect(upload.canRetry, false);
-      
+
       // Failed upload with retries available
       final failedUpload = upload.copyWith(
         status: UploadStatus.failed,
         retryCount: 1,
       );
       expect(failedUpload.canRetry, true);
-      
+
       // Failed upload with max retries
       final maxRetriesUpload = upload.copyWith(
         status: UploadStatus.failed,
@@ -228,14 +242,14 @@ void main() {
         localVideoPath: '/path/to/video.mp4',
         nostrPubkey: 'test-pubkey',
       );
-      
+
       // Pending upload - not completed
       expect(upload.isCompleted, false);
-      
+
       // Published upload - completed
       final published = upload.copyWith(status: UploadStatus.published);
       expect(published.isCompleted, true);
-      
+
       // Failed upload - completed
       final failed = upload.copyWith(status: UploadStatus.failed);
       expect(failed.isCompleted, true);
@@ -246,15 +260,15 @@ void main() {
         localVideoPath: '/path/to/video.mp4',
         nostrPubkey: 'test-pubkey',
       );
-      
+
       expect(upload.statusText, contains('Waiting'));
-      
+
       final uploading = upload.copyWith(
         status: UploadStatus.uploading,
         uploadProgress: 0.7,
       );
       expect(uploading.statusText, contains('70%'));
-      
+
       final failed = upload.copyWith(
         status: UploadStatus.failed,
         errorMessage: 'Network error',

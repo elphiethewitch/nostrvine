@@ -1,0 +1,97 @@
+// ABOUTME: Test to verify VideoEvent parsing of real kind 22 events from vine.hol.is
+// ABOUTME: This tests the actual parsing logic with real relay data
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:nostr_sdk/event.dart';
+import 'package:openvine/models/video_event.dart';
+
+void main() {
+  group('VideoEvent Parsing - Real Relay Data', () {
+    test('should parse kind 22 event with url tag correctly', () {
+      print('🔍 Testing VideoEvent parsing with real vine.hol.is data...');
+      
+      // Real event from vine.hol.is relay with url tag
+      final event = Event(
+        'd95aa8fc0eff8e488952495b8064991d27fb96ed8652f12cdedc5a4e8b5ae540',
+        22,
+        [
+          ["url", "https://api.openvine.co/media/1751355501029-7553157a"],
+          ["m", "video/mp4"],
+          ["title", "Untitled"],
+          ["summary", ""],
+          ["t", "openvine"],
+          ["client", "openvine"],
+          ["h", "vine"]
+        ],
+        '',
+      );
+      
+      // Parse the event
+      final videoEvent = VideoEvent.fromNostrEvent(event);
+      
+      print('✅ Parsed VideoEvent: hasVideo=${videoEvent.hasVideo}, videoUrl=${videoEvent.videoUrl}');
+      
+      // Verify parsing results
+      expect(videoEvent.hasVideo, true, reason: 'Event should have video URL');
+      expect(videoEvent.videoUrl, 'https://api.openvine.co/media/1751355501029-7553157a');
+      expect(videoEvent.mimeType, 'video/mp4');
+      expect(videoEvent.title, 'Untitled');
+      expect(videoEvent.hashtags, contains('openvine'));
+      expect(videoEvent.group, 'vine');
+    });
+    
+    test('should parse kind 22 event with r tag correctly', () {
+      print('🔍 Testing VideoEvent parsing with r tag...');
+      
+      // Real event from vine.hol.is relay with r tag
+      final event = Event(
+        '033877f4080835f162880482590762c0a7508851e88fe164dd89028743914da5',
+        22,
+        [
+          ["h", "vine"],
+          ["r", "https://api.openvine.co/media/1751258545721-9733b197", "video"],
+          ["r", "https://api.openvine.co/media/1751258547438-fb6bd5f8", "thumbnail"],
+          ["t", "randomvines"],
+          ["t", "classicvines"],
+          ["vine_id", "itjpUUgL6tE"],
+          ["expiration", "1751536124"]
+        ],
+        'this mascot and fan had some problems 😳😂\n\n#RandomVines #ClassicVines #Preserved #RabblesSelection',
+      );
+      
+      // Parse the event
+      final videoEvent = VideoEvent.fromNostrEvent(event);
+      
+      print('✅ Parsed VideoEvent: hasVideo=${videoEvent.hasVideo}, videoUrl=${videoEvent.videoUrl}');
+      print('✅ Thumbnail URL: ${videoEvent.thumbnailUrl}');
+      
+      // Verify parsing results
+      expect(videoEvent.hasVideo, true, reason: 'Event should have video URL from r tag');
+      expect(videoEvent.videoUrl, 'https://api.openvine.co/media/1751258545721-9733b197');
+      expect(videoEvent.thumbnailUrl, 'https://api.openvine.co/media/1751258547438-fb6bd5f8');
+      expect(videoEvent.hashtags, contains('randomvines'));
+      expect(videoEvent.hashtags, contains('classicvines'));
+      expect(videoEvent.group, 'vine');
+      // vineId comes from 'd' tag, but this event has 'vine_id' tag - different format
+      // expect(videoEvent.vineId, 'itjpUUgL6tE'); // This might be parsed differently
+    });
+    
+    test('URL validation should accept api.openvine.co URLs', () {
+      // Test the URL validation directly since it's a static method
+      // We need to access the private method - let's create an event and check if it's accepted
+      final event = Event(
+        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+        22,
+        [
+          ["url", "https://api.openvine.co/media/test-video-id"]
+        ],
+        '',
+      );
+      
+      final videoEvent = VideoEvent.fromNostrEvent(event);
+      
+      expect(videoEvent.hasVideo, true, reason: 'api.openvine.co URLs should be valid');
+      expect(videoEvent.videoUrl, 'https://api.openvine.co/media/test-video-id');
+    });
+  });
+}

@@ -2,14 +2,14 @@
 // ABOUTME: Provides native web camera integration for Vine recording in browsers
 
 import 'dart:async';
-import '../utils/unified_logger.dart';
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
-import 'dart:typed_data';
-// ignore: avoid_web_libraries_in_flutter  
+// ignore: avoid_web_libraries_in_flutter
 import 'dart:ui_web' as ui_web;
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 /// Web camera service that uses getUserMedia and MediaRecorder
 class WebCameraService {
@@ -49,20 +49,27 @@ class WebCameraService {
         ..style.objectFit = 'cover';
 
       _isInitialized = true;
-      Log.info('� Web camera initialized successfully', name: 'WebCameraService', category: LogCategory.system);
+      Log.info('📱 Web camera initialized successfully',
+          name: 'WebCameraService', category: LogCategory.system);
     } catch (e) {
-      Log.error('Web camera initialization failed: $e', name: 'WebCameraService', category: LogCategory.system);
+      Log.error('Web camera initialization failed: $e',
+          name: 'WebCameraService', category: LogCategory.system);
       throw Exception('Failed to initialize web camera: $e');
     }
   }
 
   /// Start recording a segment
   Future<void> startRecording() async {
-    Log.info('� WebCameraService.startRecording() - initialized: $_isInitialized, hasStream: ${_mediaStream != null}, isRecording: $_isRecording', name: 'WebCameraService', category: LogCategory.system);
-    
+    Log.info(
+        '📱 WebCameraService.startRecording() - initialized: $_isInitialized, hasStream: ${_mediaStream != null}, isRecording: $_isRecording',
+        name: 'WebCameraService',
+        category: LogCategory.system);
+
     if (!_isInitialized || _mediaStream == null || _isRecording) {
-      final error = 'Camera not initialized or already recording - initialized: $_isInitialized, hasStream: ${_mediaStream != null}, isRecording: $_isRecording';
-      Log.error('WebCameraService.startRecording() failed: $error', name: 'WebCameraService', category: LogCategory.system);
+      final error =
+          'Camera not initialized or already recording - initialized: $_isInitialized, hasStream: ${_mediaStream != null}, isRecording: $_isRecording';
+      Log.error('WebCameraService.startRecording() failed: $error',
+          name: 'WebCameraService', category: LogCategory.system);
       throw Exception(error);
     }
 
@@ -76,53 +83,62 @@ class WebCameraService {
       });
 
       // Set up event listeners
-      _mediaRecorder!.addEventListener('dataavailable', (html.Event event) {
+      _mediaRecorder!.addEventListener('dataavailable', (event) {
         final blobEvent = event as html.BlobEvent;
         if (blobEvent.data != null && blobEvent.data!.size > 0) {
           _recordedChunks.add(blobEvent.data!);
         }
       });
 
-      _mediaRecorder!.addEventListener('stop', (html.Event event) {
+      _mediaRecorder!.addEventListener('stop', (event) {
         _finishRecording();
       });
 
-      _mediaRecorder!.addEventListener('error', (html.Event event) {
-        Log.error('MediaRecorder error: $event', name: 'WebCameraService', category: LogCategory.system);
+      _mediaRecorder!.addEventListener('error', (event) {
+        Log.error('MediaRecorder error: $event',
+            name: 'WebCameraService', category: LogCategory.system);
         _isRecording = false;
       });
 
       // Start recording
       _mediaRecorder!.start();
       _isRecording = true;
-      
-      Log.info('Started web camera recording', name: 'WebCameraService', category: LogCategory.system);
+
+      Log.info('Started web camera recording',
+          name: 'WebCameraService', category: LogCategory.system);
     } catch (e) {
       _isRecording = false;
-      Log.error('Failed to start web recording: $e', name: 'WebCameraService', category: LogCategory.system);
+      Log.error('Failed to start web recording: $e',
+          name: 'WebCameraService', category: LogCategory.system);
       throw Exception('Failed to start recording: $e');
     }
   }
 
   /// Stop recording and return the blob URL
   Future<String> stopRecording() async {
-    Log.debug('� WebCameraService.stopRecording() - isRecording: $_isRecording, hasRecorder: ${_mediaRecorder != null}', name: 'WebCameraService', category: LogCategory.system);
-    
+    Log.debug(
+        '📱 WebCameraService.stopRecording() - isRecording: $_isRecording, hasRecorder: ${_mediaRecorder != null}',
+        name: 'WebCameraService',
+        category: LogCategory.system);
+
     if (!_isRecording || _mediaRecorder == null) {
-      final error = 'Not currently recording - isRecording: $_isRecording, hasRecorder: ${_mediaRecorder != null}';
-      Log.error('WebCameraService.stopRecording() failed: $error', name: 'WebCameraService', category: LogCategory.system);
+      final error =
+          'Not currently recording - isRecording: $_isRecording, hasRecorder: ${_mediaRecorder != null}';
+      Log.error('WebCameraService.stopRecording() failed: $error',
+          name: 'WebCameraService', category: LogCategory.system);
       throw Exception(error);
     }
 
     try {
       _mediaRecorder!.stop();
       _isRecording = false;
-      
+
       // Wait for the recording to be processed
       final blobUrl = await _recordingCompleteController!.stream.first;
       return blobUrl;
     } catch (e) {
-      Log.error('Failed to stop web recording: $e', name: 'WebCameraService', category: LogCategory.system);
+      Log.error('Failed to stop web recording: $e',
+          name: 'WebCameraService', category: LogCategory.system);
       throw Exception('Failed to stop recording: $e');
     }
   }
@@ -138,12 +154,14 @@ class WebCameraService {
       // Create blob from recorded chunks
       final blob = html.Blob(_recordedChunks, _getSupportedMimeType());
       final blobUrl = html.Url.createObjectUrl(blob);
-      
+
       _recordingCompleteController?.add(blobUrl);
-      Log.info('Web recording completed, blob URL: $blobUrl', name: 'WebCameraService', category: LogCategory.system);
+      Log.info('Web recording completed, blob URL: $blobUrl',
+          name: 'WebCameraService', category: LogCategory.system);
     } catch (e) {
       _recordingCompleteController?.addError(e);
-      Log.error('Failed to create blob: $e', name: 'WebCameraService', category: LogCategory.system);
+      Log.error('Failed to create blob: $e',
+          name: 'WebCameraService', category: LogCategory.system);
     }
   }
 
@@ -165,9 +183,11 @@ class WebCameraService {
       _mediaStream?.getTracks().forEach((track) => track.stop());
 
       // Get current facing mode
-      final currentConstraints = _mediaStream?.getVideoTracks().first.getSettings();
+      final currentConstraints =
+          _mediaStream?.getVideoTracks().first.getSettings();
       final currentFacingMode = currentConstraints?['facingMode'] ?? 'user';
-      final newFacingMode = currentFacingMode == 'user' ? 'environment' : 'user';
+      final newFacingMode =
+          currentFacingMode == 'user' ? 'environment' : 'user';
 
       // Request new stream with different camera
       _mediaStream = await html.window.navigator.mediaDevices!.getUserMedia({
@@ -181,10 +201,12 @@ class WebCameraService {
 
       // Update video element
       _videoElement?.srcObject = _mediaStream;
-      
-      Log.debug('Switched to $newFacingMode camera', name: 'WebCameraService', category: LogCategory.system);
+
+      Log.debug('Switched to $newFacingMode camera',
+          name: 'WebCameraService', category: LogCategory.system);
     } catch (e) {
-      Log.error('Failed to switch camera: $e', name: 'WebCameraService', category: LogCategory.system);
+      Log.error('Failed to switch camera: $e',
+          name: 'WebCameraService', category: LogCategory.system);
       // If switching fails, try to restore original stream
       try {
         _mediaStream = await html.window.navigator.mediaDevices!.getUserMedia({
@@ -197,7 +219,8 @@ class WebCameraService {
         });
         _videoElement?.srcObject = _mediaStream;
       } catch (restoreError) {
-        Log.error('Failed to restore camera: $restoreError', name: 'WebCameraService', category: LogCategory.system);
+        Log.error('Failed to restore camera: $restoreError',
+            name: 'WebCameraService', category: LogCategory.system);
       }
     }
   }
@@ -227,12 +250,13 @@ class WebCameraService {
     final anchor = html.AnchorElement(href: blobUrl)
       ..download = filename
       ..style.display = 'none';
-    
+
     html.document.body!.append(anchor);
     anchor.click();
     anchor.remove();
-    
-    Log.debug('Download triggered for $filename', name: 'WebCameraService', category: LogCategory.system);
+
+    Log.debug('Download triggered for $filename',
+        name: 'WebCameraService', category: LogCategory.system);
   }
 
   /// Revoke blob URL to free memory
@@ -240,9 +264,11 @@ class WebCameraService {
     if (blobUrl.startsWith('blob:')) {
       try {
         html.Url.revokeObjectUrl(blobUrl);
-        Log.debug('🧹 Revoked blob URL: $blobUrl', name: 'WebCameraService', category: LogCategory.system);
+        Log.debug('🧹 Revoked blob URL: $blobUrl',
+            name: 'WebCameraService', category: LogCategory.system);
       } catch (e) {
-        Log.error('Error revoking blob URL: $e', name: 'WebCameraService', category: LogCategory.system);
+        Log.error('Error revoking blob URL: $e',
+            name: 'WebCameraService', category: LogCategory.system);
       }
     }
   }
@@ -250,24 +276,24 @@ class WebCameraService {
   /// Dispose resources
   void dispose() {
     _mediaStream?.getTracks().forEach((track) => track.stop());
-    _mediaStream = null;  // Clear the stream reference
+    _mediaStream = null; // Clear the stream reference
     _mediaRecorder = null;
     _videoElement = null;
     _recordingCompleteController?.close();
     _isInitialized = false;
-    _isRecording = false;  // Reset recording state
-    Log.debug('�️ Web camera service disposed', name: 'WebCameraService', category: LogCategory.system);
+    _isRecording = false; // Reset recording state
+    Log.debug('📱️ Web camera service disposed',
+        name: 'WebCameraService', category: LogCategory.system);
   }
 }
 
 /// Flutter widget that wraps the HTML video element for web camera preview
 class WebCameraPreview extends StatefulWidget {
-  final WebCameraService cameraService;
-  
   const WebCameraPreview({
-    super.key,
     required this.cameraService,
+    super.key,
   });
+  final WebCameraService cameraService;
 
   @override
   State<WebCameraPreview> createState() => _WebCameraPreviewState();
@@ -299,9 +325,9 @@ class _WebCameraPreviewState extends State<WebCameraPreview> {
   @override
   Widget build(BuildContext context) {
     if (!kIsWeb || _viewType == null) {
-      return Container(
+      return const ColoredBox(
         color: Colors.black,
-        child: const Center(
+        child: Center(
           child: Text(
             'Camera not available',
             style: TextStyle(color: Colors.white),
@@ -319,17 +345,17 @@ Future<Uint8List> blobUrlToBytes(String blobUrl) async {
   final response = await html.window.fetch(blobUrl);
   final blob = await response.blob();
   final reader = html.FileReader();
-  
+
   final completer = Completer<Uint8List>();
   reader.onLoadEnd.listen((_) {
     final result = reader.result as List<int>;
     completer.complete(Uint8List.fromList(result));
   });
-  
+
   reader.onError.listen((error) {
     completer.completeError('Failed to read blob: $error');
   });
-  
+
   reader.readAsArrayBuffer(blob);
   return completer.future;
 }

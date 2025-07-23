@@ -2,48 +2,42 @@
 // ABOUTME: Implements kind 5 delete events for Apple App Store compliance and user content management
 
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nostr_sdk/event.dart';
-import 'nostr_service_interface.dart';
-import '../models/video_event.dart';
-import '../utils/unified_logger.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/services/nostr_service_interface.dart';
+import 'package:openvine/utils/unified_logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Delete request result
 class DeleteResult {
+  const DeleteResult({
+    required this.success,
+    required this.timestamp,
+    this.error,
+    this.deleteEventId,
+  });
   final bool success;
   final String? error;
   final String? deleteEventId;
   final DateTime timestamp;
 
-  const DeleteResult({
-    required this.success,
-    this.error,
-    this.deleteEventId,
-    required this.timestamp,
-  });
-
   static DeleteResult createSuccess(String deleteEventId) => DeleteResult(
-    success: true,
-    deleteEventId: deleteEventId,
-    timestamp: DateTime.now(),
-  );
+        success: true,
+        deleteEventId: deleteEventId,
+        timestamp: DateTime.now(),
+      );
 
   static DeleteResult failure(String error) => DeleteResult(
-    success: false,
-    error: error,
-    timestamp: DateTime.now(),
-  );
+        success: false,
+        error: error,
+        timestamp: DateTime.now(),
+      );
 }
 
 /// Content deletion record for tracking
 class ContentDeletion {
-  final String deleteEventId;
-  final String originalEventId;
-  final String reason;
-  final DateTime deletedAt;
-  final String? additionalContext;
-
   const ContentDeletion({
     required this.deleteEventId,
     required this.originalEventId,
@@ -51,62 +45,68 @@ class ContentDeletion {
     required this.deletedAt,
     this.additionalContext,
   });
+  final String deleteEventId;
+  final String originalEventId;
+  final String reason;
+  final DateTime deletedAt;
+  final String? additionalContext;
 
-  Map<String, dynamic> toJson() {
-    return {
-      'deleteEventId': deleteEventId,
-      'originalEventId': originalEventId,
-      'reason': reason,
-      'deletedAt': deletedAt.toIso8601String(),
-      'additionalContext': additionalContext,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+        'deleteEventId': deleteEventId,
+        'originalEventId': originalEventId,
+        'reason': reason,
+        'deletedAt': deletedAt.toIso8601String(),
+        'additionalContext': additionalContext,
+      };
 
-  static ContentDeletion fromJson(Map<String, dynamic> json) {
-    return ContentDeletion(
-      deleteEventId: json['deleteEventId'],
-      originalEventId: json['originalEventId'],
-      reason: json['reason'],
-      deletedAt: DateTime.parse(json['deletedAt']),
-      additionalContext: json['additionalContext'],
-    );
-  }
+  static ContentDeletion fromJson(Map<String, dynamic> json) => ContentDeletion(
+        deleteEventId: json['deleteEventId'],
+        originalEventId: json['originalEventId'],
+        reason: json['reason'],
+        deletedAt: DateTime.parse(json['deletedAt']),
+        additionalContext: json['additionalContext'],
+      );
 }
 
 /// Service for deleting user's own content via NIP-09
 class ContentDeletionService extends ChangeNotifier {
-  final INostrService _nostrService;
-  final SharedPreferences _prefs;
-  
-  static const String deletionsStorageKey = 'content_deletions_history';
-  
-  final List<ContentDeletion> _deletionHistory = [];
-  bool _isInitialized = false;
-
   ContentDeletionService({
     required INostrService nostrService,
     required SharedPreferences prefs,
-  }) : _nostrService = nostrService,
-       _prefs = prefs {
+  })  : _nostrService = nostrService,
+        _prefs = prefs {
     _loadDeletionHistory();
   }
+  final INostrService _nostrService;
+  final SharedPreferences _prefs;
+
+  static const String deletionsStorageKey = 'content_deletions_history';
+
+  final List<ContentDeletion> _deletionHistory = [];
+  bool _isInitialized = false;
 
   // Getters
-  List<ContentDeletion> get deletionHistory => List.unmodifiable(_deletionHistory);
+  List<ContentDeletion> get deletionHistory =>
+      List.unmodifiable(_deletionHistory);
   bool get isInitialized => _isInitialized;
 
   /// Initialize deletion service
   Future<void> initialize() async {
     try {
       if (!_nostrService.isInitialized) {
-        Log.warning('Nostr service not initialized, cannot setup content deletion', name: 'ContentDeletionService', category: LogCategory.system);
+        Log.warning(
+            'Nostr service not initialized, cannot setup content deletion',
+            name: 'ContentDeletionService',
+            category: LogCategory.system);
         return;
       }
 
       _isInitialized = true;
-      Log.info('Content deletion service initialized', name: 'ContentDeletionService', category: LogCategory.system);
+      Log.info('Content deletion service initialized',
+          name: 'ContentDeletionService', category: LogCategory.system);
     } catch (e) {
-      Log.error('Failed to initialize content deletion: $e', name: 'ContentDeletionService', category: LogCategory.system);
+      Log.error('Failed to initialize content deletion: $e',
+          name: 'ContentDeletionService', category: LogCategory.system);
     }
   }
 
@@ -136,10 +136,14 @@ class ContentDeletionService extends ChangeNotifier {
       if (deleteEvent != null) {
         final broadcastResult = await _nostrService.broadcastEvent(deleteEvent);
         if (broadcastResult.successCount == 0) {
-          Log.error('Failed to broadcast delete request to relays', name: 'ContentDeletionService', category: LogCategory.system);
+          Log.error('Failed to broadcast delete request to relays',
+              name: 'ContentDeletionService', category: LogCategory.system);
           // Still save locally even if broadcast fails
         } else {
-          Log.info('Delete request broadcast to ${broadcastResult.successCount} relays', name: 'ContentDeletionService', category: LogCategory.system);
+          Log.info(
+              'Delete request broadcast to ${broadcastResult.successCount} relays',
+              name: 'ContentDeletionService',
+              category: LogCategory.system);
         }
 
         // Save deletion to local history
@@ -155,14 +159,15 @@ class ContentDeletionService extends ChangeNotifier {
         await _saveDeletionHistory();
         notifyListeners();
 
-        Log.debug('�️ Content deletion request submitted: ${deleteEvent.id}', name: 'ContentDeletionService', category: LogCategory.system);
+        Log.debug('📱️ Content deletion request submitted: ${deleteEvent.id}',
+            name: 'ContentDeletionService', category: LogCategory.system);
         return DeleteResult.createSuccess(deleteEvent.id);
       } else {
         return DeleteResult.failure('Failed to create delete event');
       }
-
     } catch (e) {
-      Log.error('Failed to delete content: $e', name: 'ContentDeletionService', category: LogCategory.system);
+      Log.error('Failed to delete content: $e',
+          name: 'ContentDeletionService', category: LogCategory.system);
       return DeleteResult.failure('Failed to delete content: $e');
     }
   }
@@ -173,7 +178,7 @@ class ContentDeletionService extends ChangeNotifier {
     required DeleteReason reason,
   }) async {
     final reasonText = _getDeleteReasonText(reason);
-    
+
     return deleteContent(
       video: video,
       reason: reasonText,
@@ -182,15 +187,14 @@ class ContentDeletionService extends ChangeNotifier {
   }
 
   /// Check if content has been deleted by user
-  bool hasBeenDeleted(String eventId) {
-    return _deletionHistory.any((deletion) => deletion.originalEventId == eventId);
-  }
+  bool hasBeenDeleted(String eventId) =>
+      _deletionHistory.any((deletion) => deletion.originalEventId == eventId);
 
   /// Get deletion record for event
   ContentDeletion? getDeletionForEvent(String eventId) {
     try {
       return _deletionHistory.firstWhere(
-        (deletion) => deletion.originalEventId == eventId
+        (deletion) => deletion.originalEventId == eventId,
       );
     } catch (e) {
       return null;
@@ -198,18 +202,21 @@ class ContentDeletionService extends ChangeNotifier {
   }
 
   /// Clear old deletion records (privacy cleanup)
-  Future<void> clearOldDeletions({Duration maxAge = const Duration(days: 90)}) async {
+  Future<void> clearOldDeletions(
+      {Duration maxAge = const Duration(days: 90)}) async {
     final cutoffDate = DateTime.now().subtract(maxAge);
     final initialCount = _deletionHistory.length;
-    
-    _deletionHistory.removeWhere((deletion) => deletion.deletedAt.isBefore(cutoffDate));
-    
+
+    _deletionHistory
+        .removeWhere((deletion) => deletion.deletedAt.isBefore(cutoffDate));
+
     if (_deletionHistory.length != initialCount) {
       await _saveDeletionHistory();
       notifyListeners();
-      
+
       final removedCount = initialCount - _deletionHistory.length;
-      Log.debug('🧹 Cleared $removedCount old deletion records', name: 'ContentDeletionService', category: LogCategory.system);
+      Log.debug('🧹 Cleared $removedCount old deletion records',
+          name: 'ContentDeletionService', category: LogCategory.system);
     }
   }
 
@@ -221,7 +228,8 @@ class ContentDeletionService extends ChangeNotifier {
   }) async {
     try {
       if (!_nostrService.hasKeys) {
-        Log.error('Cannot create delete event: no keys available', name: 'ContentDeletionService', category: LogCategory.system);
+        Log.error('Cannot create delete event: no keys available',
+            name: 'ContentDeletionService', category: LogCategory.system);
         return null;
       }
 
@@ -237,8 +245,9 @@ class ContentDeletionService extends ChangeNotifier {
       }
 
       // Create NIP-09 compliant content
-      final deleteContent = _formatNip09DeleteContent(reason, additionalContext);
-      
+      final deleteContent =
+          _formatNip09DeleteContent(reason, additionalContext);
+
       // Create kind 5 event using nostr_sdk (same pattern as other events)
       final createdAt = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final event = Event(
@@ -248,16 +257,19 @@ class ContentDeletionService extends ChangeNotifier {
         deleteContent,
         createdAt: createdAt,
       );
-      
+
       // Sign the event
       event.sign(_nostrService.keyManager.keyPair!.private);
-      
-      Log.info('�️ Created NIP-09 delete event (kind 5): ${event.id}', name: 'ContentDeletionService', category: LogCategory.system);
-      Log.debug('Deleting: $originalEventId for reason: $reason', name: 'ContentDeletionService', category: LogCategory.system);
-      
+
+      Log.info('📱️ Created NIP-09 delete event (kind 5): ${event.id}',
+          name: 'ContentDeletionService', category: LogCategory.system);
+      Log.debug('Deleting: $originalEventId for reason: $reason',
+          name: 'ContentDeletionService', category: LogCategory.system);
+
       return event;
     } catch (e) {
-      Log.error('Failed to create NIP-09 delete event: $e', name: 'ContentDeletionService', category: LogCategory.system);
+      Log.error('Failed to create NIP-09 delete event: $e',
+          name: 'ContentDeletionService', category: LogCategory.system);
       return null;
     }
   }
@@ -267,12 +279,13 @@ class ContentDeletionService extends ChangeNotifier {
     final buffer = StringBuffer();
     buffer.writeln('CONTENT DELETION - NIP-09');
     buffer.writeln('Reason: $reason');
-    
+
     if (additionalContext != null) {
       buffer.writeln('Additional Context: $additionalContext');
     }
-    
-    buffer.writeln('Content deleted by author via OpenVine for Apple App Store compliance');
+
+    buffer.writeln(
+        'Content deleted by author via OpenVine for Apple App Store compliance');
     return buffer.toString();
   }
 
@@ -280,7 +293,7 @@ class ContentDeletionService extends ChangeNotifier {
   bool _isUserOwnContent(VideoEvent video) {
     final userPubkey = _nostrService.publicKey;
     if (userPubkey == null) return false;
-    
+
     return video.pubkey == userPubkey;
   }
 
@@ -310,11 +323,14 @@ class ContentDeletionService extends ChangeNotifier {
         final List<dynamic> deletionsJson = jsonDecode(historyJson);
         _deletionHistory.clear();
         _deletionHistory.addAll(
-          deletionsJson.map((json) => ContentDeletion.fromJson(json))
+          deletionsJson.map(
+              (json) => ContentDeletion.fromJson(json as Map<String, dynamic>)),
         );
-        Log.debug('� Loaded ${_deletionHistory.length} deletions from history', name: 'ContentDeletionService', category: LogCategory.system);
+        Log.debug('📱 Loaded ${_deletionHistory.length} deletions from history',
+            name: 'ContentDeletionService', category: LogCategory.system);
       } catch (e) {
-        Log.error('Failed to load deletion history: $e', name: 'ContentDeletionService', category: LogCategory.system);
+        Log.error('Failed to load deletion history: $e',
+            name: 'ContentDeletionService', category: LogCategory.system);
       }
     }
   }
@@ -322,12 +338,12 @@ class ContentDeletionService extends ChangeNotifier {
   /// Save deletion history to storage
   Future<void> _saveDeletionHistory() async {
     try {
-      final deletionsJson = _deletionHistory
-          .map((deletion) => deletion.toJson())
-          .toList();
+      final deletionsJson =
+          _deletionHistory.map((deletion) => deletion.toJson()).toList();
       await _prefs.setString(deletionsStorageKey, jsonEncode(deletionsJson));
     } catch (e) {
-      Log.error('Failed to save deletion history: $e', name: 'ContentDeletionService', category: LogCategory.system);
+      Log.error('Failed to save deletion history: $e',
+          name: 'ContentDeletionService', category: LogCategory.system);
     }
   }
 

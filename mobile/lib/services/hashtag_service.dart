@@ -3,18 +3,11 @@
 
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import '../models/video_event.dart';
-import 'video_event_service.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/services/video_event_service.dart';
 
 /// Model for hashtag statistics
 class HashtagStats {
-  final String hashtag;
-  final int videoCount;
-  final int recentVideoCount; // Videos in last 24 hours
-  final DateTime firstSeen;
-  final DateTime lastSeen;
-  final Set<String> uniqueAuthors;
-
   HashtagStats({
     required this.hashtag,
     required this.videoCount,
@@ -23,35 +16,44 @@ class HashtagStats {
     required this.lastSeen,
     required this.uniqueAuthors,
   });
+  final String hashtag;
+  final int videoCount;
+  final int recentVideoCount; // Videos in last 24 hours
+  final DateTime firstSeen;
+  final DateTime lastSeen;
+  final Set<String> uniqueAuthors;
 
   int get authorCount => uniqueAuthors.length;
-  
+
   // Calculate trending score based on recency and engagement
   double get trendingScore {
     final recencyWeight = recentVideoCount / videoCount;
     final engagementWeight = authorCount / 100; // Normalize by 100 authors
     final hoursSinceLastSeen = DateTime.now().difference(lastSeen).inHours;
-    final freshnessWeight = hoursSinceLastSeen < 24 ? 1.0 : 1.0 / (hoursSinceLastSeen / 24);
-    
-    return (recencyWeight * 0.5 + engagementWeight * 0.3 + freshnessWeight * 0.2) * 100;
+    final freshnessWeight =
+        hoursSinceLastSeen < 24 ? 1.0 : 1.0 / (hoursSinceLastSeen / 24);
+
+    return (recencyWeight * 0.5 +
+            engagementWeight * 0.3 +
+            freshnessWeight * 0.2) *
+        100;
   }
 }
 
 /// Service for managing hashtag data and statistics
 class HashtagService extends ChangeNotifier {
-  final VideoEventService _videoService;
-  final Map<String, HashtagStats> _hashtagStats = {};
-  Timer? _updateTimer;
-
   HashtagService(this._videoService) {
     _videoService.addListener(_updateHashtagStats);
     _updateHashtagStats();
-    
+
     // Update stats every minute
     _updateTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       _updateHashtagStats();
     });
   }
+  final VideoEventService _videoService;
+  final Map<String, HashtagStats> _hashtagStats = {};
+  Timer? _updateTimer;
 
   @override
   void dispose() {
@@ -71,7 +73,8 @@ class HashtagService extends ChangeNotifier {
         if (hashtag.isEmpty) continue;
 
         final existing = newStats[hashtag];
-        final videoTime = DateTime.fromMillisecondsSinceEpoch(video.createdAt * 1000);
+        final videoTime =
+            DateTime.fromMillisecondsSinceEpoch(video.createdAt * 1000);
         final isRecent = videoTime.isAfter(twentyFourHoursAgo);
 
         if (existing == null) {
@@ -88,8 +91,12 @@ class HashtagService extends ChangeNotifier {
             hashtag: hashtag,
             videoCount: existing.videoCount + 1,
             recentVideoCount: existing.recentVideoCount + (isRecent ? 1 : 0),
-            firstSeen: videoTime.isBefore(existing.firstSeen) ? videoTime : existing.firstSeen,
-            lastSeen: videoTime.isAfter(existing.lastSeen) ? videoTime : existing.lastSeen,
+            firstSeen: videoTime.isBefore(existing.firstSeen)
+                ? videoTime
+                : existing.firstSeen,
+            lastSeen: videoTime.isAfter(existing.lastSeen)
+                ? videoTime
+                : existing.lastSeen,
             uniqueAuthors: {...existing.uniqueAuthors, video.pubkey},
           );
         }
@@ -109,21 +116,21 @@ class HashtagService extends ChangeNotifier {
   }
 
   /// Get trending hashtags based on trending score
-  List<String> getTrendingHashtags({int limit = 20}) {
+  List<String> getTrendingHashtags({int limit = 25}) {
     final sorted = _hashtagStats.entries.toList()
       ..sort((a, b) => b.value.trendingScore.compareTo(a.value.trendingScore));
     return sorted.take(limit).map((e) => e.key).toList();
   }
 
   /// Get popular hashtags based on total video count
-  List<String> getPopularHashtags({int limit = 20}) {
+  List<String> getPopularHashtags({int limit = 25}) {
     final sorted = _hashtagStats.entries.toList()
       ..sort((a, b) => b.value.videoCount.compareTo(a.value.videoCount));
     return sorted.take(limit).map((e) => e.key).toList();
   }
 
   /// Get editor's picks - curated selection of interesting hashtags
-  List<String> getEditorsPicks({int limit = 10}) {
+  List<String> getEditorsPicks({int limit = 25}) {
     // For now, return hashtags with good engagement (multiple authors)
     final sorted = _hashtagStats.entries
         .where((e) => e.value.authorCount >= 3) // At least 3 different authors
@@ -133,24 +140,21 @@ class HashtagService extends ChangeNotifier {
   }
 
   /// Get statistics for a specific hashtag
-  HashtagStats? getHashtagStats(String hashtag) {
-    return _hashtagStats[hashtag];
-  }
+  HashtagStats? getHashtagStats(String hashtag) => _hashtagStats[hashtag];
 
   /// Get videos for specific hashtags
-  List<VideoEvent> getVideosByHashtags(List<String> hashtags) {
-    return _videoService.getVideoEventsByHashtags(hashtags);
-  }
+  List<VideoEvent> getVideosByHashtags(List<String> hashtags) =>
+      _videoService.getVideoEventsByHashtags(hashtags);
 
   /// Subscribe to videos with specific hashtags
-  Future<void> subscribeToHashtagVideos(List<String> hashtags, {int limit = 50}) {
-    return _videoService.subscribeToHashtagVideos(hashtags, limit: limit);
-  }
+  Future<void> subscribeToHashtagVideos(List<String> hashtags,
+          {int limit = 50}) =>
+      _videoService.subscribeToHashtagVideos(hashtags, limit: limit);
 
   /// Search hashtags by prefix
   List<String> searchHashtags(String query) {
     if (query.isEmpty) return [];
-    
+
     final lowercase = query.toLowerCase();
     return _hashtagStats.keys
         .where((tag) => tag.toLowerCase().contains(lowercase))
@@ -159,14 +163,20 @@ class HashtagService extends ChangeNotifier {
         // Prioritize exact matches and prefix matches
         final aLower = a.toLowerCase();
         final bLower = b.toLowerCase();
-        
+
         if (aLower == lowercase) return -1;
         if (bLower == lowercase) return 1;
-        if (aLower.startsWith(lowercase) && !bLower.startsWith(lowercase)) return -1;
-        if (!aLower.startsWith(lowercase) && bLower.startsWith(lowercase)) return 1;
-        
+        if (aLower.startsWith(lowercase) && !bLower.startsWith(lowercase)) {
+          return -1;
+        }
+        if (!aLower.startsWith(lowercase) && bLower.startsWith(lowercase)) {
+          return 1;
+        }
+
         // Then sort by popularity
-        return _hashtagStats[b]!.videoCount.compareTo(_hashtagStats[a]!.videoCount);
+        return _hashtagStats[b]!
+            .videoCount
+            .compareTo(_hashtagStats[a]!.videoCount);
       });
   }
 }

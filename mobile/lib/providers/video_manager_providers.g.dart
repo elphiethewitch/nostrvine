@@ -7,7 +7,7 @@ part of 'video_manager_providers.dart';
 // **************************************************************************
 
 String _$videoManagerConfigHash() =>
-    r'd933b857778eacc30b1e1154f769fd006fe4aba5';
+    r'ddc013658bab415add3f2b60c942c5399020e6a4';
 
 /// Configuration provider for video manager settings
 ///
@@ -28,7 +28,7 @@ final videoManagerConfigProvider =
 // ignore: unused_element
 typedef VideoManagerConfigRef = AutoDisposeProviderRef<VideoManagerConfig>;
 String _$videoPlayerControllerHash() =>
-    r'e3114ca84f715c1cde9bd9f55ffc4185efbc1b77';
+    r'85e62e8d017e0499a6851cdbee9c0386952e1eab';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -194,7 +194,7 @@ class _VideoPlayerControllerProviderElement
   String get videoId => (origin as VideoPlayerControllerProvider).videoId;
 }
 
-String _$videoStateByIdHash() => r'bb38c37a823ea88dec58319572f4b77716cef2a6';
+String _$videoStateByIdHash() => r'3514e7f4ae902e00d84f98a6e410b7cac5cfd65d';
 
 /// Helper provider to get video state by ID
 ///
@@ -336,7 +336,7 @@ class _VideoStateByIdProviderElement
   String get videoId => (origin as VideoStateByIdProvider).videoId;
 }
 
-String _$isVideoReadyHash() => r'21fd2124143539c90065cf3955fa32813d252601';
+String _$isVideoReadyHash() => r'06d0d4082a59217ebafe1e6dd8bec347727c4394';
 
 /// Helper provider to check if video is ready
 ///
@@ -478,7 +478,7 @@ class _IsVideoReadyProviderElement extends AutoDisposeProviderElement<bool>
   String get videoId => (origin as IsVideoReadyProvider).videoId;
 }
 
-String _$videoMemoryStatsHash() => r'c095e323920409b650c92f103f4d1307da644409';
+String _$videoMemoryStatsHash() => r'138df5e27aaffbe932a0f68e3e7f4286a4791a6e';
 
 /// Helper provider for memory statistics
 ///
@@ -498,7 +498,7 @@ final videoMemoryStatsProvider = AutoDisposeProvider<VideoMemoryStats>.internal(
 // ignore: unused_element
 typedef VideoMemoryStatsRef = AutoDisposeProviderRef<VideoMemoryStats>;
 String _$videoManagerDebugInfoHash() =>
-    r'4dcc8b772e6521f86da842365c228fc7b571d617';
+    r'bd395708156043ef4781728b4d2207f5e35202a5';
 
 /// Helper provider for debug information
 ///
@@ -518,7 +518,7 @@ final videoManagerDebugInfoProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef VideoManagerDebugInfoRef = AutoDisposeProviderRef<Map<String, dynamic>>;
-String _$videoManagerHash() => r'1edbfe4dbd2edce4374912d757fcc2dd58a303a6';
+String _$videoManagerHash() => r'd3dc81a5f9d1289a3613ea71eeba06c63370d858';
 
 /// Main Riverpod video manager provider
 ///

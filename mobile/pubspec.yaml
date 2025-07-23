@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.0.1+2
+version: 0.0.1+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -36,7 +36,6 @@ dependencies:
   cupertino_icons: ^1.0.8
   
   # State management
-  provider: ^6.1.1
   flutter_riverpod: ^2.5.1
   riverpod_annotation: ^2.3.5
   freezed_annotation: ^2.4.4
@@ -95,6 +94,9 @@ dependencies:
   
   # Missing dependencies required by nostr_sdk
   equatable: ^2.0.5
+  
+  # Desktop window management for proper window sizing
+  window_manager: ^0.3.7
 
 dev_dependencies:
   flutter_test:
@@ -116,12 +118,17 @@ dev_dependencies:
   # Code generation
   build_runner: ^2.4.9
   hive_generator: ^2.0.1
+  
+  # CLI tools
+  args: ^2.4.2
   riverpod_generator: ^2.4.0
   custom_lint: ^0.6.4
   riverpod_lint: ^2.3.10
   freezed: ^2.5.7
   json_annotation: ^4.9.0
   json_serializable: ^6.8.0
+  path: any
+  yaml: any
 
 
 # For information on the generic Dart part of this file, see the

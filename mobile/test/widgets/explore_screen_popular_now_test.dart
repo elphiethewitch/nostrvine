@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
-import 'package:provider/provider.dart';
+import 'package:mockito/mockito.dart';
+import 'package:openvine/models/curation_set.dart';
+import 'package:openvine/models/video_event.dart';
 import 'package:openvine/screens/explore_screen.dart';
-import 'package:openvine/services/explore_video_manager.dart';
 import 'package:openvine/services/curation_service.dart';
+import 'package:openvine/services/explore_video_manager.dart';
 import 'package:openvine/services/hashtag_service.dart';
 import 'package:openvine/services/video_event_service.dart';
-import 'package:openvine/models/video_event.dart';
-import 'package:openvine/models/curation_set.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:openvine/providers/app_providers.dart';
 
 @GenerateMocks([
   ExploreVideoManager,
@@ -34,19 +35,24 @@ void main() {
     // Setup default mocks
     when(mockExploreVideoManager.isLoading).thenReturn(false);
     when(mockCurationService.isLoading).thenReturn(false);
-    when(mockHashtagService.getTrendingHashtags(limit: anyNamed('limit'))).thenReturn([]);
-    when(mockHashtagService.getEditorsPicks(limit: anyNamed('limit'))).thenReturn([]);
-    when(mockVideoEventService.getRecentVideoEvents(hours: anyNamed('hours'))).thenReturn([]);
-    
+    when(mockHashtagService.getTrendingHashtags(limit: anyNamed('limit')))
+        .thenReturn([]);
+    when(mockHashtagService.getEditorsPicks(limit: anyNamed('limit')))
+        .thenReturn([]);
+    when(mockVideoEventService.getRecentVideoEvents(hours: anyNamed('hours')))
+        .thenReturn([]);
+
     // Setup default empty video responses for all curation types
     when(mockExploreVideoManager.getVideosForType(any)).thenReturn([]);
     when(mockCurationService.getVideosForSetType(any)).thenReturn([]);
   });
 
   group('Popular Now Tab Tests', () {
-    testWidgets('shows empty state when ExploreVideoManager has no videos despite CurationService having videos', (WidgetTester tester) async {
+    testWidgets(
+        'shows empty state when ExploreVideoManager has no videos despite CurationService having videos',
+        (tester) async {
       // This test demonstrates the bug: CurationService has videos but ExploreVideoManager doesn't
-      
+
       // Mock CurationService to have trending videos (like the real scenario)
       final mockTrendingVideos = [
         VideoEvent(
@@ -58,7 +64,7 @@ void main() {
           title: 'Trending Video 1',
         ),
         VideoEvent(
-          id: 'trending2', 
+          id: 'trending2',
           pubkey: 'pubkey2',
           createdAt: 1234567891,
           content: 'Trending video 2',
@@ -66,24 +72,28 @@ void main() {
           title: 'Trending Video 2',
         ),
       ];
-      
+
       when(mockCurationService.getVideosForSetType(CurationSetType.trending))
           .thenReturn(mockTrendingVideos);
-      
+
       // Mock ExploreVideoManager to have NO videos (this is the bug)
       when(mockExploreVideoManager.getVideosForType(CurationSetType.trending))
           .thenReturn([]);
 
+      final container = ProviderContainer(
+        overrides: [
+          exploreVideoManagerProvider.overrideWithValue(mockExploreVideoManager),
+          curationServiceProvider.overrideWithValue(mockCurationService),
+          hashtagServiceProvider.overrideWithValue(mockHashtagService),
+          videoEventServiceProvider.overrideWithValue(mockVideoEventService),
+        ],
+      );
+      
       await tester.pumpWidget(
-        MaterialApp(
-          home: MultiProvider(
-            providers: [
-              ChangeNotifierProvider<ExploreVideoManager>.value(value: mockExploreVideoManager),
-              ChangeNotifierProvider<CurationService>.value(value: mockCurationService),
-              ChangeNotifierProvider<HashtagService>.value(value: mockHashtagService),
-              ChangeNotifierProvider<VideoEventService>.value(value: mockVideoEventService),
-            ],
-            child: const ExploreScreen(),
+        ProviderScope(
+          parent: container,
+          child: const MaterialApp(
+            home: ExploreScreen(),
           ),
         ),
       );
@@ -94,19 +104,24 @@ void main() {
 
       // EXPECTED BEHAVIOR: Should show the trending videos
       // ACTUAL BEHAVIOR: Shows empty state because ExploreVideoManager has no videos
-      
+
       // This test currently PASSES but demonstrates the bug
       expect(find.text('Popular Now'), findsOneWidget);
-      expect(find.text('Videos getting the most likes\nand shares right now.'), findsOneWidget);
-      
+      expect(find.text('Videos getting the most likes\nand shares right now.'),
+          findsOneWidget);
+
       // Verify the logs show the disconnect
-      verify(mockCurationService.getVideosForSetType(CurationSetType.trending)).called(greaterThan(0));
-      verify(mockExploreVideoManager.getVideosForType(CurationSetType.trending)).called(greaterThan(0));
+      verify(mockCurationService.getVideosForSetType(CurationSetType.trending))
+          .called(greaterThan(0));
+      verify(mockExploreVideoManager.getVideosForType(CurationSetType.trending))
+          .called(greaterThan(0));
     });
 
-    testWidgets('should show videos when both ExploreVideoManager and CurationService are in sync', (WidgetTester tester) async {
+    testWidgets(
+        'should show videos when both ExploreVideoManager and CurationService are in sync',
+        (tester) async {
       // This test shows how it SHOULD work when both services are in sync
-      
+
       final mockTrendingVideos = [
         VideoEvent(
           id: 'trending1',
@@ -118,30 +133,34 @@ void main() {
         ),
         VideoEvent(
           id: 'trending2',
-          pubkey: 'pubkey2', 
+          pubkey: 'pubkey2',
           createdAt: 1234567891,
           content: 'Trending video 2',
           timestamp: DateTime.now(),
           title: 'Trending Video 2',
         ),
       ];
-      
+
       // Both services should return the same videos
       when(mockCurationService.getVideosForSetType(CurationSetType.trending))
           .thenReturn(mockTrendingVideos);
       when(mockExploreVideoManager.getVideosForType(CurationSetType.trending))
           .thenReturn(mockTrendingVideos);
 
+      final container = ProviderContainer(
+        overrides: [
+          exploreVideoManagerProvider.overrideWithValue(mockExploreVideoManager),
+          curationServiceProvider.overrideWithValue(mockCurationService),
+          hashtagServiceProvider.overrideWithValue(mockHashtagService),
+          videoEventServiceProvider.overrideWithValue(mockVideoEventService),
+        ],
+      );
+      
       await tester.pumpWidget(
-        MaterialApp(
-          home: MultiProvider(
-            providers: [
-              ChangeNotifierProvider<ExploreVideoManager>.value(value: mockExploreVideoManager),
-              ChangeNotifierProvider<CurationService>.value(value: mockCurationService),
-              ChangeNotifierProvider<HashtagService>.value(value: mockHashtagService),
-              ChangeNotifierProvider<VideoEventService>.value(value: mockVideoEventService),
-            ],
-            child: const ExploreScreen(),
+        ProviderScope(
+          parent: container,
+          child: const MaterialApp(
+            home: ExploreScreen(),
           ),
         ),
       );
@@ -152,9 +171,10 @@ void main() {
 
       // Should show video grid when videos are available
       expect(find.byType(GridView), findsOneWidget);
-      
+
       // Should NOT show empty state
-      expect(find.text('Videos getting the most likes\nand shares right now.'), findsNothing);
+      expect(find.text('Videos getting the most likes\nand shares right now.'),
+          findsNothing);
     });
   });
 }

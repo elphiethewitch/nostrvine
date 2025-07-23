@@ -97,7 +97,7 @@ export class ThumbnailService {
     format: 'jpg' | 'webp'
   ): Promise<Response> {
     // First, check if this video exists in our metadata
-    const videoMetadata = await this.kvStore.get(`video:${videoId}`, 'json');
+    const videoMetadata = await this.kvStore.get(`v1:video:${videoId}`, 'json');
     if (!videoMetadata) {
       throw new Error(`Video ${videoId} not found`);
     }
@@ -182,7 +182,7 @@ export class ThumbnailService {
       format,
       r2Key,
       generatedAt: Date.now(),
-      streamThumbnailUrl: thumbnailUrl
+      streamThumbnailUrl: url.toString()
     };
 
     const cacheKey = this.getCacheKey(videoId, size, timestamp, format);
@@ -224,10 +224,10 @@ export class ThumbnailService {
     const signedUrl = await this.urlSigner.signUrl(r2Key, 60 * 60 * 24 * 365); // 1 year
 
     // Update video metadata to include custom thumbnail
-    const videoMetadata = await this.kvStore.get(`video:${videoId}`, 'json');
+    const videoMetadata = await this.kvStore.get(`v1:video:${videoId}`, 'json');
     if (videoMetadata) {
       videoMetadata.customThumbnailUrl = signedUrl;
-      await this.kvStore.put(`video:${videoId}`, JSON.stringify(videoMetadata));
+      await this.kvStore.put(`v1:video:${videoId}`, JSON.stringify(videoMetadata));
     }
 
     return signedUrl;

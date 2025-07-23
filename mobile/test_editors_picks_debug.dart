@@ -1,31 +1,38 @@
 // Debug script to test Editor's Picks functionality
 
-import 'package:flutter/widgets.dart';
 import 'dart:async';
-import 'lib/services/nostr_service.dart';
-import 'lib/services/video_event_service.dart';
+
+import 'package:flutter/widgets.dart';
+
+import 'lib/constants/app_constants.dart';
+import 'lib/models/curation_set.dart';
+import 'lib/services/auth_service.dart';
 import 'lib/services/curation_service.dart';
+import 'lib/services/nostr_key_manager.dart';
+import 'lib/services/nostr_service.dart';
 import 'lib/services/social_service.dart';
 import 'lib/services/subscription_manager.dart';
-import 'lib/models/curation_set.dart';
+import 'lib/services/video_event_service.dart';
 import 'lib/utils/unified_logger.dart';
-import 'lib/constants/app_constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  Log.info('🔍 Starting Editor\'s Picks Debug Test', name: 'Debug', category: LogCategory.system);
+  Log.info("🔍 Starting Editor's Picks Debug Test", name: 'Debug', category: LogCategory.system);
   Log.info('Classic Vines Pubkey: ${AppConstants.classicVinesPubkey}', name: 'Debug', category: LogCategory.system);
   
   // Initialize services
-  final nostrService = NostrService();
-  final subscriptionManager = SubscriptionManager(nostrService: nostrService);
+  final keyManager = NostrKeyManager(); // Need to import this
+  final nostrService = NostrService(keyManager);
+  final subscriptionManager = SubscriptionManager(nostrService);
   final videoEventService = VideoEventService(
     nostrService,
     subscriptionManager: subscriptionManager,
   );
+  final authService = AuthService(); // Need to create this for SocialService
   final socialService = SocialService(
     nostrService,
+    authService,
     subscriptionManager: subscriptionManager,
   );
   final curationService = CurationService(
@@ -40,7 +47,7 @@ void main() async {
     await nostrService.initialize();
     
     // Add vine.hol.is relay
-    final relayUrl = 'wss://vine.hol.is';
+    const relayUrl = 'wss://vine.hol.is';
     Log.info('Adding relay: $relayUrl', name: 'Debug', category: LogCategory.system);
     final connected = await nostrService.addRelay(relayUrl);
     
@@ -71,7 +78,7 @@ void main() async {
     Log.info('Videos from Classic Vines: ${classicVinesVideos.length}', name: 'Debug', category: LogCategory.system);
     
     // Print details of Classic Vines videos
-    for (int i = 0; i < classicVinesVideos.length && i < 5; i++) {
+    for (var i = 0; i < classicVinesVideos.length && i < 5; i++) {
       final video = classicVinesVideos[i];
       Log.info('Classic Vine ${i + 1}:', name: 'Debug', category: LogCategory.system);
       Log.info('  ID: ${video.id.substring(0, 8)}...', name: 'Debug', category: LogCategory.system);
@@ -82,14 +89,14 @@ void main() async {
     }
     
     // Now check Editor's Picks from CurationService
-    Log.info('\n📋 Checking Editor\'s Picks from CurationService...', name: 'Debug', category: LogCategory.system);
+    Log.info("\n📋 Checking Editor's Picks from CurationService...", name: 'Debug', category: LogCategory.system);
     final editorsPicks = curationService.getVideosForSetType(CurationSetType.editorsPicks);
-    Log.info('Editor\'s Picks count: ${editorsPicks.length}', name: 'Debug', category: LogCategory.system);
+    Log.info("Editor's Picks count: ${editorsPicks.length}", name: 'Debug', category: LogCategory.system);
     
     // Print Editor's Picks details
-    for (int i = 0; i < editorsPicks.length && i < 5; i++) {
+    for (var i = 0; i < editorsPicks.length && i < 5; i++) {
       final video = editorsPicks[i];
-      Log.info('Editor\'s Pick ${i + 1}:', name: 'Debug', category: LogCategory.system);
+      Log.info("Editor's Pick ${i + 1}:", name: 'Debug', category: LogCategory.system);
       Log.info('  ID: ${video.id.substring(0, 8)}...', name: 'Debug', category: LogCategory.system);
       Log.info('  Title: ${video.title ?? "No title"}', name: 'Debug', category: LogCategory.system);
       Log.info('  Pubkey: ${video.pubkey.substring(0, 8)}...', name: 'Debug', category: LogCategory.system);
@@ -98,7 +105,7 @@ void main() async {
     
     // Check if Editor's Picks is using default video
     if (editorsPicks.isNotEmpty && editorsPicks.first.id == 'default-intro-video-001') {
-      Log.warning('⚠️ Editor\'s Picks is showing default video instead of Classic Vines content', name: 'Debug', category: LogCategory.system);
+      Log.warning("⚠️ Editor's Picks is showing default video instead of Classic Vines content", name: 'Debug', category: LogCategory.system);
     }
     
   } catch (e, stackTrace) {
@@ -107,7 +114,7 @@ void main() async {
   } finally {
     // Cleanup
     await videoEventService.unsubscribeFromVideoFeed();
-    await nostrService.close();
+    nostrService.dispose();
     Log.info('Test completed', name: 'Debug', category: LogCategory.system);
   }
 }

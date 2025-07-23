@@ -6,72 +6,62 @@ import 'package:nostr_sdk/event.dart';
 /// NIP-51 Video Curation Set
 /// Kind 30005: Groups of videos picked by users as interesting and/or belonging to the same category
 class CurationSet {
-  final String id;              // "d" tag identifier
-  final String curatorPubkey;   // Public key of the curator
-  final String? title;          // Optional title
-  final String? description;    // Optional description
-  final String? imageUrl;       // Optional cover image
-  final List<String> videoIds;  // List of video event IDs (from "a" tags)
-  final DateTime createdAt;
-  final int eventKind;          // Should be 30005 for video curation sets
+  // Should be 30005 for video curation sets
 
   const CurationSet({
     required this.id,
     required this.curatorPubkey,
+    required this.videoIds,
+    required this.createdAt,
     this.title,
     this.description,
     this.imageUrl,
-    required this.videoIds,
-    required this.createdAt,
     this.eventKind = 30005,
   });
 
   /// Create CurationSet from Nostr event
   factory CurationSet.fromNostrEvent(Event event) {
     if (event.kind != 30005) {
-      throw ArgumentError('Invalid event kind for video curation set: ${event.kind}');
+      throw ArgumentError(
+          'Invalid event kind for video curation set: ${event.kind}');
     }
 
     String? setId;
     String? title;
-    String? description; 
+    String? description;
     String? imageUrl;
-    final List<String> videoIds = [];
+    final videoIds = <String>[];
 
     // Parse tags
     for (final tag in event.tags) {
-      if (tag.isEmpty) continue;
-      
-      switch (tag[0]) {
+      final tagList = tag as List<dynamic>;
+      if (tagList.isEmpty) continue;
+
+      switch (tagList[0]) {
         case 'd':
-          if (tag.length > 1) setId = tag[1];
-          break;
+          if (tagList.length > 1) setId = tagList[1] as String?;
         case 'title':
-          if (tag.length > 1) title = tag[1];
-          break;
+          if (tagList.length > 1) title = tagList[1] as String?;
         case 'description':
-          if (tag.length > 1) description = tag[1];
-          break;
+          if (tagList.length > 1) description = tagList[1] as String?;
         case 'image':
-          if (tag.length > 1) imageUrl = tag[1];
-          break;
+          if (tagList.length > 1) imageUrl = tagList[1] as String?;
         case 'a':
           // Video reference: "a", "kind:pubkey:identifier"
-          if (tag.length > 1) {
-            final parts = tag[1].split(':');
-            if (parts.length >= 3 && parts[0] == '22') { // NIP-71 video events
+          if (tagList.length > 1) {
+            final parts = (tagList[1] as String).split(':');
+            if (parts.length >= 3 && parts[0] == '22') {
+              // NIP-71 video events
               // Extract the identifier part as video ID
               final videoId = parts.sublist(2).join(':');
               videoIds.add(videoId);
             }
           }
-          break;
         case 'e':
           // Direct event reference
-          if (tag.length > 1) {
-            videoIds.add(tag[1]);
+          if (tagList.length > 1) {
+            videoIds.add(tagList[1] as String);
           }
-          break;
       }
     }
 
@@ -85,6 +75,14 @@ class CurationSet {
       createdAt: DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
     );
   }
+  final String id; // "d" tag identifier
+  final String curatorPubkey; // Public key of the curator
+  final String? title; // Optional title
+  final String? description; // Optional description
+  final String? imageUrl; // Optional cover image
+  final List<String> videoIds; // List of video event IDs (from "a" tags)
+  final DateTime createdAt;
+  final int eventKind;
 
   /// Convert to Nostr event for publishing
   Event toNostrEvent() {
@@ -112,9 +110,8 @@ class CurationSet {
   }
 
   @override
-  String toString() {
-    return 'CurationSet(id: $id, title: $title, curator: ${curatorPubkey.substring(0, 8)}..., videos: ${videoIds.length})';
-  }
+  String toString() =>
+      'CurationSet(id: $id, title: $title, curator: ${curatorPubkey.substring(0, 8)}..., videos: ${videoIds.length})';
 
   @override
   bool operator ==(Object other) {
@@ -130,12 +127,10 @@ class CurationSet {
 
 /// Predefined curation set types for OpenVine
 enum CurationSetType {
-  editorsPicks('editors_picks', "Editor's Picks", "Curated collection from OpenVine"),
-  trending('trending', 'Trending Now', 'Popular videos right now'),
-  featured('featured', 'Featured', 'Highlighted content'),
-  topWeekly('top_weekly', 'Top This Week', 'Most popular videos this week'),
-  newAndNoteworthy('new_noteworthy', 'New & Noteworthy', 'Fresh content worth watching'),
-  staffPicks('staff_picks', 'Staff Picks', 'Personal favorites from our team');
+  editorsPicks(
+      'editors_picks', "Editor's Picks", 'Curated collection from OpenVine'),
+  trending(
+      'trending', 'Trending', 'Videos getting the most likes and shares right now');
 
   const CurationSetType(this.id, this.displayName, this.description);
 
@@ -149,7 +144,8 @@ class SampleCurationSets {
   static final List<CurationSet> _sampleSets = [
     CurationSet(
       id: CurationSetType.editorsPicks.id,
-      curatorPubkey: '70ed6c56d6fb355f102a1e985741b5ee65f6ae9f772e028894b321bc74854082',
+      curatorPubkey:
+          '70ed6c56d6fb355f102a1e985741b5ee65f6ae9f772e028894b321bc74854082',
       title: CurationSetType.editorsPicks.displayName,
       description: CurationSetType.editorsPicks.description,
       imageUrl: 'https://example.com/editors-picks.jpg',
@@ -158,18 +154,12 @@ class SampleCurationSets {
     ),
     CurationSet(
       id: CurationSetType.trending.id,
-      curatorPubkey: 'openvine_algorithm',
+      curatorPubkey:
+          '70ed6c56d6fb355f102a1e985741b5ee65f6ae9f772e028894b321bc74854082',
       title: CurationSetType.trending.displayName,
       description: CurationSetType.trending.description,
-      videoIds: [], // Will be populated with trending video IDs
-      createdAt: DateTime.now(),
-    ),
-    CurationSet(
-      id: CurationSetType.featured.id,
-      curatorPubkey: 'openvine_editorial_team',
-      title: CurationSetType.featured.displayName,
-      description: CurationSetType.featured.description,
-      videoIds: [], // Will be populated with featured video IDs
+      imageUrl: 'https://example.com/trending.jpg',
+      videoIds: [], // Will be populated with actual video IDs
       createdAt: DateTime.now(),
     ),
   ];
@@ -184,7 +174,5 @@ class SampleCurationSets {
     }
   }
 
-  static CurationSet? getByType(CurationSetType type) {
-    return getById(type.id);
-  }
+  static CurationSet? getByType(CurationSetType type) => getById(type.id);
 }

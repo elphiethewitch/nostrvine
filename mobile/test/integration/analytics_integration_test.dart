@@ -1,6 +1,8 @@
+import 'dart:convert';
+import 'package:openvine/utils/unified_logger.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 void main() {
   group('Analytics Integration Tests', () {
@@ -14,11 +16,11 @@ void main() {
       ).timeout(const Duration(seconds: 10));
 
       expect(response.statusCode, 200);
-      
+
       final data = jsonDecode(response.body);
       expect(data, isA<Map<String, dynamic>>());
       expect(data['vines'], isA<List>());
-      
+
       // Check that we have at least some trending videos
       final vines = data['vines'] as List;
       if (vines.isNotEmpty) {
@@ -26,15 +28,15 @@ void main() {
         expect(firstVine['eventId'], isA<String>());
         expect(firstVine['views'], isA<num>());
         expect(firstVine['score'], isA<num>());
-        
+
         // Event ID should be a valid hex string (64 chars for SHA-256)
         final eventId = firstVine['eventId'] as String;
         expect(eventId.length, 64);
         expect(RegExp(r'^[a-f0-9]+$').hasMatch(eventId), true);
       }
-      
-      print('✅ Analytics API integration test passed');
-      print('   Trending videos found: ${vines.length}');
+
+      Log.info('✅ Analytics API integration test passed');
+      Log.info('   Trending videos found: ${vines.length}');
     });
 
     test('Analytics API handles errors gracefully', () async {
@@ -48,8 +50,8 @@ void main() {
       ).timeout(const Duration(seconds: 10));
 
       expect(response.statusCode, 404);
-      
-      print('✅ Analytics API error handling test passed');
+
+      Log.info('✅ Analytics API error handling test passed');
     });
   });
 }

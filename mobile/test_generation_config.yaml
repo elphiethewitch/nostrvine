@@ -1,0 +1,155 @@
+# Test Generation Configuration for OpenVine
+# Defines patterns, requirements, and edge cases for comprehensive test generation
+
+test_patterns:
+  service:
+    setup_teardown: true
+    test_initialization: true
+    test_normal_operations: true
+    test_error_handling: true
+    test_edge_cases: true
+    test_cleanup: true
+    imports:
+      - "package:flutter_test/flutter_test.dart"
+      - "../builders/"
+      - "../in_memory/"
+      - "../helpers/test_helpers.dart"
+  
+  widget:
+    test_rendering: true
+    test_interactions: true
+    test_state_changes: true
+    test_loading_states: true
+    test_error_states: true
+    test_accessibility: true
+    imports:
+      - "package:flutter/material.dart"
+      - "package:flutter_test/flutter_test.dart"
+      - "package:flutter_riverpod/flutter_riverpod.dart"
+      - "../helpers/test_helpers.dart"
+  
+  integration:
+    test_complete_flow: true
+    test_failure_scenarios: true
+    test_performance: true
+    test_data_persistence: true
+    imports:
+      - "package:flutter_test/flutter_test.dart"
+      - "../helpers/test_helpers.dart"
+      - "../builders/"
+
+coverage_requirements:
+  minimum_overall: 80
+  minimum_unit: 90
+  minimum_widget: 80
+  minimum_integration: 70
+  exclude_patterns:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/*.mocks.dart"
+    - "**/generated/**"
+
+edge_cases:
+  common:
+    - null_inputs
+    - empty_collections
+    - boundary_values
+    - concurrent_access
+    - resource_exhaustion
+    - network_failures
+    - timeout_scenarios
+  
+  service_specific:
+    - invalid_configuration
+    - circular_dependencies
+    - state_corruption
+    - memory_leaks
+    - race_conditions
+  
+  widget_specific:
+    - viewport_changes
+    - theme_changes
+    - locale_changes
+    - keyboard_interactions
+    - gesture_conflicts
+  
+  integration_specific:
+    - partial_failures
+    - rollback_scenarios
+    - data_inconsistency
+    - system_recovery
+    - performance_degradation
+
+test_data:
+  video_events:
+    count: 100
+    types:
+      - regular_video
+      - gif_video
+      - slow_loading
+      - failing_video
+    durations: [6, 10, 15, 30, 60]
+    
+  user_profiles:
+    count: 50
+    types:
+      - verified
+      - minimal
+      - complete_profile
+      - anonymous
+      
+  nostr_events:
+    kinds: [0, 1, 3, 6, 7, 22]
+    tags:
+      required: [["h", "vine"]]
+      optional: [["p"], ["e"], ["url"], ["title"]]
+
+performance_benchmarks:
+  initialization:
+    max_time_ms: 10
+    iterations: 1000
+    
+  operation_throughput:
+    min_ops_per_second: 1000
+    test_duration_seconds: 10
+    
+  concurrent_operations:
+    parallel_count: 100
+    max_time_ms: 1000
+    
+  memory:
+    max_heap_growth_mb: 50
+    test_duration_minutes: 5
+
+naming_conventions:
+  test_files:
+    suffix: "_test.dart"
+    location: "test/generated/"
+    
+  test_groups:
+    format: "PascalCase"
+    
+  test_names:
+    format: "should {action} when {condition}"
+    examples:
+      - "should initialize correctly"
+      - "should throw exception when input is null"
+      - "should complete within timeout"
+
+assertions:
+  prefer_specific_matchers: true
+  avoid_generic_expects: true
+  include_failure_reasons: true
+  examples:
+    good:
+      - "expect(result, isNotNull, reason: 'Service should return a value')"
+      - "expect(error, isA<CustomException>())"
+    bad:
+      - "expect(result, true)"
+      - "expect(error, isNotNull)"
+
+documentation:
+  require_aboutme: true
+  document_test_purpose: true
+  explain_complex_setup: true
+  note_flaky_tests: true

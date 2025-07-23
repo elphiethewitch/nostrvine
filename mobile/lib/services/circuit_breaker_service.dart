@@ -4,40 +4,48 @@
 import 'dart:async';
 import 'dart:collection';
 import 'package:flutter/foundation.dart';
-import '../utils/unified_logger.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 /// Circuit breaker states
 enum CircuitBreakerState {
   /// Normal operation - allowing requests
   closed,
-  
+
   /// Failure threshold reached - blocking requests
   open,
-  
+
   /// Testing if service has recovered - limited requests
   halfOpen,
 }
 
 /// Failure tracking entry
 class FailureEntry {
-  final String url;
-  final DateTime timestamp;
-  final String errorMessage;
-  
   const FailureEntry({
     required this.url,
     required this.timestamp,
     required this.errorMessage,
   });
+  final String url;
+  final DateTime timestamp;
+  final String errorMessage;
 }
 
 /// Enhanced circuit breaker for video loading failures
 class VideoCircuitBreaker extends ChangeNotifier {
+  VideoCircuitBreaker({
+    int failureThreshold = 5,
+    Duration openTimeout = const Duration(minutes: 2),
+    Duration halfOpenTimeout = const Duration(seconds: 30),
+    int maxFailureHistory = 100,
+  })  : _failureThreshold = failureThreshold,
+        _openTimeout = openTimeout,
+        _halfOpenTimeout = halfOpenTimeout,
+        _maxFailureHistory = maxFailureHistory;
   final int _failureThreshold;
   final Duration _openTimeout;
   final Duration _halfOpenTimeout;
   final int _maxFailureHistory;
-  
+
   // State tracking
   CircuitBreakerState _state = CircuitBreakerState.closed;
   final Queue<FailureEntry> _failureHistory = Queue();
@@ -47,16 +55,6 @@ class VideoCircuitBreaker extends ChangeNotifier {
   Timer? _recoveryTimer;
   int _halfOpenSuccessCount = 0;
   final int _halfOpenRequiredSuccesses = 3;
-  
-  VideoCircuitBreaker({
-    int failureThreshold = 5,
-    Duration openTimeout = const Duration(minutes: 2),
-    Duration halfOpenTimeout = const Duration(seconds: 30),
-    int maxFailureHistory = 100,
-  }) : _failureThreshold = failureThreshold,
-       _openTimeout = openTimeout,
-       _halfOpenTimeout = halfOpenTimeout,
-       _maxFailureHistory = maxFailureHistory;
 
   /// Current circuit breaker state
   CircuitBreakerState get state => _state;
@@ -67,13 +65,15 @@ class VideoCircuitBreaker extends ChangeNotifier {
   /// Get current failure rate (percentage of recent failures)
   double get failureRate {
     final recentFailures = _getRecentFailures(const Duration(minutes: 5));
-    if (recentFailures.isEmpty) return 0.0;
-    
+    if (recentFailures.isEmpty) return 0;
+
     // Calculate failure rate based on recent activity
-    const maxRecentFailuresForRate = 20; // Consider last 20 requests for rate calculation
+    const maxRecentFailuresForRate =
+        20; // Consider last 20 requests for rate calculation
     final failureCount = recentFailures.length;
-    final rate = (failureCount / maxRecentFailuresForRate * 100).clamp(0.0, 100.0);
-    
+    final rate =
+        (failureCount / maxRecentFailuresForRate * 100).clamp(0.0, 100.0);
+
     return rate;
   }
 
@@ -83,12 +83,12 @@ class VideoCircuitBreaker extends ChangeNotifier {
     if (_permanentlyFailedUrls.contains(url)) {
       return false;
     }
-    
+
     // Circuit breaker is open - block all except in half-open state
     if (_state == CircuitBreakerState.open) {
       return false;
     }
-    
+
     // Check URL-specific failure patterns
     final urlFailures = _urlFailureCounts[url] ?? 0;
     if (urlFailures >= _failureThreshold) {
@@ -102,7 +102,7 @@ class VideoCircuitBreaker extends ChangeNotifier {
         }
       }
     }
-    
+
     return true;
   }
 
@@ -111,54 +111,61 @@ class VideoCircuitBreaker extends ChangeNotifier {
     // Reset URL-specific counters
     _urlFailureCounts.remove(url);
     _urlLastFailure.remove(url);
-    
+
     if (_state == CircuitBreakerState.halfOpen) {
       _halfOpenSuccessCount++;
-      
+
       if (_halfOpenSuccessCount >= _halfOpenRequiredSuccesses) {
         _transitionToClosed();
       }
     }
-    
-    Log.info('CircuitBreaker: Success recorded for $url', name: 'CircuitBreakerService', category: LogCategory.system);
+
+    Log.info('CircuitBreaker: Success recorded for $url',
+        name: 'CircuitBreakerService', category: LogCategory.system);
   }
 
   /// Record a failed request
   void recordFailure(String url, String errorMessage) {
     final now = DateTime.now();
-    
+
     // Add to failure history
-    _failureHistory.add(FailureEntry(
-      url: url,
-      timestamp: now,
-      errorMessage: errorMessage,
-    ));
-    
+    _failureHistory.add(
+      FailureEntry(
+        url: url,
+        timestamp: now,
+        errorMessage: errorMessage,
+      ),
+    );
+
     // Maintain history size
     while (_failureHistory.length > _maxFailureHistory) {
       _failureHistory.removeFirst();
     }
-    
+
     // Update URL-specific counters
     _urlFailureCounts[url] = (_urlFailureCounts[url] ?? 0) + 1;
     _urlLastFailure[url] = now;
-    
+
     // Check if URL should be permanently failed
     if (_urlFailureCounts[url]! >= _failureThreshold * 2) {
       _permanentlyFailedUrls.add(url);
-      Log.error('CircuitBreaker: URL permanently failed: $url', name: 'CircuitBreakerService', category: LogCategory.system);
+      Log.error('CircuitBreaker: URL permanently failed: $url',
+          name: 'CircuitBreakerService', category: LogCategory.system);
     }
-    
+
     // Check overall failure rate
     _checkFailureThreshold();
-    
-    Log.debug('CircuitBreaker: Failure recorded for $url (count: ${_urlFailureCounts[url]})', name: 'CircuitBreakerService', category: LogCategory.system);
+
+    Log.debug(
+        'CircuitBreaker: Failure recorded for $url (count: ${_urlFailureCounts[url]})',
+        name: 'CircuitBreakerService',
+        category: LogCategory.system);
   }
 
   /// Get failure statistics
   Map<String, dynamic> getStats() {
     final recentFailures = _getRecentFailures(const Duration(minutes: 10));
-    
+
     return {
       'state': _state.name,
       'totalFailures': _failureHistory.length,
@@ -175,7 +182,7 @@ class VideoCircuitBreaker extends ChangeNotifier {
   Map<String, dynamic> getDetailedStats() {
     final stats = getStats();
     final recentFailures = _getRecentFailures(const Duration(hours: 1));
-    
+
     return {
       ...stats,
       'urlFailureCounts': Map.from(_urlFailureCounts),
@@ -194,8 +201,9 @@ class VideoCircuitBreaker extends ChangeNotifier {
     _halfOpenSuccessCount = 0;
     _recoveryTimer?.cancel();
     _recoveryTimer = null;
-    
-    Log.debug('CircuitBreaker: Reset to closed state', name: 'CircuitBreakerService', category: LogCategory.system);
+
+    Log.debug('CircuitBreaker: Reset to closed state',
+        name: 'CircuitBreakerService', category: LogCategory.system);
     notifyListeners();
   }
 
@@ -203,7 +211,8 @@ class VideoCircuitBreaker extends ChangeNotifier {
   void clearPermanentFailures() {
     final count = _permanentlyFailedUrls.length;
     _permanentlyFailedUrls.clear();
-    Log.error('CircuitBreaker: Cleared $count permanently failed URLs', name: 'CircuitBreakerService', category: LogCategory.system);
+    Log.error('CircuitBreaker: Cleared $count permanently failed URLs',
+        name: 'CircuitBreakerService', category: LogCategory.system);
   }
 
   @override
@@ -216,9 +225,9 @@ class VideoCircuitBreaker extends ChangeNotifier {
 
   void _checkFailureThreshold() {
     if (_state == CircuitBreakerState.open) return;
-    
+
     final recentFailures = _getRecentFailures(const Duration(minutes: 5));
-    
+
     if (recentFailures.length >= _failureThreshold) {
       _transitionToOpen();
     }
@@ -227,21 +236,20 @@ class VideoCircuitBreaker extends ChangeNotifier {
   void _transitionToOpen() {
     _state = CircuitBreakerState.open;
     _halfOpenSuccessCount = 0;
-    
+
     // Set recovery timer
     _recoveryTimer?.cancel();
-    _recoveryTimer = Timer(_openTimeout, () {
-      _transitionToHalfOpen();
-    });
-    
-    Log.debug('CircuitBreaker: Transitioned to OPEN state', name: 'CircuitBreakerService', category: LogCategory.system);
+    _recoveryTimer = Timer(_openTimeout, _transitionToHalfOpen);
+
+    Log.debug('CircuitBreaker: Transitioned to OPEN state',
+        name: 'CircuitBreakerService', category: LogCategory.system);
     notifyListeners();
   }
 
   void _transitionToHalfOpen() {
     _state = CircuitBreakerState.halfOpen;
     _halfOpenSuccessCount = 0;
-    
+
     // Set timeout for half-open state
     _recoveryTimer?.cancel();
     _recoveryTimer = Timer(_halfOpenTimeout, () {
@@ -250,8 +258,9 @@ class VideoCircuitBreaker extends ChangeNotifier {
         _transitionToOpen();
       }
     });
-    
-    Log.debug('CircuitBreaker: Transitioned to HALF-OPEN state', name: 'CircuitBreakerService', category: LogCategory.system);
+
+    Log.debug('CircuitBreaker: Transitioned to HALF-OPEN state',
+        name: 'CircuitBreakerService', category: LogCategory.system);
     notifyListeners();
   }
 
@@ -260,8 +269,9 @@ class VideoCircuitBreaker extends ChangeNotifier {
     _halfOpenSuccessCount = 0;
     _recoveryTimer?.cancel();
     _recoveryTimer = null;
-    
-    Log.debug('CircuitBreaker: Transitioned to CLOSED state', name: 'CircuitBreakerService', category: LogCategory.system);
+
+    Log.debug('CircuitBreaker: Transitioned to CLOSED state',
+        name: 'CircuitBreakerService', category: LogCategory.system);
     notifyListeners();
   }
 
@@ -280,7 +290,7 @@ class VideoCircuitBreaker extends ChangeNotifier {
 /// Mixin for integrating circuit breaker into video services
 mixin CircuitBreakerMixin {
   VideoCircuitBreaker? _circuitBreaker;
-  
+
   /// Initialize circuit breaker
   void initializeCircuitBreaker({
     int failureThreshold = 5,
@@ -293,27 +303,24 @@ mixin CircuitBreakerMixin {
       halfOpenTimeout: halfOpenTimeout,
     );
   }
-  
+
   /// Check if URL should be allowed
-  bool shouldAllowVideoUrl(String url) {
-    return _circuitBreaker?.shouldAllowUrl(url) ?? true;
-  }
-  
+  bool shouldAllowVideoUrl(String url) =>
+      _circuitBreaker?.shouldAllowUrl(url) ?? true;
+
   /// Record successful video load
   void recordVideoSuccess(String url) {
     _circuitBreaker?.recordSuccess(url);
   }
-  
+
   /// Record failed video load
   void recordVideoFailure(String url, String error) {
     _circuitBreaker?.recordFailure(url, error);
   }
-  
+
   /// Get circuit breaker statistics
-  Map<String, dynamic>? getCircuitBreakerStats() {
-    return _circuitBreaker?.getStats();
-  }
-  
+  Map<String, dynamic>? getCircuitBreakerStats() => _circuitBreaker?.getStats();
+
   /// Dispose circuit breaker
   void disposeCircuitBreaker() {
     _circuitBreaker?.dispose();

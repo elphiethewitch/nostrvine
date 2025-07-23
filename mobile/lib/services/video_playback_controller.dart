@@ -2,24 +2,15 @@
 // ABOUTME: Reusable controller for consistent video behavior across different UI contexts
 
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+
 import 'package:flutter/widgets.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/utils/async_utils.dart';
+import 'package:openvine/utils/unified_logger.dart';
 import 'package:video_player/video_player.dart';
-import '../models/video_event.dart';
-import '../utils/unified_logger.dart';
-import '../utils/async_utils.dart';
 
 /// Configuration for video playback behavior
 class VideoPlaybackConfig {
-  final bool autoPlay;
-  final bool looping;
-  final double volume;
-  final bool pauseOnNavigation;
-  final bool resumeOnReturn;
-  final bool handleAppLifecycle;
-  final Duration retryDelay;
-  final int maxRetries;
-
   const VideoPlaybackConfig({
     this.autoPlay = true,
     this.looping = true,
@@ -30,12 +21,20 @@ class VideoPlaybackConfig {
     this.retryDelay = const Duration(seconds: 2),
     this.maxRetries = 3,
   });
+  final bool autoPlay;
+  final bool looping;
+  final double volume;
+  final bool pauseOnNavigation;
+  final bool resumeOnReturn;
+  final bool handleAppLifecycle;
+  final Duration retryDelay;
+  final int maxRetries;
 
   /// Configuration for feed videos (muted, auto-play)
   static const VideoPlaybackConfig feed = VideoPlaybackConfig(
     autoPlay: true,
     looping: true,
-    volume: 0.0,
+    volume: 0,
     pauseOnNavigation: true,
     resumeOnReturn: true,
   );
@@ -44,7 +43,7 @@ class VideoPlaybackConfig {
   static const VideoPlaybackConfig fullscreen = VideoPlaybackConfig(
     autoPlay: true,
     looping: true,
-    volume: 1.0,
+    volume: 1,
     pauseOnNavigation: true,
     resumeOnReturn: true,
   );
@@ -53,7 +52,7 @@ class VideoPlaybackConfig {
   static const VideoPlaybackConfig preview = VideoPlaybackConfig(
     autoPlay: false,
     looping: false,
-    volume: 0.0,
+    volume: 0,
     pauseOnNavigation: false,
     resumeOnReturn: false,
     handleAppLifecycle: false,
@@ -76,24 +75,33 @@ enum VideoPlaybackState {
 abstract class VideoPlaybackEvent {}
 
 class VideoStateChanged extends VideoPlaybackEvent {
-  final VideoPlaybackState state;
   VideoStateChanged(this.state);
+  final VideoPlaybackState state;
 }
 
 class VideoError extends VideoPlaybackEvent {
+  VideoError(this.message, this.error);
   final String message;
   final dynamic error;
-  VideoError(this.message, this.error);
 }
 
 class VideoPositionChanged extends VideoPlaybackEvent {
+  VideoPositionChanged(this.position, this.duration);
   final Duration position;
   final Duration duration;
-  VideoPositionChanged(this.position, this.duration);
 }
 
 /// Consolidated video playback controller with best practices
-class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver {
+class VideoPlaybackController extends ChangeNotifier
+    with WidgetsBindingObserver {
+  VideoPlaybackController({
+    required this.video,
+    this.config = VideoPlaybackConfig.feed,
+  }) {
+    if (config.handleAppLifecycle) {
+      WidgetsBinding.instance.addObserver(this);
+    }
+  }
   final VideoEvent video;
   final VideoPlaybackConfig config;
 
@@ -104,18 +112,9 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
   bool _isActive = false;
   bool _wasPlayingBeforeNavigation = false;
   Timer? _positionTimer;
-  
-  final StreamController<VideoPlaybackEvent> _eventController = 
-      StreamController<VideoPlaybackEvent>.broadcast();
 
-  VideoPlaybackController({
-    required this.video,
-    this.config = VideoPlaybackConfig.feed,
-  }) {
-    if (config.handleAppLifecycle) {
-      WidgetsBinding.instance.addObserver(this);
-    }
-  }
+  final StreamController<VideoPlaybackEvent> _eventController =
+      StreamController<VideoPlaybackEvent>.broadcast();
 
   // Getters
   VideoPlayerController? get controller => _controller;
@@ -127,7 +126,7 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
   bool get isActive => _isActive;
   Duration get position => _controller?.value.position ?? Duration.zero;
   Duration get duration => _controller?.value.duration ?? Duration.zero;
-  double get aspectRatio => _controller?.value.aspectRatio ?? 16/9;
+  double get aspectRatio => _controller?.value.aspectRatio ?? 16 / 9;
   Stream<VideoPlaybackEvent> get events => _eventController.stream;
 
   /// Initialize the video controller
@@ -144,7 +143,7 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
       if (videoUrl == null) {
         throw Exception('Video URL is null');
       }
-      
+
       _controller = VideoPlayerController.networkUrl(
         Uri.parse(videoUrl),
       );
@@ -158,15 +157,16 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
       _controller!.addListener(_onControllerUpdate);
 
       _setState(VideoPlaybackState.ready);
-      
+
       // Auto-play if configured and active
       if (config.autoPlay && _isActive) {
         await play();
       }
 
-      UnifiedLogger.info('Initialized video: ${video.id.substring(0, 8)}...', 
-          name: 'VideoPlaybackController');
-
+      UnifiedLogger.info(
+        'Initialized video: ${video.id.substring(0, 8)}...',
+        name: 'VideoPlaybackController',
+      );
     } catch (e) {
       _handleError('Failed to initialize video', e);
     }
@@ -182,10 +182,11 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
       await _controller!.play();
       _setState(VideoPlaybackState.playing);
       _startPositionTimer();
-      
-      UnifiedLogger.debug('Playing video: ${video.id.substring(0, 8)}...', 
-          name: 'VideoPlaybackController');
-          
+
+      UnifiedLogger.debug(
+        'Playing video: ${video.id.substring(0, 8)}...',
+        name: 'VideoPlaybackController',
+      );
     } catch (e) {
       _handleError('Failed to play video', e);
     }
@@ -201,10 +202,11 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
       await _controller!.pause();
       _setState(VideoPlaybackState.paused);
       _stopPositionTimer();
-      
-      UnifiedLogger.debug('Paused video: ${video.id.substring(0, 8)}...', 
-          name: 'VideoPlaybackController');
-          
+
+      UnifiedLogger.debug(
+        'Paused video: ${video.id.substring(0, 8)}...',
+        name: 'VideoPlaybackController',
+      );
     } catch (e) {
       _handleError('Failed to pause video', e);
     }
@@ -239,8 +241,10 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
       try {
         await _controller!.setVolume(volume);
       } catch (e) {
-        UnifiedLogger.warning('Failed to set volume: $e', 
-            name: 'VideoPlaybackController');
+        UnifiedLogger.warning(
+          'Failed to set volume: $e',
+          name: 'VideoPlaybackController',
+        );
       }
     }
   }
@@ -248,9 +252,9 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
   /// Set active state (for feed videos)
   void setActive(bool active) {
     if (_isActive == active) return;
-    
+
     _isActive = active;
-    
+
     if (active) {
       if (_state == VideoPlaybackState.ready && config.autoPlay) {
         play();
@@ -265,7 +269,7 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
   /// Handle navigation away (pause if configured)
   Future<void> onNavigationAway() async {
     if (!config.pauseOnNavigation) return;
-    
+
     _wasPlayingBeforeNavigation = isPlaying;
     if (_wasPlayingBeforeNavigation) {
       await pause();
@@ -275,7 +279,7 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
   /// Handle navigation return (resume if configured)
   Future<void> onNavigationReturn() async {
     if (!config.resumeOnReturn) return;
-    
+
     if (_wasPlayingBeforeNavigation && _isActive) {
       await play();
     }
@@ -285,22 +289,26 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
   /// Retry video initialization after error
   Future<void> retry() async {
     if (_retryCount >= config.maxRetries) {
-      UnifiedLogger.warning('Max retries reached for video: ${video.id.substring(0, 8)}...', 
-          name: 'VideoPlaybackController');
+      UnifiedLogger.warning(
+        'Max retries reached for video: ${video.id.substring(0, 8)}...',
+        name: 'VideoPlaybackController',
+      );
       return;
     }
 
     // Clean up current controller
     await _disposeController();
-    
+
     // Use proper exponential backoff instead of fixed delay
     try {
       await AsyncUtils.retryWithBackoff(
         operation: () async {
           _retryCount++;
-          UnifiedLogger.info('Retrying video (attempt $_retryCount): ${video.id.substring(0, 8)}...', 
-              name: 'VideoPlaybackController');
-          
+          UnifiedLogger.info(
+            'Retrying video (attempt $_retryCount): ${video.id.substring(0, 8)}...',
+            name: 'VideoPlaybackController',
+          );
+
           // Reset state and retry
           _state = VideoPlaybackState.notInitialized;
           await initialize();
@@ -310,8 +318,10 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
         debugName: 'VideoPlayback-${video.id.substring(0, 8)}',
       );
     } catch (e) {
-      UnifiedLogger.warning('Retry failed for video: ${video.id.substring(0, 8)}... - $e', 
-          name: 'VideoPlaybackController');
+      UnifiedLogger.warning(
+        'Retry failed for video: ${video.id.substring(0, 8)}... - $e',
+        name: 'VideoPlaybackController',
+      );
       _setState(VideoPlaybackState.error);
     }
   }
@@ -331,24 +341,21 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
 
   // Private methods
 
-  bool _canPlay() {
-    return _controller != null && 
-           _controller!.value.isInitialized && 
-           !_controller!.value.hasError &&
-           _state != VideoPlaybackState.disposed;
-  }
+  bool _canPlay() =>
+      _controller != null &&
+      _controller!.value.isInitialized &&
+      !_controller!.value.hasError &&
+      _state != VideoPlaybackState.disposed;
 
-  bool _canPause() {
-    return _controller != null && 
-           _controller!.value.isInitialized && 
-           _controller!.value.isPlaying;
-  }
+  bool _canPause() =>
+      _controller != null &&
+      _controller!.value.isInitialized &&
+      _controller!.value.isPlaying;
 
-  bool _canSeek() {
-    return _controller != null && 
-           _controller!.value.isInitialized && 
-           !_controller!.value.hasError;
-  }
+  bool _canSeek() =>
+      _controller != null &&
+      _controller!.value.isInitialized &&
+      !_controller!.value.hasError;
 
   void _setState(VideoPlaybackState newState) {
     if (_state != newState) {
@@ -362,9 +369,12 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
     _errorMessage = message;
     _setState(VideoPlaybackState.error);
     _emitEvent(VideoError(message, error));
-    
-    UnifiedLogger.error('$message: $error (Video: ${video.id.substring(0, 8)}...)', 
-        name: 'VideoPlaybackController', error: error);
+
+    UnifiedLogger.error(
+      '$message: $error (Video: ${video.id.substring(0, 8)}...)',
+      name: 'VideoPlaybackController',
+      error: error,
+    );
   }
 
   void _emitEvent(VideoPlaybackEvent event) {
@@ -377,7 +387,7 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
     if (_controller == null) return;
 
     final value = _controller!.value;
-    
+
     // Handle state changes
     if (value.hasError) {
       _handleError('Video player error', value.errorDescription);
@@ -406,7 +416,7 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
 
   Future<void> _disposeController() async {
     _stopPositionTimer();
-    
+
     if (_controller != null) {
       _controller!.removeListener(_onControllerUpdate);
       await _controller!.dispose();
@@ -418,7 +428,7 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (!config.handleAppLifecycle) return;
-    
+
     switch (state) {
       case AppLifecycleState.paused:
       case AppLifecycleState.inactive:
@@ -426,12 +436,10 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
         if (isPlaying) {
           pause();
         }
-        break;
       case AppLifecycleState.resumed:
         if (_isActive && _state == VideoPlaybackState.paused) {
           play();
         }
-        break;
       case AppLifecycleState.detached:
         break;
     }
@@ -439,18 +447,20 @@ class VideoPlaybackController extends ChangeNotifier with WidgetsBindingObserver
 
   @override
   void dispose() {
-    UnifiedLogger.debug('Disposing controller for video: ${video.id.substring(0, 8)}...', 
-        name: 'VideoPlaybackController');
-        
+    UnifiedLogger.debug(
+      'Disposing controller for video: ${video.id.substring(0, 8)}...',
+      name: 'VideoPlaybackController',
+    );
+
     _setState(VideoPlaybackState.disposed);
-    
+
     if (config.handleAppLifecycle) {
       WidgetsBinding.instance.removeObserver(this);
     }
-    
+
     _disposeController();
     _eventController.close();
-    
+
     super.dispose();
   }
 }

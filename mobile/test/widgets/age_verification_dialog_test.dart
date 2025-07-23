@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openvine/widgets/age_verification_dialog.dart';
 import 'package:openvine/theme/vine_theme.dart';
+import 'package:openvine/widgets/age_verification_dialog.dart';
 
 void main() {
   group('AgeVerificationDialog', () {
-    testWidgets('should display all required elements', (WidgetTester tester) async {
+    testWidgets('should display all required elements', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -22,7 +22,8 @@ void main() {
 
       // Check for explanation text
       expect(
-        find.text('To use the camera and create content, you must be at least 16 years old.'),
+        find.text(
+            'To use the camera and create content, you must be at least 16 years old.'),
         findsOneWidget,
       );
 
@@ -34,7 +35,8 @@ void main() {
       expect(find.text('Yes, I am 16+'), findsOneWidget);
     });
 
-    testWidgets('should return false when No button is pressed', (WidgetTester tester) async {
+    testWidgets('should return false when No button is pressed',
+        (tester) async {
       bool? result;
 
       await tester.pumpWidget(
@@ -65,7 +67,8 @@ void main() {
       expect(result, false);
     });
 
-    testWidgets('should return true when Yes button is pressed', (WidgetTester tester) async {
+    testWidgets('should return true when Yes button is pressed',
+        (tester) async {
       bool? result;
 
       await tester.pumpWidget(
@@ -96,7 +99,7 @@ void main() {
       expect(result, true);
     });
 
-    testWidgets('should not be dismissible by tapping outside', (WidgetTester tester) async {
+    testWidgets('should not be dismissible by tapping outside', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -126,7 +129,7 @@ void main() {
       expect(find.text('Age Verification'), findsOneWidget);
     });
 
-    testWidgets('should use VineTheme colors', (WidgetTester tester) async {
+    testWidgets('should use VineTheme colors', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -136,18 +139,18 @@ void main() {
       );
 
       // Check that the icon uses VineTheme green color
-      final Icon icon = tester.widget<Icon>(find.byIcon(Icons.person_outline));
+      final icon = tester.widget<Icon>(find.byIcon(Icons.person_outline));
       expect(icon.color, VineTheme.vineGreen);
 
       // Check that Yes button uses VineTheme green background
-      final ElevatedButton yesButton = tester.widget<ElevatedButton>(
+      final yesButton = tester.widget<ElevatedButton>(
         find.widgetWithText(ElevatedButton, 'Yes, I am 16+'),
       );
-      final ButtonStyle? style = yesButton.style;
+      final style = yesButton.style;
       expect(style?.backgroundColor?.resolve({}), VineTheme.vineGreen);
     });
 
-    testWidgets('should have proper dialog constraints', (WidgetTester tester) async {
+    testWidgets('should have proper dialog constraints', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -157,7 +160,7 @@ void main() {
       );
 
       // Find the Container with constraints
-      final Container container = tester.widget<Container>(
+      final container = tester.widget<Container>(
         find.descendant(
           of: find.byType(Dialog),
           matching: find.byType(Container).first,

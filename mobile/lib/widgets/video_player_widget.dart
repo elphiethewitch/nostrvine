@@ -1,43 +1,22 @@
 // ABOUTME: VideoPlayerWidget component for displaying videos with Chewie player integration
 // ABOUTME: Handles video initialization, controls, error states, and lifecycle management
 
-import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
-import 'package:chewie/chewie.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../models/video_event.dart';
-import '../utils/unified_logger.dart';
+import 'package:chewie/chewie.dart';
+import 'package:flutter/material.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/utils/unified_logger.dart';
+import 'package:video_player/video_player.dart';
 
 /// Video player widget with comprehensive state management
-/// 
+///
 /// This widget handles video display using Chewie for enhanced controls
 /// and provides proper lifecycle management including error handling,
 /// loading states, and memory cleanup.
 class VideoPlayerWidget extends StatefulWidget {
-  /// The video event to display
-  final VideoEvent videoEvent;
-  
-  /// The video player controller (may be null during initialization)
-  final VideoPlayerController? controller;
-  
-  /// Whether this video is currently active (should auto-play)
-  final bool isActive;
-  
-  /// Whether to show video controls
-  final bool showControls;
-  
-  /// Callback when video reaches end
-  final VoidCallback? onVideoEnd;
-  
-  /// Callback when video encounters an error
-  final VoidCallback? onVideoError;
-  
-  /// Callback when video is tapped
-  final VoidCallback? onVideoTap;
-
   const VideoPlayerWidget({
-    super.key,
     required this.videoEvent,
+    super.key,
     this.controller,
     this.isActive = false,
     this.showControls = true,
@@ -45,6 +24,27 @@ class VideoPlayerWidget extends StatefulWidget {
     this.onVideoError,
     this.onVideoTap,
   });
+
+  /// The video event to display
+  final VideoEvent videoEvent;
+
+  /// The video player controller (may be null during initialization)
+  final VideoPlayerController? controller;
+
+  /// Whether this video is currently active (should auto-play)
+  final bool isActive;
+
+  /// Whether to show video controls
+  final bool showControls;
+
+  /// Callback when video reaches end
+  final VoidCallback? onVideoEnd;
+
+  /// Callback when video encounters an error
+  final VoidCallback? onVideoError;
+
+  /// Callback when video is tapped
+  final VoidCallback? onVideoTap;
 
   @override
   State<VideoPlayerWidget> createState() => _VideoPlayerWidgetState();
@@ -65,13 +65,13 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   @override
   void didUpdateWidget(VideoPlayerWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     // Reinitialize if controller changed
     if (widget.controller != oldWidget.controller) {
       _disposeChewieController();
       _initializePlayer();
     }
-    
+
     // Handle active state changes
     if (widget.isActive != oldWidget.isActive) {
       _handleActiveStateChange();
@@ -87,7 +87,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   void _initializePlayer() {
     _hasError = false;
     _errorMessage = null;
-    
+
     if (widget.controller == null) {
       setState(() {
         _isInitializing = true;
@@ -105,14 +105,13 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         setState(() {
           _isInitializing = true;
         });
-        
+
         // Listen for initialization
         widget.controller!.addListener(_onControllerUpdate);
         return;
       }
 
       _createChewieController();
-      
     } catch (e) {
       _handleError('Failed to initialize video player: $e');
     }
@@ -120,13 +119,14 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   void _onControllerUpdate() {
     if (!mounted) return;
-    
+
     try {
       final controller = widget.controller;
       if (controller == null) return;
 
       if (controller.value.hasError) {
-        _handleError(controller.value.errorDescription ?? 'Video playback error');
+        _handleError(
+            controller.value.errorDescription ?? 'Video playback error');
         return;
       }
 
@@ -141,7 +141,6 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       if (controller.value.position >= controller.value.duration) {
         widget.onVideoEnd?.call();
       }
-      
     } catch (e) {
       _handleError('Controller update error: $e');
     }
@@ -155,16 +154,14 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         looping: false,
         showControls: widget.showControls,
         showControlsOnInitialize: false,
-        errorBuilder: (context, errorMessage) {
-          return _buildErrorWidget(errorMessage);
-        },
+        errorBuilder: (context, errorMessage) =>
+            _buildErrorWidget(errorMessage),
       );
-      
+
       setState(() {
         _isInitializing = false;
         _hasError = false;
       });
-      
     } catch (e) {
       _handleError('Failed to create Chewie controller: $e');
     }
@@ -172,7 +169,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   void _handleActiveStateChange() {
     if (_chewieController == null) return;
-    
+
     try {
       if (widget.isActive) {
         _chewieController!.play();
@@ -180,7 +177,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
         _chewieController!.pause();
       }
     } catch (e) {
-      Log.error('Error handling active state change: $e', name: 'VideoPlayerWidget', category: LogCategory.ui);
+      Log.error('Error handling active state change: $e',
+          name: 'VideoPlayerWidget', category: LogCategory.ui);
     }
   }
 
@@ -190,15 +188,16 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       _errorMessage = message;
       _isInitializing = false;
     });
-    
+
     widget.onVideoError?.call();
-    Log.error('VideoPlayerWidget error: $message', name: 'VideoPlayerWidget', category: LogCategory.ui);
+    Log.error('VideoPlayerWidget error: $message',
+        name: 'VideoPlayerWidget', category: LogCategory.ui);
   }
 
   void _disposeChewieController() {
     _chewieController?.dispose();
     _chewieController = null;
-    
+
     // Remove listener if it was added
     try {
       widget.controller?.removeListener(_onControllerUpdate);
@@ -213,121 +212,110 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onVideoTap,
-      child: Container(
-        width: double.infinity,
-        height: double.infinity,
-        color: Colors.black,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Background thumbnail
-            if (widget.videoEvent.thumbnailUrl != null)
-              _buildThumbnail(),
-            
-            // Video player or states
-            if (_hasError)
-              _buildErrorWidget(_errorMessage ?? 'Video failed to load')
-            else if (_isInitializing || widget.controller == null)
-              _buildLoadingWidget()
-            else if (_chewieController != null)
-              _buildVideoPlayer()
-            else
-              _buildLoadingWidget(),
-          ],
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: widget.onVideoTap,
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          color: Colors.black,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Background thumbnail
+              if (widget.videoEvent.thumbnailUrl != null) _buildThumbnail(),
+
+              // Video player or states
+              if (_hasError)
+                _buildErrorWidget(_errorMessage ?? 'Video failed to load')
+              else if (_isInitializing || widget.controller == null)
+                _buildLoadingWidget()
+              else if (_chewieController != null)
+                _buildVideoPlayer()
+              else
+                _buildLoadingWidget(),
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
 
-  Widget _buildThumbnail() {
-    return CachedNetworkImage(
-      imageUrl: widget.videoEvent.thumbnailUrl!,
-      fit: BoxFit.cover,
-      placeholder: (context, url) => Container(
-        color: Colors.grey[900],
-      ),
-      errorWidget: (context, url, error) => Container(
-        color: Colors.grey[900],
-      ),
-    );
-  }
-
-  Widget _buildVideoPlayer() {
-    return Chewie(controller: _chewieController!);
-  }
-
-  Widget _buildLoadingWidget() {
-    return Container(
-      color: Colors.black.withValues(alpha: 0.7),
-      child: const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Initializing video...',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-              ),
-            ),
-          ],
+  Widget _buildThumbnail() => CachedNetworkImage(
+        imageUrl: widget.videoEvent.thumbnailUrl!,
+        fit: BoxFit.cover,
+        placeholder: (context, url) => Container(
+          color: Colors.grey[900],
         ),
-      ),
-    );
-  }
+        errorWidget: (context, url, error) => Container(
+          color: Colors.grey[900],
+        ),
+      );
 
-  Widget _buildErrorWidget(String message) {
-    return Container(
-      color: Colors.black.withValues(alpha: 0.8),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              color: Colors.red,
-              size: 48,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Video failed to load',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+  Widget _buildVideoPlayer() => Chewie(controller: _chewieController!);
+
+  Widget _buildLoadingWidget() => ColoredBox(
+        color: Colors.black.withValues(alpha: 0.7),
+        child: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: _onRetryTap,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
+              SizedBox(height: 16),
+              Text(
+                'Initializing video...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.blue,
-                  borderRadius: BorderRadius.circular(8),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildErrorWidget(String message) => ColoredBox(
+        color: Colors.black.withValues(alpha: 0.8),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Video failed to load',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                 ),
-                child: const Text(
-                  'Tap to retry',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
+              ),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: _onRetryTap,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text(
+                    'Tap to retry',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
 }

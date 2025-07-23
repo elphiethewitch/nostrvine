@@ -2,11 +2,12 @@
 // ABOUTME: Supports nevent links, external app sharing, and clipboard operations
 
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/utils/unified_logger.dart';
 import 'package:share_plus/share_plus.dart';
-import '../models/video_event.dart';
-import '../utils/unified_logger.dart';
 
 /// Service for handling video sharing functionality
 class ShareService {
@@ -17,13 +18,14 @@ class ShareService {
     try {
       // Create nevent bech32 encoded link
       final eventId = video.id;
-      
+
       // For now, create a simple nevent link format
       // In a full implementation, this would use proper bech32 encoding
       final neventLink = 'nostr:nevent1$eventId';
       return neventLink;
     } catch (e) {
-      Log.error('Error generating Nostr event link: $e', name: 'ShareService', category: LogCategory.system);
+      Log.error('Error generating Nostr event link: $e',
+          name: 'ShareService', category: LogCategory.system);
       return 'nostr:note1${video.id}';
     }
   }
@@ -38,16 +40,15 @@ class ShareService {
   String generateShareText(VideoEvent video) {
     final content = video.content;
     final webLink = generateWebLink(video);
-    
+
     // Extract hashtags for better sharing
     final hashtags = _extractHashtags(content);
     final hashtagText = hashtags.isNotEmpty ? ' ${hashtags.join(' ')}' : '';
-    
+
     // Truncate content if too long
-    final truncatedContent = content.length > 100 
-        ? '${content.substring(0, 100)}...' 
-        : content;
-    
+    final truncatedContent =
+        content.length > 100 ? '${content.substring(0, 100)}...' : content;
+
     return '$truncatedContent$hashtagText\n\n$webLink';
   }
 
@@ -64,7 +65,8 @@ class ShareService {
         );
       }
     } catch (e) {
-      Log.error('Error copying to clipboard: $e', name: 'ShareService', category: LogCategory.system);
+      Log.error('Error copying to clipboard: $e',
+          name: 'ShareService', category: LogCategory.system);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -85,7 +87,8 @@ class ShareService {
         subject: 'Check out this video on OpenVine',
       );
     } catch (e) {
-      Log.error('Error sharing via sheet: $e', name: 'ShareService', category: LogCategory.system);
+      Log.error('Error sharing via sheet: $e',
+          name: 'ShareService', category: LogCategory.system);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -120,83 +123,80 @@ class ShareService {
 
 /// Bottom sheet widget for share options
 class _ShareOptionsBottomSheet extends StatelessWidget {
-  final VideoEvent video;
-  final ShareService shareService;
-
   const _ShareOptionsBottomSheet({
     required this.video,
     required this.shareService,
   });
+  final VideoEvent video;
+  final ShareService shareService;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Handle bar
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: Colors.grey[300],
-              borderRadius: BorderRadius.circular(2),
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          
-          // Title
-          const Text(
-            'Share Video',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+            const SizedBox(height: 20),
+
+            // Title
+            const Text(
+              'Share Video',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          
-          // Share options
-          _buildShareOption(
-            context,
-            icon: Icons.share,
-            title: 'Share to Apps',
-            subtitle: 'Share via messaging, social apps',
-            onTap: () {
-              Navigator.pop(context);
-              shareService.shareViaSheet(video, context);
-            },
-          ),
-          
-          _buildShareOption(
-            context,
-            icon: Icons.link,
-            title: 'Copy Web Link',
-            subtitle: 'Copy shareable web link',
-            onTap: () {
-              Navigator.pop(context);
-              final webLink = shareService.generateWebLink(video);
-              shareService.copyToClipboard(webLink, context);
-            },
-          ),
-          
-          _buildShareOption(
-            context,
-            icon: Icons.bolt,
-            title: 'Copy Nostr Link',
-            subtitle: 'Copy nevent link for Nostr clients',
-            onTap: () {
-              Navigator.pop(context);
-              final nostrLink = shareService.generateNostrEventLink(video);
-              shareService.copyToClipboard(nostrLink, context);
-            },
-          ),
-          
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
+            const SizedBox(height: 20),
+
+            // Share options
+            _buildShareOption(
+              context,
+              icon: Icons.share,
+              title: 'Share to Apps',
+              subtitle: 'Share via messaging, social apps',
+              onTap: () {
+                Navigator.pop(context);
+                shareService.shareViaSheet(video, context);
+              },
+            ),
+
+            _buildShareOption(
+              context,
+              icon: Icons.link,
+              title: 'Copy Web Link',
+              subtitle: 'Copy shareable web link',
+              onTap: () {
+                Navigator.pop(context);
+                final webLink = shareService.generateWebLink(video);
+                shareService.copyToClipboard(webLink, context);
+              },
+            ),
+
+            _buildShareOption(
+              context,
+              icon: Icons.bolt,
+              title: 'Copy Nostr Link',
+              subtitle: 'Copy nevent link for Nostr clients',
+              onTap: () {
+                Navigator.pop(context);
+                final nostrLink = shareService.generateNostrEventLink(video);
+                shareService.copyToClipboard(nostrLink, context);
+              },
+            ),
+
+            const SizedBox(height: 20),
+          ],
+        ),
+      );
 
   Widget _buildShareOption(
     BuildContext context, {
@@ -204,13 +204,12 @@ class _ShareOptionsBottomSheet extends StatelessWidget {
     required String title,
     required String subtitle,
     required VoidCallback onTap,
-  }) {
-    return ListTile(
-      leading: Icon(icon, size: 24),
-      title: Text(title),
-      subtitle: Text(subtitle),
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-    );
-  }
+  }) =>
+      ListTile(
+        leading: Icon(icon, size: 24),
+        title: Text(title),
+        subtitle: Text(subtitle),
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+      );
 }

@@ -2,34 +2,34 @@
 // ABOUTME: Optimized for grid/list display with automatic playback when visible
 
 import 'package:flutter/material.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/services/global_video_registry.dart';
+import 'package:openvine/theme/vine_theme.dart';
+import 'package:openvine/utils/unified_logger.dart';
+import 'package:openvine/widgets/video_thumbnail_widget.dart';
 import 'package:video_player/video_player.dart';
-import '../models/video_event.dart';
-import '../theme/vine_theme.dart';
-import '../utils/unified_logger.dart';
-import 'video_thumbnail_widget.dart';
-import '../services/global_video_registry.dart';
 
 /// Lightweight video preview widget for explore screens
 /// Automatically plays when visible, pauses when scrolled away
 class VideoPreviewTile extends StatefulWidget {
+  const VideoPreviewTile({
+    required this.video,
+    required this.isActive,
+    super.key,
+    this.height,
+    this.onTap,
+  });
   final VideoEvent video;
   final bool isActive;
   final double? height;
   final VoidCallback? onTap;
 
-  const VideoPreviewTile({
-    super.key,
-    required this.video,
-    required this.isActive,
-    this.height,
-    this.onTap,
-  });
-
   @override
   State<VideoPreviewTile> createState() => _VideoPreviewTileState();
 }
 
-class _VideoPreviewTileState extends State<VideoPreviewTile> with AutomaticKeepAliveClientMixin {
+class _VideoPreviewTileState extends State<VideoPreviewTile>
+    with AutomaticKeepAliveClientMixin {
   VideoPlayerController? _controller;
   bool _isInitializing = false;
   bool _hasError = false;
@@ -53,7 +53,7 @@ class _VideoPreviewTileState extends State<VideoPreviewTile> with AutomaticKeepA
   @override
   void didUpdateWidget(VideoPreviewTile oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     if (widget.isActive != oldWidget.isActive) {
       if (widget.isActive) {
         _initializeVideo();
@@ -70,7 +70,9 @@ class _VideoPreviewTileState extends State<VideoPreviewTile> with AutomaticKeepA
   }
 
   Future<void> _initializeVideo() async {
-    if (_isInitializing || _controller != null || !widget.video.hasVideo) return;
+    if (_isInitializing || _controller != null || !widget.video.hasVideo) {
+      return;
+    }
 
     setState(() {
       _isInitializing = true;
@@ -78,38 +80,48 @@ class _VideoPreviewTileState extends State<VideoPreviewTile> with AutomaticKeepA
     });
 
     try {
-      Log.debug('Initializing preview for ${widget.video.id.substring(0, 8)}...', name: 'VideoPreviewTile', category: LogCategory.ui);
-      Log.debug('   Video URL: ${widget.video.videoUrl}', name: 'VideoPreviewTile', category: LogCategory.ui);
-      Log.debug('   Thumbnail URL: ${widget.video.effectiveThumbnailUrl}', name: 'VideoPreviewTile', category: LogCategory.ui);
-      
+      Log.debug(
+          'Initializing preview for ${widget.video.id.substring(0, 8)}...',
+          name: 'VideoPreviewTile',
+          category: LogCategory.ui);
+      Log.debug('   Video URL: ${widget.video.videoUrl}',
+          name: 'VideoPreviewTile', category: LogCategory.ui);
+      Log.debug('   Thumbnail URL: ${widget.video.effectiveThumbnailUrl}',
+          name: 'VideoPreviewTile', category: LogCategory.ui);
+
       final controller = VideoPlayerController.networkUrl(
         Uri.parse(widget.video.videoUrl!),
       );
-      
+
       _controller = controller;
-      
+
       await controller.initialize();
-      
+
       if (mounted && widget.isActive) {
         // Register with global registry
         GlobalVideoRegistry().registerController(controller);
-        
+
         // Pause all other videos before playing this one
         GlobalVideoRegistry().pauseAllExcept(controller);
-        
+
         await controller.setLooping(true);
         await controller.setVolume(0); // Mute for preview
         await controller.play();
-        
+
         setState(() {
           _isInitializing = false;
         });
-        
-        Log.info('Preview playing for ${widget.video.id.substring(0, 8)}', name: 'VideoPreviewTile', category: LogCategory.ui);
+
+        Log.info('Preview playing for ${widget.video.id.substring(0, 8)}',
+            name: 'VideoPreviewTile', category: LogCategory.ui);
       }
     } catch (e) {
-      Log.error('Preview initialization failed for ${widget.video.id.substring(0, 8)}: $e', name: 'VideoPreviewTile', category: LogCategory.ui);
-      Log.debug('   Video URL was: ${widget.video.videoUrl}', name: 'VideoPreviewTile', category: LogCategory.ui);
+      Log.error(
+          'Preview initialization failed for ${widget.video.id.substring(0, 8)}: $e',
+          name: 'VideoPreviewTile',
+          category: LogCategory.ui);
+      Log.debug('   Video URL was: ${widget.video.videoUrl}',
+          name: 'VideoPreviewTile', category: LogCategory.ui);
       if (mounted) {
         setState(() {
           _hasError = true;
@@ -120,7 +132,8 @@ class _VideoPreviewTileState extends State<VideoPreviewTile> with AutomaticKeepA
   }
 
   void _disposeVideo() {
-    Log.debug('�️ Disposing preview for ${widget.video.id.substring(0, 8)}...', name: 'VideoPreviewTile', category: LogCategory.ui);
+    Log.debug('📱️ Disposing preview for ${widget.video.id.substring(0, 8)}...',
+        name: 'VideoPreviewTile', category: LogCategory.ui);
     if (_controller != null) {
       GlobalVideoRegistry().unregisterController(_controller!);
       _controller!.dispose();
@@ -164,9 +177,9 @@ class _VideoPreviewTileState extends State<VideoPreviewTile> with AutomaticKeepA
 
               // Loading indicator
               if (_isInitializing)
-                Container(
+                const ColoredBox(
                   color: Colors.black54,
-                  child: const Center(
+                  child: Center(
                     child: CircularProgressIndicator(
                       color: VineTheme.vineGreen,
                       strokeWidth: 2,
@@ -175,7 +188,9 @@ class _VideoPreviewTileState extends State<VideoPreviewTile> with AutomaticKeepA
                 ),
 
               // Play button overlay (only show when not playing)
-              if (!widget.isActive || _controller == null || !_controller!.value.isInitialized)
+              if (!widget.isActive ||
+                  _controller == null ||
+                  !_controller!.value.isInitialized)
                 const Center(
                   child: Icon(
                     Icons.play_circle_filled,
@@ -186,9 +201,9 @@ class _VideoPreviewTileState extends State<VideoPreviewTile> with AutomaticKeepA
 
               // Error overlay
               if (_hasError)
-                Container(
+                const ColoredBox(
                   color: Colors.black54,
-                  child: const Center(
+                  child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -215,5 +230,4 @@ class _VideoPreviewTileState extends State<VideoPreviewTile> with AutomaticKeepA
       ),
     );
   }
-
 }

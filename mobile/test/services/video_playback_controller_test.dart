@@ -3,11 +3,11 @@
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
-import 'package:video_player/video_player.dart';
-import 'package:openvine/services/video_playback_controller.dart';
+import 'package:mockito/mockito.dart';
 import 'package:openvine/models/video_event.dart';
+import 'package:openvine/services/video_playback_controller.dart';
+import 'package:video_player/video_player.dart';
 
 @GenerateMocks([VideoPlayerController])
 import 'video_playback_controller_test.mocks.dart';
@@ -31,7 +31,7 @@ void main() {
       );
 
       mockController = MockVideoPlayerController();
-      
+
       // Setup default mock behaviors
       when(mockController.initialize()).thenAnswer((_) async {});
       when(mockController.play()).thenAnswer((_) async {});
@@ -42,7 +42,7 @@ void main() {
       when(mockController.dispose()).thenAnswer((_) async {});
       when(mockController.addListener(any)).thenReturn(null);
       when(mockController.removeListener(any)).thenReturn(null);
-      
+
       // Default value state
       when(mockController.value).thenReturn(
         const VideoPlayerValue(
@@ -52,8 +52,8 @@ void main() {
           isPlaying: false,
           isLooping: false,
           isBuffering: false,
-          volume: 1.0,
-          playbackSpeed: 1.0,
+          volume: 1,
+          playbackSpeed: 1,
           errorDescription: null,
           size: Size(1920, 1080),
         ),
@@ -61,9 +61,9 @@ void main() {
     });
 
     group('Configuration Tests', () {
-      testWidgets('feed configuration has correct defaults', (WidgetTester tester) async {
+      testWidgets('feed configuration has correct defaults', (tester) async {
         const config = VideoPlaybackConfig.feed;
-        
+
         expect(config.autoPlay, isTrue);
         expect(config.looping, isTrue);
         expect(config.volume, equals(0.0));
@@ -71,9 +71,9 @@ void main() {
         expect(config.resumeOnReturn, isTrue);
       });
 
-      testWidgets('fullscreen configuration has audio enabled', (WidgetTester tester) async {
+      testWidgets('fullscreen configuration has audio enabled', (tester) async {
         const config = VideoPlaybackConfig.fullscreen;
-        
+
         expect(config.autoPlay, isTrue);
         expect(config.looping, isTrue);
         expect(config.volume, equals(1.0));
@@ -81,9 +81,9 @@ void main() {
         expect(config.resumeOnReturn, isTrue);
       });
 
-      testWidgets('preview configuration disables auto-play', (WidgetTester tester) async {
+      testWidgets('preview configuration disables auto-play', (tester) async {
         const config = VideoPlaybackConfig.preview;
-        
+
         expect(config.autoPlay, isFalse);
         expect(config.looping, isFalse);
         expect(config.volume, equals(0.0));
@@ -94,7 +94,7 @@ void main() {
     });
 
     group('Initialization Tests', () {
-      testWidgets('controller initializes correctly', (WidgetTester tester) async {
+      testWidgets('controller initializes correctly', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
@@ -107,7 +107,8 @@ void main() {
         controller.dispose();
       });
 
-      testWidgets('initialization calls correct controller methods', (WidgetTester tester) async {
+      testWidgets('initialization calls correct controller methods',
+          (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.fullscreen,
@@ -117,13 +118,13 @@ void main() {
         // For testing purposes, we'll verify the expected behavior
 
         expect(controller.state, equals(VideoPlaybackState.notInitialized));
-        
+
         controller.dispose();
       });
     });
 
     group('Playback Control Tests', () {
-      testWidgets('play method works with valid controller', (WidgetTester tester) async {
+      testWidgets('play method works with valid controller', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
@@ -136,7 +137,7 @@ void main() {
         controller.dispose();
       });
 
-      testWidgets('pause method works with valid controller', (WidgetTester tester) async {
+      testWidgets('pause method works with valid controller', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
@@ -149,7 +150,8 @@ void main() {
         controller.dispose();
       });
 
-      testWidgets('togglePlayPause switches between play and pause', (WidgetTester tester) async {
+      testWidgets('togglePlayPause switches between play and pause',
+          (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
@@ -157,7 +159,7 @@ void main() {
 
         // Test toggle when not playing
         await controller.togglePlayPause();
-        
+
         // Test toggle when playing (mock scenario)
         await controller.togglePlayPause();
 
@@ -166,7 +168,8 @@ void main() {
     });
 
     group('State Management Tests', () {
-      testWidgets('setActive controls video playback for feed videos', (WidgetTester tester) async {
+      testWidgets('setActive controls video playback for feed videos',
+          (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
@@ -183,13 +186,13 @@ void main() {
         controller.dispose();
       });
 
-      testWidgets('state changes are notified to listeners', (WidgetTester tester) async {
+      testWidgets('state changes are notified to listeners', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
         );
 
-        bool wasNotified = false;
+        var wasNotified = false;
         controller.addListener(() {
           wasNotified = true;
         });
@@ -202,7 +205,8 @@ void main() {
     });
 
     group('Navigation Tests', () {
-      testWidgets('onNavigationAway pauses video when configured', (WidgetTester tester) async {
+      testWidgets('onNavigationAway pauses video when configured',
+          (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed, // pauseOnNavigation = true
@@ -217,7 +221,7 @@ void main() {
         controller.dispose();
       });
 
-      testWidgets('onNavigationAway respects configuration', (WidgetTester tester) async {
+      testWidgets('onNavigationAway respects configuration', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.preview, // pauseOnNavigation = false
@@ -232,22 +236,21 @@ void main() {
         controller.dispose();
       });
 
-      testWidgets('navigateWithPause helper works correctly', (WidgetTester tester) async {
+      testWidgets('navigateWithPause helper works correctly', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
         );
 
-        final result = await controller.navigateWithPause(() async {
-          return 'navigation_result';
-        });
+        final result =
+            await controller.navigateWithPause(() async => 'navigation_result');
 
         expect(result, equals('navigation_result'));
 
         controller.dispose();
       });
 
-      testWidgets('navigateWithPause handles exceptions', (WidgetTester tester) async {
+      testWidgets('navigateWithPause handles exceptions', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
@@ -265,7 +268,7 @@ void main() {
     });
 
     group('Error Handling Tests', () {
-      testWidgets('retry method resets retry count and state', (WidgetTester tester) async {
+      testWidgets('retry method resets retry count and state', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
@@ -280,7 +283,7 @@ void main() {
         controller.dispose();
       });
 
-      testWidgets('max retries are respected', (WidgetTester tester) async {
+      testWidgets('max retries are respected', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: const VideoPlaybackConfig(maxRetries: 1),
@@ -295,7 +298,8 @@ void main() {
     });
 
     group('App Lifecycle Tests', () {
-      testWidgets('app lifecycle changes pause and resume video', (WidgetTester tester) async {
+      testWidgets('app lifecycle changes pause and resume video',
+          (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed, // handleAppLifecycle = true
@@ -303,14 +307,14 @@ void main() {
 
         // Simulate app going to background
         controller.didChangeAppLifecycleState(AppLifecycleState.paused);
-        
+
         // Simulate app returning to foreground
         controller.didChangeAppLifecycleState(AppLifecycleState.resumed);
 
         controller.dispose();
       });
 
-      testWidgets('app lifecycle handling can be disabled', (WidgetTester tester) async {
+      testWidgets('app lifecycle handling can be disabled', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.preview, // handleAppLifecycle = false
@@ -325,29 +329,27 @@ void main() {
     });
 
     group('Event Stream Tests', () {
-      testWidgets('state changes are emitted as events', (WidgetTester tester) async {
+      testWidgets('state changes are emitted as events', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
         );
 
         final events = <VideoPlaybackEvent>[];
-        final subscription = controller.events.listen((event) {
-          events.add(event);
-        });
+        final subscription = controller.events.listen(events.add);
 
         controller.setActive(true);
-        
+
         // Allow events to be processed
         await tester.pump();
 
         expect(events, isNotEmpty);
-        
+
         subscription.cancel();
         controller.dispose();
       });
 
-      testWidgets('error events are emitted on failures', (WidgetTester tester) async {
+      testWidgets('error events are emitted on failures', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
@@ -369,7 +371,8 @@ void main() {
     });
 
     group('Volume and Seeking Tests', () {
-      testWidgets('setVolume works with initialized controller', (WidgetTester tester) async {
+      testWidgets('setVolume works with initialized controller',
+          (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
@@ -381,7 +384,7 @@ void main() {
         controller.dispose();
       });
 
-      testWidgets('seekTo works with valid position', (WidgetTester tester) async {
+      testWidgets('seekTo works with valid position', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
@@ -395,7 +398,9 @@ void main() {
     });
 
     group('Property Getters Tests', () {
-      testWidgets('getters return safe defaults when controller not initialized', (WidgetTester tester) async {
+      testWidgets(
+          'getters return safe defaults when controller not initialized',
+          (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
@@ -407,14 +412,14 @@ void main() {
         expect(controller.hasError, isFalse);
         expect(controller.position, equals(Duration.zero));
         expect(controller.duration, equals(Duration.zero));
-        expect(controller.aspectRatio, equals(16/9));
+        expect(controller.aspectRatio, equals(16 / 9));
 
         controller.dispose();
       });
     });
 
     group('Disposal Tests', () {
-      testWidgets('dispose cleans up resources properly', (WidgetTester tester) async {
+      testWidgets('dispose cleans up resources properly', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
@@ -426,7 +431,7 @@ void main() {
         // Verify cleanup completed without errors
       });
 
-      testWidgets('operations after dispose are safe', (WidgetTester tester) async {
+      testWidgets('operations after dispose are safe', (tester) async {
         final controller = VideoPlaybackController(
           video: testVideo,
           config: VideoPlaybackConfig.feed,
@@ -438,7 +443,7 @@ void main() {
         await controller.play();
         await controller.pause();
         controller.setActive(true);
-        await controller.setVolume(1.0);
+        await controller.setVolume(1);
       });
     });
   });

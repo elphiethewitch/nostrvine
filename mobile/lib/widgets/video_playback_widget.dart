@@ -1,14 +1,30 @@
 // ABOUTME: Reusable video playback widget using consolidated VideoPlaybackController
 // ABOUTME: Provides consistent video behavior with configuration-based customization
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/services/video_playback_controller.dart';
+import 'package:openvine/theme/vine_theme.dart';
 import 'package:video_player/video_player.dart';
-import '../models/video_event.dart';
-import '../services/video_playback_controller.dart';
-import '../theme/vine_theme.dart';
 
 /// Reusable video widget with consolidated playback behavior
 class VideoPlaybackWidget extends StatefulWidget {
+  const VideoPlaybackWidget({
+    required this.video,
+    super.key,
+    this.config = VideoPlaybackConfig.feed,
+    this.isActive = true,
+    this.placeholder,
+    this.errorWidget,
+    this.onTap,
+    this.onDoubleTap,
+    this.onError,
+    this.overlayPadding,
+    this.overlayWidgets,
+    this.showControls = false,
+    this.showPlayPauseIcon = true,
+  });
   final VideoEvent video;
   final VideoPlaybackConfig config;
   final bool isActive;
@@ -22,92 +38,72 @@ class VideoPlaybackWidget extends StatefulWidget {
   final bool showControls;
   final bool showPlayPauseIcon;
 
-  const VideoPlaybackWidget({
-    super.key,
-    required this.video,
-    this.config = VideoPlaybackConfig.feed,
-    this.isActive = true,
-    this.placeholder,
-    this.errorWidget,
-    this.onTap,
-    this.onDoubleTap,
-    this.onError,
-    this.overlayPadding,
-    this.overlayWidgets,
-    this.showControls = false,
-    this.showPlayPauseIcon = true,
-  });
-
   /// Create widget configured for feed videos
   static VideoPlaybackWidget feed({
-    Key? key,
     required VideoEvent video,
     required bool isActive,
+    Key? key,
     VoidCallback? onTap,
     Function(String)? onError,
     List<Widget>? overlayWidgets,
-  }) {
-    return VideoPlaybackWidget(
-      key: key,
-      video: video,
-      config: VideoPlaybackConfig.feed,
-      isActive: isActive,
-      onTap: onTap,
-      onError: onError,
-      overlayWidgets: overlayWidgets,
-      showPlayPauseIcon: true,
-    );
-  }
+  }) =>
+      VideoPlaybackWidget(
+        key: key,
+        video: video,
+        config: VideoPlaybackConfig.feed,
+        isActive: isActive,
+        onTap: onTap,
+        onError: onError,
+        overlayWidgets: overlayWidgets,
+        showPlayPauseIcon: true,
+      );
 
   /// Create widget configured for fullscreen videos
   static VideoPlaybackWidget fullscreen({
-    Key? key,
     required VideoEvent video,
+    Key? key,
     VoidCallback? onTap,
     VoidCallback? onDoubleTap,
     Function(String)? onError,
     List<Widget>? overlayWidgets,
-  }) {
-    return VideoPlaybackWidget(
-      key: key,
-      video: video,
-      config: VideoPlaybackConfig.fullscreen,
-      isActive: true,
-      onTap: onTap,
-      onDoubleTap: onDoubleTap,
-      onError: onError,
-      overlayWidgets: overlayWidgets,
-      showPlayPauseIcon: true,
-    );
-  }
+  }) =>
+      VideoPlaybackWidget(
+        key: key,
+        video: video,
+        config: VideoPlaybackConfig.fullscreen,
+        isActive: true,
+        onTap: onTap,
+        onDoubleTap: onDoubleTap,
+        onError: onError,
+        overlayWidgets: overlayWidgets,
+        showPlayPauseIcon: true,
+      );
 
   /// Create widget configured for preview/thumbnail videos
   static VideoPlaybackWidget preview({
-    Key? key,
     required VideoEvent video,
+    Key? key,
     Widget? placeholder,
     VoidCallback? onTap,
     Function(String)? onError,
-  }) {
-    return VideoPlaybackWidget(
-      key: key,
-      video: video,
-      config: VideoPlaybackConfig.preview,
-      isActive: false,
-      placeholder: placeholder,
-      onTap: onTap,
-      onError: onError,
-      showPlayPauseIcon: false,
-    );
-  }
+  }) =>
+      VideoPlaybackWidget(
+        key: key,
+        video: video,
+        config: VideoPlaybackConfig.preview,
+        isActive: false,
+        placeholder: placeholder,
+        onTap: onTap,
+        onError: onError,
+        showPlayPauseIcon: false,
+      );
 
   @override
   State<VideoPlaybackWidget> createState() => _VideoPlaybackWidgetState();
 }
 
-class _VideoPlaybackWidgetState extends State<VideoPlaybackWidget> 
+class _VideoPlaybackWidgetState extends State<VideoPlaybackWidget>
     with TickerProviderStateMixin {
-  
   late VideoPlaybackController _playbackController;
   late AnimationController _playPauseIconController;
   late Animation<double> _playPauseIconAnimation;
@@ -116,35 +112,37 @@ class _VideoPlaybackWidgetState extends State<VideoPlaybackWidget>
   @override
   void initState() {
     super.initState();
-    
+
     _playbackController = VideoPlaybackController(
       video: widget.video,
       config: widget.config,
     );
-    
+
     _playPauseIconController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
-    
+
     _playPauseIconAnimation = Tween<double>(
       begin: 0.8,
       end: 1.2,
-    ).animate(CurvedAnimation(
-      parent: _playPauseIconController,
-      curve: Curves.elasticOut,
-    ));
+    ).animate(
+      CurvedAnimation(
+        parent: _playPauseIconController,
+        curve: Curves.elasticOut,
+      ),
+    );
 
     _playbackController.addListener(_onPlaybackStateChange);
     _playbackController.events.listen(_onPlaybackEvent);
-    
+
     _initializeVideo();
   }
 
   @override
   void didUpdateWidget(VideoPlaybackWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     if (widget.isActive != oldWidget.isActive) {
       _playbackController.setActive(widget.isActive);
     }
@@ -198,15 +196,15 @@ class _VideoPlaybackWidgetState extends State<VideoPlaybackWidget>
 
   void _showPlayPauseIconBriefly() {
     if (!_playbackController.isInitialized) return;
-    
+
     setState(() {
       _showPlayPauseIcon = true;
     });
-    
+
     _playPauseIconController.forward().then((_) {
       _playPauseIconController.reverse();
     });
-    
+
     Future.delayed(const Duration(milliseconds: 800), () {
       if (mounted) {
         setState(() {
@@ -217,61 +215,57 @@ class _VideoPlaybackWidgetState extends State<VideoPlaybackWidget>
   }
 
   /// Navigation helper for consistent pause/resume behavior
-  Future<T?> navigateWithPause<T>(Widget destination) async {
-    return _playbackController.navigateWithPause(() async {
-      return Navigator.of(context).push<T>(
-        MaterialPageRoute(builder: (context) => destination),
+  Future<T?> navigateWithPause<T>(Widget destination) async =>
+      _playbackController.navigateWithPause(
+        () async => Navigator.of(context).push<T>(
+          MaterialPageRoute(builder: (context) => destination),
+        ),
       );
-    });
-  }
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: Colors.black,
-      child: Stack(
-        children: [
-          // Main video content
-          _buildVideoContent(),
-          
-          // Custom overlay widgets
-          if (widget.overlayWidgets != null)
-            ...widget.overlayWidgets!,
-          
-          // Play/pause icon overlay
-          if (_showPlayPauseIcon && widget.showPlayPauseIcon)
-            _buildPlayPauseIconOverlay(),
-          
-          // Touch handlers
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _handleTap,
-              onDoubleTap: _handleDoubleTap,
-              child: Container(color: Colors.transparent),
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: Colors.black,
+        child: Stack(
+          children: [
+            // Main video content
+            _buildVideoContent(),
+
+            // Custom overlay widgets
+            if (widget.overlayWidgets != null) ...widget.overlayWidgets!,
+
+            // Play/pause icon overlay
+            if (_showPlayPauseIcon && widget.showPlayPauseIcon)
+              _buildPlayPauseIconOverlay(),
+
+            // Touch handlers
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: _handleTap,
+                onDoubleTap: _handleDoubleTap,
+                child: Container(color: Colors.transparent),
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
+          ],
+        ),
+      );
 
   Widget _buildVideoContent() {
     switch (_playbackController.state) {
       case VideoPlaybackState.notInitialized:
       case VideoPlaybackState.initializing:
         return _buildLoadingState();
-        
+
       case VideoPlaybackState.ready:
       case VideoPlaybackState.playing:
       case VideoPlaybackState.paused:
       case VideoPlaybackState.buffering:
         return _buildVideoPlayer();
-        
+
       case VideoPlaybackState.error:
         return _buildErrorState();
-        
+
       case VideoPlaybackState.disposed:
         return _buildDisposedState();
     }
@@ -283,21 +277,54 @@ class _VideoPlaybackWidgetState extends State<VideoPlaybackWidget>
       return _buildLoadingState();
     }
 
-    // Check if video is square for alignment
-    final aspectRatio = _playbackController.aspectRatio;
-    final isSquare = aspectRatio > 0.9 && aspectRatio < 1.1;
-
-    return Align(
-      alignment: isSquare ? Alignment.topCenter : Alignment.center,
-      child: AspectRatio(
-        aspectRatio: aspectRatio,
-        child: VideoPlayer(controller),
-      ),
-    );
+    // Calculate display size - for Mac, scale up small videos for better visibility
+    final videoSize = controller.value.size;
+    final isSmallVideo = videoSize.width <= 400 && videoSize.height <= 400;
+    final isMac = defaultTargetPlatform == TargetPlatform.macOS;
+    
+    // Double size for small videos on Mac to improve visibility
+    final displayScale = (isMac && isSmallVideo) ? 2.0 : 1.0;
+    
+    // Different behavior based on configuration
+    if (widget.config == VideoPlaybackConfig.fullscreen) {
+      // Fullscreen mode: fill the entire screen
+      return Center(
+        child: AspectRatio(
+          aspectRatio: controller.value.aspectRatio,
+          child: Transform.scale(
+            scale: displayScale,
+            child: VideoPlayer(controller),
+          ),
+        ),
+      );
+    } else {
+      // Feed and preview modes: maintain square aspect ratio for old school vine style
+      return Center(
+        child: AspectRatio(
+          aspectRatio: 1.0, // Force 1:1 square aspect ratio
+          child: ClipRect(
+            child: OverflowBox(
+              alignment: Alignment.center,
+              child: FittedBox(
+                fit: BoxFit.cover, // Cover the square area, cropping if necessary
+                child: Transform.scale(
+                  scale: displayScale,
+                  child: SizedBox(
+                    width: controller.value.size.width,
+                    height: controller.value.size.height,
+                    child: VideoPlayer(controller),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
   }
 
-  Widget _buildLoadingState() {
-    return widget.placeholder ?? 
+  Widget _buildLoadingState() =>
+      widget.placeholder ??
       Container(
         color: Colors.grey[900],
         child: const Center(
@@ -314,24 +341,23 @@ class _VideoPlaybackWidgetState extends State<VideoPlaybackWidget>
           ),
         ),
       );
-  }
 
-  Widget _buildErrorState() {
-    return widget.errorWidget ?? 
+  Widget _buildErrorState() =>
+      widget.errorWidget ??
       Container(
-        color: Colors.red[900]?.withValues(alpha: 0.3),
+        color: Colors.grey[900],
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(
-                Icons.error,
+                Icons.videocam_off,
                 size: 64,
-                color: Colors.red,
+                color: Colors.white54,
               ),
               const SizedBox(height: 16),
               const Text(
-                'Video Error',
+                'Video unavailable',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,
@@ -361,69 +387,64 @@ class _VideoPlaybackWidgetState extends State<VideoPlaybackWidget>
           ),
         ),
       );
-  }
 
-  Widget _buildDisposedState() {
-    return Container(
-      color: Colors.grey[700],
-      child: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.delete_outline,
-              size: 64,
-              color: Colors.white54,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Video disposed',
-              style: TextStyle(
+  Widget _buildDisposedState() => Container(
+        color: Colors.grey[700],
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.delete_outline,
+                size: 64,
                 color: Colors.white54,
-                fontSize: 16,
               ),
-            ),
-          ],
+              SizedBox(height: 16),
+              Text(
+                'Video disposed',
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 16,
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
 
   Widget _buildPlayPauseIconOverlay() {
     final isPlaying = _playbackController.isPlaying;
-    
+
     return AnimatedBuilder(
       animation: _playPauseIconAnimation,
-      builder: (context, child) {
-        return Container(
-          color: Colors.black.withValues(alpha: 0.3),
-          child: Center(
-            child: Transform.scale(
-              scale: _playPauseIconAnimation.value,
-              child: Container(
-                width: 70,
-                height: 70,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  isPlaying ? Icons.pause : Icons.play_arrow,
-                  color: Colors.black,
-                  size: 32,
-                ),
+      builder: (context, child) => ColoredBox(
+        color: Colors.black.withValues(alpha: 0.3),
+        child: Center(
+          child: Transform.scale(
+            scale: _playPauseIconAnimation.value,
+            child: Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.9),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Icon(
+                isPlaying ? Icons.pause : Icons.play_arrow,
+                color: Colors.black,
+                size: 32,
               ),
             ),
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

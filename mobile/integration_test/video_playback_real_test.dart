@@ -32,7 +32,7 @@ void main() {
       );
     });
 
-    testWidgets('VideoPlaybackController initializes and plays real video', (WidgetTester tester) async {
+    testWidgets('VideoPlaybackController initializes and plays real video', (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,
@@ -83,7 +83,7 @@ void main() {
       expect(controller.state, equals(VideoPlaybackState.disposed));
     });
 
-    testWidgets('VideoPlaybackWidget displays real video', (WidgetTester tester) async {
+    testWidgets('VideoPlaybackWidget displays real video', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -107,7 +107,7 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('Navigation pause/resume works with real video', (WidgetTester tester) async {
+    testWidgets('Navigation pause/resume works with real video', (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,
@@ -133,7 +133,7 @@ void main() {
       controller.dispose();
     });
 
-    testWidgets('Event stream emits real events during playback', (WidgetTester tester) async {
+    testWidgets('Event stream emits real events during playback', (tester) async {
       final controller = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,
@@ -160,8 +160,8 @@ void main() {
       controller.dispose();
     });
 
-    testWidgets('Tap to play/pause works with real video', (WidgetTester tester) async {
-      bool tapCalled = false;
+    testWidgets('Tap to play/pause works with real video', (tester) async {
+      var tapCalled = false;
       
       await tester.pumpWidget(
         MaterialApp(
@@ -185,7 +185,7 @@ void main() {
       expect(tapCalled, isTrue);
     });
 
-    testWidgets('Error handling works with invalid video URL', (WidgetTester tester) async {
+    testWidgets('Error handling works with invalid video URL', (tester) async {
       final errorVideo = VideoEvent(
         id: 'test_error',
         pubkey: 'test_pubkey',
@@ -222,7 +222,7 @@ void main() {
       controller.dispose();
     });
 
-    testWidgets('Volume settings work correctly', (WidgetTester tester) async {
+    testWidgets('Volume settings work correctly', (tester) async {
       // Test feed config (muted)
       final feedController = VideoPlaybackController(
         video: testVideo,
@@ -252,7 +252,7 @@ void main() {
       fullscreenController.dispose();
     });
 
-    testWidgets('Multiple videos can play simultaneously', (WidgetTester tester) async {
+    testWidgets('Multiple videos can play simultaneously', (tester) async {
       final controller1 = VideoPlaybackController(
         video: testVideo,
         config: VideoPlaybackConfig.feed,

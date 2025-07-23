@@ -2,17 +2,17 @@
 // ABOUTME: Ensures profile editing actually works end-to-end with proper Nostr event publishing
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
-import 'package:openvine/services/auth_service.dart' hide UserProfile;
-import 'package:openvine/services/user_profile_service.dart';
-import 'package:openvine/services/nostr_service_interface.dart';
-import 'package:openvine/models/user_profile.dart';
+import 'package:mockito/mockito.dart';
 import 'package:nostr_sdk/event.dart';
-
+import 'package:openvine/models/user_profile.dart';
+import 'package:openvine/services/auth_service.dart' hide UserProfile;
+import 'package:openvine/services/nostr_service_interface.dart';
 import 'package:openvine/services/subscription_manager.dart';
+import 'package:openvine/services/user_profile_service.dart';
 
-@GenerateMocks([INostrService, AuthService, UserProfileService, SubscriptionManager])
+@GenerateMocks(
+    [INostrService, AuthService, UserProfileService, SubscriptionManager])
 import 'profile_editing_test.mocks.dart';
 
 void main() {
@@ -20,23 +20,24 @@ void main() {
     late MockINostrService mockNostrService;
     late MockAuthService mockAuthService;
     late MockUserProfileService mockUserProfileService;
-    
+
     setUp(() {
       mockNostrService = MockINostrService();
       mockAuthService = MockAuthService();
       mockUserProfileService = MockUserProfileService();
-      
+
       // Default mock setup
       when(mockAuthService.isAuthenticated).thenReturn(true);
       // Use a valid hex pubkey for testing (64 hex chars)
-      when(mockAuthService.currentPublicKeyHex).thenReturn('79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798');
+      when(mockAuthService.currentPublicKeyHex).thenReturn(
+          '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798');
       when(mockNostrService.isInitialized).thenReturn(true);
     });
 
     test('should fail to save profile when not authenticated', () async {
       // Arrange
       when(mockAuthService.isAuthenticated).thenReturn(false);
-      
+
       // Act & Assert
       expect(mockAuthService.isAuthenticated, isFalse);
     });
@@ -52,7 +53,7 @@ void main() {
         'nip05': 'test@example.com',
         'lud16': 'test@wallet.example.com',
       };
-      
+
       // Mock event creation with valid pubkey
       final mockEvent = Event(
         '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
@@ -60,40 +61,53 @@ void main() {
         [],
         '$testProfile', // JSON content
       );
-      
-      when(mockAuthService.createAndSignEvent(
-        kind: 0,
-        content: anyNamed('content'),
-        tags: anyNamed('tags'),
-      )).thenAnswer((_) async => mockEvent);
-      
-      when(mockNostrService.broadcastEvent(any)).thenAnswer((_) async => NostrBroadcastResult(
-        event: Event('79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798', 0, [], ''),
-        successCount: 1,
-        totalRelays: 1,
-        results: {'relay1': true},
-        errors: {},
-      ));
-      
+
+      when(
+        mockAuthService.createAndSignEvent(
+          kind: 0,
+          content: anyNamed('content'),
+          tags: anyNamed('tags'),
+        ),
+      ).thenAnswer((_) async => mockEvent);
+
+      when(mockNostrService.broadcastEvent(any)).thenAnswer(
+        (_) async => NostrBroadcastResult(
+          event: Event(
+              '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
+              0,
+              [],
+              ''),
+          successCount: 1,
+          totalRelays: 1,
+          results: {'relay1': true},
+          errors: {},
+        ),
+      );
+
       // Act
       final event = await mockAuthService.createAndSignEvent(
         kind: 0,
         content: '$testProfile',
         tags: [],
       );
-      
+
       // Assert
       expect(event, isNotNull);
       expect(event!.kind, equals(0));
-      expect(event.pubkey, equals('79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798'));
+      expect(
+          event.pubkey,
+          equals(
+              '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798'));
       expect(event.content, contains('Test User'));
       expect(event.content, contains('This is my test bio'));
-      
-      verify(mockAuthService.createAndSignEvent(
-        kind: 0,
-        content: anyNamed('content'),
-        tags: anyNamed('tags'),
-      )).called(1);
+
+      verify(
+        mockAuthService.createAndSignEvent(
+          kind: 0,
+          content: anyNamed('content'),
+          tags: anyNamed('tags'),
+        ),
+      ).called(1);
     });
 
     test('should publish kind 0 event to Nostr relays', () async {
@@ -104,30 +118,38 @@ void main() {
         [],
         '{"name":"Test User","about":"Test bio"}',
       );
-      
-      when(mockAuthService.createAndSignEvent(
-        kind: 0,
-        content: anyNamed('content'),
-        tags: anyNamed('tags'),
-      )).thenAnswer((_) async => mockEvent);
-      
-      when(mockNostrService.broadcastEvent(any)).thenAnswer((_) async => NostrBroadcastResult(
-        event: Event('79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798', 0, [], ''),
-        successCount: 1,
-        totalRelays: 1,
-        results: {'relay1': true},
-        errors: {},
-      ));
-      
+
+      when(
+        mockAuthService.createAndSignEvent(
+          kind: 0,
+          content: anyNamed('content'),
+          tags: anyNamed('tags'),
+        ),
+      ).thenAnswer((_) async => mockEvent);
+
+      when(mockNostrService.broadcastEvent(any)).thenAnswer(
+        (_) async => NostrBroadcastResult(
+          event: Event(
+              '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
+              0,
+              [],
+              ''),
+          successCount: 1,
+          totalRelays: 1,
+          results: {'relay1': true},
+          errors: {},
+        ),
+      );
+
       // Act
       final event = await mockAuthService.createAndSignEvent(
         kind: 0,
         content: '{"name":"Test User","about":"Test bio"}',
         tags: [],
       );
-      
+
       final publishResult = await mockNostrService.broadcastEvent(event);
-      
+
       // Assert
       expect(publishResult.isSuccessful, isTrue);
       expect(publishResult.successCount, equals(1));
@@ -142,15 +164,18 @@ void main() {
         [],
         '{"name":"Test User"}',
       );
-      
-      when(mockAuthService.createAndSignEvent(
-        kind: 0,
-        content: anyNamed('content'),
-        tags: anyNamed('tags'),
-      )).thenAnswer((_) async => mockEvent);
-      
-      when(mockNostrService.broadcastEvent(any)).thenThrow(Exception('Network error'));
-      
+
+      when(
+        mockAuthService.createAndSignEvent(
+          kind: 0,
+          content: anyNamed('content'),
+          tags: anyNamed('tags'),
+        ),
+      ).thenAnswer((_) async => mockEvent);
+
+      when(mockNostrService.broadcastEvent(any))
+          .thenThrow(Exception('Network error'));
+
       // Act & Assert
       expect(
         () => mockNostrService.broadcastEvent(mockEvent),
@@ -158,7 +183,8 @@ void main() {
       );
     });
 
-    test('should update local profile cache after successful publish', () async {
+    test('should update local profile cache after successful publish',
+        () async {
       // Arrange
       const profileData = {
         'name': 'Updated Name',
@@ -166,54 +192,65 @@ void main() {
         'about': 'Updated bio',
         'picture': 'https://example.com/new-avatar.jpg',
       };
-      
+
       final mockEvent = Event(
         '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
         0,
         [],
         '$profileData',
       );
-      
-      when(mockAuthService.createAndSignEvent(
-        kind: 0,
-        content: anyNamed('content'),
-        tags: anyNamed('tags'),
-      )).thenAnswer((_) async => mockEvent);
-      
-      when(mockNostrService.broadcastEvent(any)).thenAnswer((_) async => NostrBroadcastResult(
-        event: Event('79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798', 0, [], ''),
-        successCount: 1,
-        totalRelays: 1,
-        results: {'relay1': true},
-        errors: {},
-      ));
-      
+
+      when(
+        mockAuthService.createAndSignEvent(
+          kind: 0,
+          content: anyNamed('content'),
+          tags: anyNamed('tags'),
+        ),
+      ).thenAnswer((_) async => mockEvent);
+
+      when(mockNostrService.broadcastEvent(any)).thenAnswer(
+        (_) async => NostrBroadcastResult(
+          event: Event(
+              '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
+              0,
+              [],
+              ''),
+          successCount: 1,
+          totalRelays: 1,
+          results: {'relay1': true},
+          errors: {},
+        ),
+      );
+
       // Mock profile service to update cache
-      when(mockUserProfileService.updateCachedProfile(any)).thenAnswer((_) async {});
-      
+      when(mockUserProfileService.updateCachedProfile(any))
+          .thenAnswer((_) async {});
+
       // Act
       final event = await mockAuthService.createAndSignEvent(
         kind: 0,
         content: '$profileData',
         tags: [],
       );
-      
+
       await mockNostrService.broadcastEvent(event);
-      
+
       // Update cache with new profile
       final updatedProfile = UserProfile(
-        pubkey: '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
+        pubkey:
+            '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
         name: 'Updated Name',
         displayName: 'Updated Display',
         about: 'Updated bio',
         picture: 'https://example.com/new-avatar.jpg',
-        createdAt: DateTime.fromMillisecondsSinceEpoch(mockEvent.createdAt * 1000),
+        createdAt:
+            DateTime.fromMillisecondsSinceEpoch(mockEvent.createdAt * 1000),
         eventId: mockEvent.id,
         rawData: profileData,
       );
-      
+
       mockUserProfileService.updateCachedProfile(updatedProfile);
-      
+
       // Assert
       verify(mockUserProfileService.updateCachedProfile(any)).called(1);
     });
@@ -238,15 +275,19 @@ void main() {
         },
         {
           'name': 'Valid profile should pass',
-          'data': {'name': 'Valid Name', 'about': 'Valid bio', 'picture': 'https://example.com/pic.jpg'},
+          'data': {
+            'name': 'Valid Name',
+            'about': 'Valid bio',
+            'picture': 'https://example.com/pic.jpg'
+          },
           'shouldFail': false,
         },
       ];
-      
+
       for (final testCase in testCases) {
         final data = testCase['data'] as Map<String, String>;
         final shouldFail = testCase['shouldFail'] as bool;
-        
+
         if (shouldFail) {
           // Should throw validation error
           expect(
@@ -273,56 +314,67 @@ void main() {
         [],
         '{"name":"Update 1"}',
       );
-      
+
       final mockEvent2 = Event(
         '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
         0,
         [],
         '{"name":"Update 2"}',
-        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000 + 1, // 1 second later
+        createdAt:
+            DateTime.now().millisecondsSinceEpoch ~/ 1000 + 1, // 1 second later
       );
-      
-      when(mockAuthService.createAndSignEvent(
-        kind: 0,
-        content: '{"name":"Update 1"}',
-        tags: [],
-      )).thenAnswer((_) async => mockEvent1);
-      
-      when(mockAuthService.createAndSignEvent(
-        kind: 0,
-        content: '{"name":"Update 2"}',
-        tags: [],
-      )).thenAnswer((_) async => mockEvent2);
-      
-      when(mockNostrService.broadcastEvent(any)).thenAnswer((_) async => NostrBroadcastResult(
-        event: Event('79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798', 0, [], ''),
-        successCount: 1,
-        totalRelays: 1,
-        results: {'relay1': true},
-        errors: {},
-      ));
-      
+
+      when(
+        mockAuthService.createAndSignEvent(
+          kind: 0,
+          content: '{"name":"Update 1"}',
+          tags: [],
+        ),
+      ).thenAnswer((_) async => mockEvent1);
+
+      when(
+        mockAuthService.createAndSignEvent(
+          kind: 0,
+          content: '{"name":"Update 2"}',
+          tags: [],
+        ),
+      ).thenAnswer((_) async => mockEvent2);
+
+      when(mockNostrService.broadcastEvent(any)).thenAnswer(
+        (_) async => NostrBroadcastResult(
+          event: Event(
+              '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
+              0,
+              [],
+              ''),
+          successCount: 1,
+          totalRelays: 1,
+          results: {'relay1': true},
+          errors: {},
+        ),
+      );
+
       // Act - simulate concurrent updates
       final future1 = mockAuthService.createAndSignEvent(
         kind: 0,
         content: '{"name":"Update 1"}',
         tags: [],
       ).then((event) => mockNostrService.broadcastEvent(event));
-      
+
       final future2 = mockAuthService.createAndSignEvent(
         kind: 0,
         content: '{"name":"Update 2"}',
         tags: [],
       ).then((event) => mockNostrService.broadcastEvent(event));
-      
+
       // Wait for both to complete
       final results = await Future.wait([future1, future2]);
-      
+
       // Assert both should succeed
       expect(results.length, equals(2));
       expect(results[0].isSuccessful, isTrue);
       expect(results[1].isSuccessful, isTrue);
-      
+
       // Both events should have been published
       verify(mockNostrService.broadcastEvent(any)).called(2);
     });
@@ -330,30 +382,32 @@ void main() {
     test('should retry failed publishes with exponential backoff', () async {
       // This test would verify that failed publishes are retried
       // with increasing delays between attempts
-      
+
       final mockEvent = Event(
         '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798',
         0,
         [],
         '{"name":"Test User"}',
       );
-      
-      when(mockAuthService.createAndSignEvent(
-        kind: 0,
-        content: anyNamed('content'),
-        tags: anyNamed('tags'),
-      )).thenAnswer((_) async => mockEvent);
-      
+
+      when(
+        mockAuthService.createAndSignEvent(
+          kind: 0,
+          content: anyNamed('content'),
+          tags: anyNamed('tags'),
+        ),
+      ).thenAnswer((_) async => mockEvent);
+
       // First two attempts fail, third succeeds
       when(mockNostrService.broadcastEvent(any))
           .thenThrow(Exception('Network error'));
-      
+
       // This test verifies that retry logic would work if implemented
-      
+
       // This would need to be implemented in the actual service
       // For now, just verify the pattern
       var attempts = 0;
-      
+
       for (var i = 0; i < 3; i++) {
         try {
           attempts++;
@@ -364,7 +418,7 @@ void main() {
           // Would wait with exponential backoff here
         }
       }
-      
+
       expect(attempts, equals(3));
     });
   });
@@ -375,15 +429,15 @@ void _validateProfileData(Map<String, String> data) {
   final name = data['name'];
   final about = data['about'];
   final picture = data['picture'];
-  
+
   if (name != null && name.trim().isEmpty) {
     throw ArgumentError('Display name cannot be empty');
   }
-  
+
   if (about != null && about.length > 160) {
     throw ArgumentError('Bio cannot exceed 160 characters');
   }
-  
+
   if (picture != null && picture.isNotEmpty) {
     final uri = Uri.tryParse(picture);
     if (uri == null || (!uri.scheme.startsWith('http'))) {

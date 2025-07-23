@@ -2,15 +2,16 @@
 // ABOUTME: Manages client-side content filtering while respecting decentralized principles
 
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:nostr_sdk/event.dart';
-import '../utils/unified_logger.dart';
+import 'package:openvine/utils/unified_logger.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Reasons for content filtering/reporting
 enum ContentFilterReason {
   spam('Spam or unwanted content'),
-  harassment('Harassment or bullying'), 
+  harassment('Harassment or bullying'),
   violence('Violence or threats'),
   sexualContent('Sexual or adult content'),
   copyright('Copyright violation'),
@@ -24,21 +25,14 @@ enum ContentFilterReason {
 
 /// Content severity levels for filtering
 enum ContentSeverity {
-  info,     // Informational only
-  warning,  // Show warning but allow viewing
-  hide,     // Hide by default, show if requested
-  block     // Completely block content
+  info, // Informational only
+  warning, // Show warning but allow viewing
+  hide, // Hide by default, show if requested
+  block // Completely block content
 }
 
 /// Mute list entry representing filtered content
 class MuteListEntry {
-  final String type; // 'pubkey', 'event', 'keyword', 'content-type'
-  final String value;
-  final ContentFilterReason reason;
-  final ContentSeverity severity;
-  final DateTime createdAt;
-  final String? note;
-
   const MuteListEntry({
     required this.type,
     required this.value,
@@ -47,34 +41,36 @@ class MuteListEntry {
     required this.createdAt,
     this.note,
   });
+  final String type; // 'pubkey', 'event', 'keyword', 'content-type'
+  final String value;
+  final ContentFilterReason reason;
+  final ContentSeverity severity;
+  final DateTime createdAt;
+  final String? note;
 
-  Map<String, dynamic> toJson() {
-    return {
-      'type': type,
-      'value': value,
-      'reason': reason.name,
-      'severity': severity.name,
-      'createdAt': createdAt.toIso8601String(),
-      'note': note,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+        'type': type,
+        'value': value,
+        'reason': reason.name,
+        'severity': severity.name,
+        'createdAt': createdAt.toIso8601String(),
+        'note': note,
+      };
 
-  static MuteListEntry fromJson(Map<String, dynamic> json) {
-    return MuteListEntry(
-      type: json['type'],
-      value: json['value'],
-      reason: ContentFilterReason.values.firstWhere(
-        (r) => r.name == json['reason'],
-        orElse: () => ContentFilterReason.other,
-      ),
-      severity: ContentSeverity.values.firstWhere(
-        (s) => s.name == json['severity'],
-        orElse: () => ContentSeverity.hide,
-      ),
-      createdAt: DateTime.parse(json['createdAt']),
-      note: json['note'],
-    );
-  }
+  static MuteListEntry fromJson(Map<String, dynamic> json) => MuteListEntry(
+        type: json['type'],
+        value: json['value'],
+        reason: ContentFilterReason.values.firstWhere(
+          (r) => r.name == json['reason'],
+          orElse: () => ContentFilterReason.other,
+        ),
+        severity: ContentSeverity.values.firstWhere(
+          (s) => s.name == json['severity'],
+          orElse: () => ContentSeverity.hide,
+        ),
+        createdAt: DateTime.parse(json['createdAt']),
+        note: json['note'],
+      );
 
   /// Convert to NIP-51 list entry tag format
   List<String> toNIP51Tag() {
@@ -86,19 +82,18 @@ class MuteListEntry {
 
 /// Content moderation result
 class ModerationResult {
+  const ModerationResult({
+    required this.shouldFilter,
+    required this.severity,
+    required this.reasons,
+    required this.matchingEntries,
+    this.warningMessage,
+  });
   final bool shouldFilter;
   final ContentSeverity severity;
   final List<ContentFilterReason> reasons;
   final String? warningMessage;
   final List<MuteListEntry> matchingEntries;
-
-  const ModerationResult({
-    required this.shouldFilter,
-    required this.severity,
-    required this.reasons,
-    this.warningMessage,
-    required this.matchingEntries,
-  });
 
   static const ModerationResult clean = ModerationResult(
     shouldFilter: false,
@@ -110,27 +105,6 @@ class ModerationResult {
 
 /// Content moderation service managing mute lists and filtering
 class ContentModerationService extends ChangeNotifier {
-  final SharedPreferences _prefs;
-  
-  // Default OpenVine moderation list
-  static const String defaultMuteListId = 'openvine-default-mutes-v1';
-  static const String defaultMuteListPubkey = 'npub1openvinemoderation'; // Placeholder
-  
-  // Local storage keys
-  static const String _localMuteListKey = 'content_moderation_local_mutes';
-  static const String _subscribedListsKey = 'content_moderation_subscribed_lists';
-  static const String _settingsKey = 'content_moderation_settings';
-  
-  // Mute lists
-  final Map<String, List<MuteListEntry>> _muteLists = {};
-  List<String> _subscribedLists = [];
-  
-  // Settings
-  bool _enableDefaultModeration = true;
-  bool _enableCustomMuteLists = true;
-  bool _showContentWarnings = true;
-  ContentSeverity _autoHideLevel = ContentSeverity.hide;
-  
   ContentModerationService({
     required SharedPreferences prefs,
   }) : _prefs = prefs {
@@ -138,6 +112,28 @@ class ContentModerationService extends ChangeNotifier {
     _loadLocalMuteList();
     _loadSubscribedLists();
   }
+  final SharedPreferences _prefs;
+
+  // Default OpenVine moderation list
+  static const String defaultMuteListId = 'openvine-default-mutes-v1';
+  static const String defaultMuteListPubkey =
+      'npub1openvinemoderation'; // Placeholder
+
+  // Local storage keys
+  static const String _localMuteListKey = 'content_moderation_local_mutes';
+  static const String _subscribedListsKey =
+      'content_moderation_subscribed_lists';
+  static const String _settingsKey = 'content_moderation_settings';
+
+  // Mute lists
+  final Map<String, List<MuteListEntry>> _muteLists = {};
+  List<String> _subscribedLists = [];
+
+  // Settings
+  bool _enableDefaultModeration = true;
+  bool _enableCustomMuteLists = true;
+  bool _showContentWarnings = true;
+  ContentSeverity _autoHideLevel = ContentSeverity.hide;
 
   // Getters
   bool get enableDefaultModeration => _enableDefaultModeration;
@@ -145,7 +141,7 @@ class ContentModerationService extends ChangeNotifier {
   bool get showContentWarnings => _showContentWarnings;
   ContentSeverity get autoHideLevel => _autoHideLevel;
   List<String> get subscribedLists => List.unmodifiable(_subscribedLists);
-  
+
   /// Initialize content moderation
   Future<void> initialize() async {
     try {
@@ -153,17 +149,19 @@ class ContentModerationService extends ChangeNotifier {
       if (_enableDefaultModeration) {
         await _subscribeToDefaultList();
       }
-      
+
       // Subscribe to user's custom mute lists
       if (_enableCustomMuteLists) {
         for (final listId in _subscribedLists) {
           await _subscribeToMuteList(listId);
         }
       }
-      
-      Log.info('Content moderation initialized with ${_muteLists.length} lists', name: 'ContentModerationService', category: LogCategory.system);
+
+      Log.info('Content moderation initialized with ${_muteLists.length} lists',
+          name: 'ContentModerationService', category: LogCategory.system);
     } catch (e) {
-      Log.error('Failed to initialize content moderation: $e', name: 'ContentModerationService', category: LogCategory.system);
+      Log.error('Failed to initialize content moderation: $e',
+          name: 'ContentModerationService', category: LogCategory.system);
     }
   }
 
@@ -175,7 +173,7 @@ class ContentModerationService extends ChangeNotifier {
 
     final matchingEntries = <MuteListEntry>[];
     final reasons = <ContentFilterReason>{};
-    ContentSeverity maxSeverity = ContentSeverity.info;
+    var maxSeverity = ContentSeverity.info;
 
     // Check against all active mute lists
     for (final entries in _muteLists.values) {
@@ -190,13 +188,14 @@ class ContentModerationService extends ChangeNotifier {
       }
     }
 
-    final shouldFilter = matchingEntries.isNotEmpty && 
-                        maxSeverity.index >= _autoHideLevel.index;
+    final shouldFilter =
+        matchingEntries.isNotEmpty && maxSeverity.index >= _autoHideLevel.index;
 
     String? warningMessage;
     if (matchingEntries.isNotEmpty) {
       final primaryReason = reasons.first;
-      warningMessage = _buildWarningMessage(primaryReason, matchingEntries.length);
+      warningMessage =
+          _buildWarningMessage(primaryReason, matchingEntries.length);
     }
 
     return ModerationResult(
@@ -233,15 +232,17 @@ class ContentModerationService extends ChangeNotifier {
     await _saveLocalMuteList();
     notifyListeners();
 
-    Log.debug('Added to mute list: $type:$value (${reason.name})', name: 'ContentModerationService', category: LogCategory.system);
+    Log.debug('Added to mute list: $type:$value (${reason.name})',
+        name: 'ContentModerationService', category: LogCategory.system);
   }
 
   /// Remove entry from local mute list
   Future<void> removeFromMuteList(String type, String value) async {
     final localList = _muteLists['local'];
     if (localList != null) {
-      localList.removeWhere((entry) => 
-        entry.type == type && entry.value == value);
+      localList.removeWhere(
+        (entry) => entry.type == type && entry.value == value,
+      );
       await _saveLocalMuteList();
       notifyListeners();
     }
@@ -277,11 +278,13 @@ class ContentModerationService extends ChangeNotifier {
       await _subscribeToMuteList(listId);
       await _saveSubscribedLists();
       notifyListeners();
-      
-      Log.verbose('Subscribed to mute list: $listId', name: 'ContentModerationService', category: LogCategory.system);
+
+      Log.verbose('Subscribed to mute list: $listId',
+          name: 'ContentModerationService', category: LogCategory.system);
     } catch (e) {
       _subscribedLists.remove(listId);
-      Log.error('Failed to subscribe to mute list $listId: $e', name: 'ContentModerationService', category: LogCategory.system);
+      Log.error('Failed to subscribe to mute list $listId: $e',
+          name: 'ContentModerationService', category: LogCategory.system);
       rethrow;
     }
   }
@@ -301,7 +304,8 @@ class ContentModerationService extends ChangeNotifier {
     bool? showContentWarnings,
     ContentSeverity? autoHideLevel,
   }) async {
-    _enableDefaultModeration = enableDefaultModeration ?? _enableDefaultModeration;
+    _enableDefaultModeration =
+        enableDefaultModeration ?? _enableDefaultModeration;
     _enableCustomMuteLists = enableCustomMuteLists ?? _enableCustomMuteLists;
     _showContentWarnings = showContentWarnings ?? _showContentWarnings;
     _autoHideLevel = autoHideLevel ?? _autoHideLevel;
@@ -312,10 +316,10 @@ class ContentModerationService extends ChangeNotifier {
 
   /// Get moderation statistics
   Map<String, dynamic> getModerationStats() {
-    int totalEntries = 0;
-    int pubkeyBlocks = 0;
-    int keywordMutes = 0;
-    
+    var totalEntries = 0;
+    var pubkeyBlocks = 0;
+    var keywordMutes = 0;
+
     for (final entries in _muteLists.values) {
       totalEntries += entries.length;
       pubkeyBlocks += entries.where((e) => e.type == 'pubkey').length;
@@ -346,7 +350,7 @@ class ContentModerationService extends ChangeNotifier {
           note: 'Default spam filtering',
         ),
         MuteListEntry(
-          type: 'keyword', 
+          type: 'keyword',
           value: 'nsfw',
           reason: ContentFilterReason.sexualContent,
           severity: ContentSeverity.warning,
@@ -354,11 +358,13 @@ class ContentModerationService extends ChangeNotifier {
           note: 'Adult content warning',
         ),
       ];
-      
+
       _muteLists['default'] = defaultEntries;
-      Log.debug('Loaded default moderation list', name: 'ContentModerationService', category: LogCategory.system);
+      Log.debug('Loaded default moderation list',
+          name: 'ContentModerationService', category: LogCategory.system);
     } catch (e) {
-      Log.error('Failed to load default moderation list: $e', name: 'ContentModerationService', category: LogCategory.system);
+      Log.error('Failed to load default moderation list: $e',
+          name: 'ContentModerationService', category: LogCategory.system);
     }
   }
 
@@ -367,12 +373,14 @@ class ContentModerationService extends ChangeNotifier {
     try {
       // TODO: Implement NIP-51 list subscription
       // This would fetch the mute list from Nostr and parse entries
-      Log.debug('Subscribing to mute list: $listId', name: 'ContentModerationService', category: LogCategory.system);
-      
+      Log.debug('Subscribing to mute list: $listId',
+          name: 'ContentModerationService', category: LogCategory.system);
+
       // Placeholder implementation
       _muteLists[listId] = [];
     } catch (e) {
-      Log.error('Failed to subscribe to mute list $listId: $e', name: 'ContentModerationService', category: LogCategory.system);
+      Log.error('Failed to subscribe to mute list $listId: $e',
+          name: 'ContentModerationService', category: LogCategory.system);
       rethrow;
     }
   }
@@ -388,10 +396,10 @@ class ContentModerationService extends ChangeNotifier {
         return event.content.toLowerCase().contains(entry.value);
       case 'content-type':
         // Check event tags for content type indicators
-        return event.tags.any((tag) => 
-          tag.length > 1 && 
-          tag[0] == 'm' && 
-          tag[1].startsWith(entry.value));
+        return event.tags.any(
+          (tag) =>
+              tag.length > 1 && tag[0] == 'm' && tag[1].startsWith(entry.value),
+        );
       default:
         return false;
     }
@@ -403,28 +411,20 @@ class ContentModerationService extends ChangeNotifier {
     switch (reason) {
       case ContentFilterReason.spam:
         baseMessage = 'This content may be spam';
-        break;
       case ContentFilterReason.harassment:
         baseMessage = 'This content may contain harassment';
-        break;
       case ContentFilterReason.violence:
         baseMessage = 'This content may contain violence';
-        break;
       case ContentFilterReason.sexualContent:
         baseMessage = 'This content may be sensitive';
-        break;
       case ContentFilterReason.copyright:
         baseMessage = 'This content may violate copyright';
-        break;
       case ContentFilterReason.falseInformation:
         baseMessage = 'This content may contain misinformation';
-        break;
       case ContentFilterReason.csam:
         baseMessage = 'This content violates child safety policies';
-        break;
       case ContentFilterReason.other:
         baseMessage = 'This content may violate community guidelines';
-        break;
     }
 
     if (matchCount > 1) {
@@ -447,7 +447,8 @@ class ContentModerationService extends ChangeNotifier {
           orElse: () => ContentSeverity.hide,
         );
       } catch (e) {
-        Log.error('Failed to load moderation settings: $e', name: 'ContentModerationService', category: LogCategory.system);
+        Log.error('Failed to load moderation settings: $e',
+            name: 'ContentModerationService', category: LogCategory.system);
       }
     }
   }
@@ -470,11 +471,12 @@ class ContentModerationService extends ChangeNotifier {
       try {
         final List<dynamic> entriesJson = jsonDecode(muteListJson);
         final entries = entriesJson
-            .map((json) => MuteListEntry.fromJson(json))
+            .map((json) => MuteListEntry.fromJson(json as Map<String, dynamic>))
             .toList();
         _muteLists['local'] = entries;
       } catch (e) {
-        Log.error('Failed to load local mute list: $e', name: 'ContentModerationService', category: LogCategory.system);
+        Log.error('Failed to load local mute list: $e',
+            name: 'ContentModerationService', category: LogCategory.system);
       }
     }
   }
@@ -493,7 +495,8 @@ class ContentModerationService extends ChangeNotifier {
       try {
         _subscribedLists = List<String>.from(jsonDecode(listsJson));
       } catch (e) {
-        Log.error('Failed to load subscribed lists: $e', name: 'ContentModerationService', category: LogCategory.system);
+        Log.error('Failed to load subscribed lists: $e',
+            name: 'ContentModerationService', category: LogCategory.system);
       }
     }
   }

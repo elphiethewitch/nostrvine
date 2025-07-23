@@ -2,21 +2,21 @@
 // ABOUTME: Shows likes, comments, follows, mentions, reposts with filtering and read state
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../models/notification_model.dart';
-import '../services/notification_service_enhanced.dart';
-import '../widgets/notification_list_item.dart';
-import '../theme/app_theme.dart';
-import '../utils/unified_logger.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:openvine/models/notification_model.dart';
+import 'package:openvine/providers/app_providers.dart';
+import 'package:openvine/theme/app_theme.dart';
+import 'package:openvine/utils/unified_logger.dart';
+import 'package:openvine/widgets/notification_list_item.dart';
 
-class NotificationsScreen extends StatefulWidget {
+class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   @override
-  State<NotificationsScreen> createState() => _NotificationsScreenState();
+  ConsumerState<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen>
+class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   NotificationType? _selectedFilter;
@@ -58,10 +58,11 @@ class _NotificationsScreenState extends State<NotificationsScreen>
           ),
         ),
         actions: [
-          Consumer<NotificationServiceEnhanced>(
-            builder: (context, service, _) {
+          Builder(
+            builder: (context) {
+              final service = ref.watch(notificationServiceEnhancedProvider);
               if (service.notifications.isEmpty) return const SizedBox.shrink();
-              
+
               return PopupMenuButton<String>(
                 icon: Icon(
                   Icons.more_vert,
@@ -70,7 +71,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                 onSelected: (value) async {
                   if (value == 'mark_all_read') {
                     await service.markAllAsRead();
-                    if (mounted) {
+                    if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('All notifications marked as read'),
@@ -92,7 +93,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                           TextButton(
                             onPressed: () async {
                               await service.clearAll();
-                              if (mounted) {
+                              if (context.mounted) {
                                 Navigator.of(context).pop();
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -137,19 +138,14 @@ class _NotificationsScreenState extends State<NotificationsScreen>
               switch (index) {
                 case 0:
                   _selectedFilter = null;
-                  break;
                 case 1:
                   _selectedFilter = NotificationType.like;
-                  break;
                 case 2:
                   _selectedFilter = NotificationType.comment;
-                  break;
                 case 3:
                   _selectedFilter = NotificationType.follow;
-                  break;
                 case 4:
                   _selectedFilter = NotificationType.repost;
-                  break;
               }
             });
           },
@@ -162,8 +158,9 @@ class _NotificationsScreenState extends State<NotificationsScreen>
           ],
         ),
       ),
-      body: Consumer<NotificationServiceEnhanced>(
-        builder: (context, service, _) {
+      body: Builder(
+        builder: (context) {
+          final service = ref.watch(notificationServiceEnhancedProvider);
           // Filter notifications based on selected tab
           final notifications = _selectedFilter == null
               ? service.notifications
@@ -191,7 +188,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'When people interact with your content,\nyou\'ll see it here',
+                    "When people interact with your content,\nyou'll see it here",
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
@@ -239,9 +236,9 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                       onTap: () async {
                         // Mark as read
                         await service.markAsRead(notification.id);
-                        
+
                         // Navigate to appropriate screen based on type
-                        if (mounted) {
+                        if (context.mounted) {
                           _navigateToTarget(context, notification);
                         }
                       },
@@ -250,9 +247,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                       Divider(
                         height: 1,
                         thickness: 0.5,
-                        color: isDarkMode
-                            ? Colors.grey[800]
-                            : Colors.grey[300],
+                        color: isDarkMode ? Colors.grey[800] : Colors.grey[300],
                         indent: 72,
                       ),
                   ],
@@ -321,7 +316,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         'Thursday',
         'Friday',
         'Saturday',
-        'Sunday'
+        'Sunday',
       ];
       return weekdays[date.weekday - 1];
     } else {
@@ -330,28 +325,65 @@ class _NotificationsScreenState extends State<NotificationsScreen>
   }
 
   void _navigateToTarget(BuildContext context, NotificationModel notification) {
-    // TODO: Implement navigation based on notification type
-    switch (notification.type) {
-      case NotificationType.like:
-      case NotificationType.comment:
-      case NotificationType.repost:
-        if (notification.targetEventId != null) {
-          // Navigate to video detail screen
-          Log.debug('Navigate to video: ${notification.targetEventId}', name: 'NotificationsScreen', category: LogCategory.ui);
+    Log.info(
+      '🔔 Notification clicked: ${notification.navigationAction} -> ${notification.navigationTarget}',
+      name: 'NotificationsScreen',
+      category: LogCategory.ui,
+    );
+
+    switch (notification.navigationAction) {
+      case 'open_video':
+        if (notification.navigationTarget != null) {
+          _navigateToVideo(context, notification.navigationTarget!);
         }
         break;
-      case NotificationType.follow:
-        // Navigate to user profile
-        Log.debug('Navigate to profile: ${notification.actorPubkey}', name: 'NotificationsScreen', category: LogCategory.ui);
+      case 'open_profile':
+        if (notification.navigationTarget != null) {
+          _navigateToProfile(context, notification.navigationTarget!);
+        }
         break;
-      case NotificationType.mention:
-        // Navigate to the mention context
-        Log.debug('Navigate to mention context', name: 'NotificationsScreen', category: LogCategory.ui);
+      case 'none':
+        // System notifications don't need navigation
         break;
-      case NotificationType.system:
-        // Handle system notifications
-        Log.debug('System notification action', name: 'NotificationsScreen', category: LogCategory.ui);
-        break;
+      default:
+        Log.warning(
+          'Unknown navigation action: ${notification.navigationAction}',
+          name: 'NotificationsScreen',
+          category: LogCategory.ui,
+        );
     }
+  }
+
+  void _navigateToVideo(BuildContext context, String videoEventId) {
+    // Navigate to video feed and find this specific video
+    Log.info('Navigating to video: $videoEventId',
+        name: 'NotificationsScreen', category: LogCategory.ui);
+    
+    // For now, navigate back to home screen where user can find the video
+    // TODO: Implement direct navigation to specific video
+    Navigator.of(context).popUntil((route) => route.isFirst);
+    
+    // Show snackbar to indicate what video we're looking for
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Showing video from notification'),
+        duration: Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'OK',
+          onPressed: () {},
+        ),
+      ),
+    );
+  }
+
+  void _navigateToProfile(BuildContext context, String userPubkey) {
+    Log.info('Navigating to profile: $userPubkey',
+        name: 'NotificationsScreen', category: LogCategory.ui);
+    
+    // Import and navigate to profile screen
+    Navigator.of(context).pushNamed(
+      '/profile',
+      arguments: {'pubkey': userPubkey},
+    );
   }
 }

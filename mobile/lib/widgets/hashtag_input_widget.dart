@@ -4,16 +4,15 @@
 import 'package:flutter/material.dart';
 
 class HashtagInputWidget extends StatefulWidget {
+  const HashtagInputWidget({
+    required this.onHashtagsChanged,
+    super.key,
+    this.initialValue = '',
+    this.maxHashtags = 10,
+  });
   final String initialValue;
   final Function(List<String>) onHashtagsChanged;
   final int maxHashtags;
-
-  const HashtagInputWidget({
-    super.key,
-    this.initialValue = '',
-    required this.onHashtagsChanged,
-    this.maxHashtags = 10,
-  });
 
   @override
   State<HashtagInputWidget> createState() => _HashtagInputWidgetState();
@@ -44,32 +43,35 @@ class _HashtagInputWidgetState extends State<HashtagInputWidget> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextField(
-          controller: _controller,
-          enableInteractiveSelection: true,
-          decoration: InputDecoration(
-            hintText: 'Add hashtags... #vine #nostr',
-            border: const OutlineInputBorder(),
-            suffixText: '${_hashtags.length}/${widget.maxHashtags}',
+  Widget build(BuildContext context) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _controller,
+            enableInteractiveSelection: true,
+            decoration: InputDecoration(
+              hintText: 'Add hashtags... #vine #nostr',
+              border: const OutlineInputBorder(),
+              suffixText: '${_hashtags.length}/${widget.maxHashtags}',
+            ),
+            onChanged: _parseHashtags,
+            maxLines: 2,
           ),
-          onChanged: _parseHashtags,
-          maxLines: 2,
-        ),
-        if (_hashtags.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            children: _hashtags.map((hashtag) => Chip(
-              label: Text(hashtag),
-              backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.1),
-            )).toList(),
-          ),
+          if (_hashtags.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: _hashtags
+                  .map(
+                    (hashtag) => Chip(
+                      label: Text(hashtag),
+                      backgroundColor:
+                          Theme.of(context).primaryColor.withValues(alpha: 0.1),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ],
         ],
-      ],
-    );
-  }
+      );
 }

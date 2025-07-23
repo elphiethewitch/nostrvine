@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
+import 'package:mockito/mockito.dart';
 import 'package:openvine/providers/profile_stats_provider.dart';
 import 'package:openvine/services/social_service.dart';
 
@@ -139,10 +139,10 @@ void main() {
 
         // Create new provider instance
         final newProvider = ProfileStatsProvider(mockSocialService);
-        
+
         // Cache should be empty for new instance
         expect(newProvider.stats, isNull);
-        
+
         newProvider.dispose();
       });
 

@@ -8,7 +8,7 @@ void main() {
   group('CameraConfiguration', () {
     test('default configuration has correct values', () {
       const config = CameraConfiguration();
-      
+
       expect(config.recordingDuration, const Duration(milliseconds: 6300));
       expect(config.enableAutoStop, true);
     });
@@ -47,7 +47,7 @@ void main() {
       final config = CameraConfiguration.vine(
         duration: const Duration(seconds: 8),
       );
-      
+
       final description = config.toString();
       expect(description, contains('8s'));
     });
@@ -80,7 +80,8 @@ void main() {
 
     test('camera service uses configuration correctly', () {
       // Test that camera service uses the configuration properties
-      expect(cameraService.configuration.recordingDuration, const Duration(milliseconds: 6300));
+      expect(cameraService.configuration.recordingDuration,
+          const Duration(milliseconds: 6300));
       expect(cameraService.maxVineDuration, const Duration(milliseconds: 6300));
       expect(cameraService.enableAutoStop, true);
     });

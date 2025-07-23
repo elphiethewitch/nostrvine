@@ -4,18 +4,17 @@
 import 'package:flutter/material.dart';
 
 class CharacterCounterWidget extends StatelessWidget {
+  const CharacterCounterWidget({
+    required this.currentLength,
+    required this.maxLength,
+    super.key,
+    this.showWarning = true,
+    this.warningThreshold = 0.8,
+  });
   final int currentLength;
   final int maxLength;
   final bool showWarning;
   final double warningThreshold;
-
-  const CharacterCounterWidget({
-    super.key,
-    required this.currentLength,
-    required this.maxLength,
-    this.showWarning = true,
-    this.warningThreshold = 0.8,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +43,8 @@ class CharacterCounterWidget extends StatelessWidget {
           style: TextStyle(
             color: getColor(),
             fontSize: 12,
-            fontWeight: isOverLimit || isWarning ? FontWeight.bold : FontWeight.normal,
+            fontWeight:
+                isOverLimit || isWarning ? FontWeight.bold : FontWeight.normal,
           ),
         ),
       ],

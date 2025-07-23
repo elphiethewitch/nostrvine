@@ -1,377 +1,439 @@
-// ABOUTME: Provider for managing user-specific video fetching and grid display
+// ABOUTME: Riverpod provider for managing user-specific video fetching and grid display
 // ABOUTME: Fetches Kind 34550 video events by author with pagination and caching
 
 import 'dart:async';
-import 'package:flutter/foundation.dart';
-import 'package:nostr_sdk/filter.dart';
-import 'package:nostr_sdk/event.dart';
-import '../models/video_event.dart';
-import '../services/nostr_service_interface.dart';
-import '../services/video_event_service.dart';
-import '../utils/unified_logger.dart';
 
-/// Loading state for user videos
-enum ProfileVideosLoadingState {
-  idle,
-  loading,
-  loaded,
-  loadingMore,
-  error,
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:nostr_sdk/event.dart';
+import 'package:nostr_sdk/filter.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/providers/app_providers.dart';
+import 'package:openvine/utils/unified_logger.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+
+part 'profile_videos_provider.g.dart';
+
+/// State for profile videos provider
+class ProfileVideosState {
+  const ProfileVideosState({
+    required this.videos,
+    required this.isLoading,
+    required this.isLoadingMore,
+    required this.hasMore,
+    required this.error,
+    required this.lastTimestamp,
+  });
+
+  final List<VideoEvent> videos;
+  final bool isLoading;
+  final bool isLoadingMore;
+  final bool hasMore;
+  final String? error;
+  final int? lastTimestamp;
+
+  ProfileVideosState copyWith({
+    List<VideoEvent>? videos,
+    bool? isLoading,
+    bool? isLoadingMore,
+    bool? hasMore,
+    String? error,
+    int? lastTimestamp,
+  }) =>
+      ProfileVideosState(
+        videos: videos ?? this.videos,
+        isLoading: isLoading ?? this.isLoading,
+        isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+        hasMore: hasMore ?? this.hasMore,
+        error: error,
+        lastTimestamp: lastTimestamp ?? this.lastTimestamp,
+      );
+
+  static const initial = ProfileVideosState(
+    videos: [],
+    isLoading: false,
+    isLoadingMore: false,
+    hasMore: true,
+    error: null,
+    lastTimestamp: null,
+  );
+
+  bool get hasVideos => videos.isNotEmpty;
+  bool get hasError => error != null;
+  int get videoCount => videos.length;
 }
 
-/// Provider for managing user-specific video fetching with pagination
-class ProfileVideosProvider extends ChangeNotifier {
-  final INostrService _nostrService;
-  VideoEventService? _videoEventService;
+// Cache for different users' videos
+final Map<String, List<VideoEvent>> _profileVideosCache = {};
+final Map<String, DateTime> _profileVideosCacheTimestamps = {};
+final Map<String, bool> _profileVideosHasMoreCache = {};
+const Duration _profileVideosCacheExpiry = Duration(minutes: 10);
 
-  // State management
-  ProfileVideosLoadingState _loadingState = ProfileVideosLoadingState.idle;
-  List<VideoEvent> _videos = [];
-  String? _error;
-  String? _currentPubkey;
-  bool _hasMore = true;
-  int? _lastTimestamp;
+// Pagination settings
+const int _profileVideosPageSize = 200;
 
-  // Cache for different users' videos
-  final Map<String, List<VideoEvent>> _videosCache = {};
-  final Map<String, DateTime> _cacheTimestamps = {};
-  final Map<String, bool> _hasMoreCache = {};
-  static const Duration _cacheExpiry = Duration(minutes: 10);
+/// Get cached videos if available and not expired
+List<VideoEvent>? _getCachedProfileVideos(String pubkey) {
+  final videos = _profileVideosCache[pubkey];
+  final timestamp = _profileVideosCacheTimestamps[pubkey];
 
-  // Pagination settings
-  static const int _pageSize = 200;
-
-  // Subscription management
-  StreamSubscription<Event>? _currentSubscription;
-
-  ProfileVideosProvider(this._nostrService);
-  
-  /// Set the video event service for accessing cached videos
-  void setVideoEventService(VideoEventService videoEventService) {
-    _videoEventService = videoEventService;
+  if (videos != null && timestamp != null) {
+    final age = DateTime.now().difference(timestamp);
+    if (age < _profileVideosCacheExpiry) {
+      Log.debug(
+          '📱 Using cached videos for ${pubkey.substring(0, 8)} (age: ${age.inMinutes}min)',
+          name: 'ProfileVideosProvider',
+          category: LogCategory.ui);
+      return videos;
+    } else {
+      Log.debug(
+          '⏰ Video cache expired for ${pubkey.substring(0, 8)} (age: ${age.inMinutes}min)',
+          name: 'ProfileVideosProvider',
+          category: LogCategory.ui);
+      _clearProfileVideosCache(pubkey);
+    }
   }
 
-  // Getters
-  ProfileVideosLoadingState get loadingState => _loadingState;
-  List<VideoEvent> get videos => List.unmodifiable(_videos);
-  String? get error => _error;
-  bool get isLoading => _loadingState == ProfileVideosLoadingState.loading;
-  bool get isLoadingMore => _loadingState == ProfileVideosLoadingState.loadingMore;
-  bool get hasError => _loadingState == ProfileVideosLoadingState.error;
-  bool get hasVideos => _videos.isNotEmpty;
-  bool get hasMore => _hasMore;
-  int get videoCount => _videos.length;
+  return null;
+}
+
+/// Cache videos for a user
+void _cacheProfileVideos(String pubkey, List<VideoEvent> videos, bool hasMore) {
+  _profileVideosCache[pubkey] = videos;
+  _profileVideosCacheTimestamps[pubkey] = DateTime.now();
+  _profileVideosHasMoreCache[pubkey] = hasMore;
+  Log.debug('📱 Cached ${videos.length} videos for ${pubkey.substring(0, 8)}',
+      name: 'ProfileVideosProvider', category: LogCategory.ui);
+}
+
+/// Clear cache for a specific user
+void _clearProfileVideosCache(String pubkey) {
+  _profileVideosCache.remove(pubkey);
+  _profileVideosCacheTimestamps.remove(pubkey);
+  _profileVideosHasMoreCache.remove(pubkey);
+}
+
+/// Clear all cached videos
+void clearAllProfileVideosCache() {
+  _profileVideosCache.clear();
+  _profileVideosCacheTimestamps.clear();
+  _profileVideosHasMoreCache.clear();
+  Log.debug('📱 Cleared all profile videos cache',
+      name: 'ProfileVideosProvider', category: LogCategory.ui);
+}
+
+/// Async provider for loading profile videos
+@riverpod
+Future<List<VideoEvent>> profileVideos(Ref ref, String pubkey) async {
+  // Check cache first
+  final cached = _getCachedProfileVideos(pubkey);
+  if (cached != null) {
+    return cached;
+  }
+
+  // Get services from app providers
+  final nostrService = ref.watch(nostrServiceProvider);
+  final videoEventService = ref.watch(videoEventServiceProvider);
+
+  Log.info('📱 Loading videos for user: ${pubkey.substring(0, 8)}... (full: ${pubkey.substring(0, 16)})',
+      name: 'ProfileVideosProvider', category: LogCategory.ui);
+
+  try {
+    // First check if we have videos in the VideoEventService cache
+    final cachedVideos = videoEventService.getVideosByAuthor(pubkey);
+    final allVideos = videoEventService.videoEvents;
+    
+    Log.info('📱 VideoEventService has ${allVideos.length} total videos in cache',
+        name: 'ProfileVideosProvider', category: LogCategory.ui);
+    
+    if (allVideos.isNotEmpty) {
+      Log.info('📱 Sample video authors from cache: ${allVideos.take(3).map((v) => v.pubkey.substring(0, 16)).join(", ")}',
+          name: 'ProfileVideosProvider', category: LogCategory.ui);
+    }
+    
+    if (cachedVideos.isNotEmpty) {
+      Log.info(
+          '📱 Found ${cachedVideos.length} cached videos for ${pubkey.substring(0, 8)}',
+          name: 'ProfileVideosProvider',
+          category: LogCategory.ui);
+      
+      final sortedVideos = List<VideoEvent>.from(cachedVideos)
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      
+      _cacheProfileVideos(pubkey, sortedVideos, true);
+      return sortedVideos;
+    } else {
+      Log.info('📱 No cached videos found for ${pubkey.substring(0, 8)} in VideoEventService',
+          name: 'ProfileVideosProvider', category: LogCategory.ui);
+    }
+
+    // If no cached videos, fetch from network
+    final filter = Filter(
+      authors: [pubkey],
+      kinds: [22], // NIP-71 short videos (corrected from 34550)
+      h: ['vine'], // Required vine tag for vine.hol.is relay
+      limit: _profileVideosPageSize,
+    );
+    
+    Log.info('📱 Querying for videos: authors=[${pubkey.substring(0, 16)}], kinds=[22], h=[vine], limit=$_profileVideosPageSize',
+        name: 'ProfileVideosProvider', category: LogCategory.ui);
+
+    final completer = Completer<List<VideoEvent>>();
+    final events = <Event>[];
+
+    final subscription = nostrService.subscribeToEvents(
+      filters: [filter],
+    );
+
+    subscription.listen(
+      (event) {
+        events.add(event);
+      },
+      onError: (error) {
+        Log.error('Error fetching profile videos: $error',
+            name: 'ProfileVideosProvider', category: LogCategory.ui);
+        if (!completer.isCompleted) {
+          completer.complete([]);
+        }
+      },
+      onDone: () {
+        Log.info('📱 Query completed: received ${events.length} events for ${pubkey.substring(0, 8)}',
+            name: 'ProfileVideosProvider', category: LogCategory.ui);
+        
+        final videos = events
+            .map((event) => VideoEvent.fromNostrEvent(event))
+            .toList();
+        
+        Log.info('📱 Successfully parsed ${videos.length} videos for ${pubkey.substring(0, 8)}',
+            name: 'ProfileVideosProvider', category: LogCategory.ui);
+        
+        if (!completer.isCompleted) {
+          completer.complete(videos);
+        }
+      },
+    );
+
+    // Timeout for fetching
+    Timer(const Duration(seconds: 10), () {
+      if (!completer.isCompleted) {
+        final videos = events
+            .map((event) => VideoEvent.fromNostrEvent(event))
+            .toList();
+        completer.complete(videos);
+      }
+    });
+
+    final videos = await completer.future;
+
+    // Sort by creation time (newest first)
+    videos.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    // Cache the results
+    _cacheProfileVideos(pubkey, videos, videos.length >= _profileVideosPageSize);
+
+    Log.info('📱 Loaded ${videos.length} videos for ${pubkey.substring(0, 8)}',
+        name: 'ProfileVideosProvider', category: LogCategory.ui);
+
+    return videos;
+  } catch (e) {
+    Log.error('Error loading profile videos: $e',
+        name: 'ProfileVideosProvider', category: LogCategory.ui);
+    rethrow;
+  }
+}
+
+/// Notifier for managing profile videos state
+@riverpod
+class ProfileVideosNotifier extends _$ProfileVideosNotifier {
+  String? _currentPubkey;
+  Completer<void>? _loadingCompleter;
+
+  @override
+  ProfileVideosState build() {
+    return ProfileVideosState.initial;
+  }
 
   /// Load videos for a specific user
   Future<void> loadVideosForUser(String pubkey) async {
-    if (_currentPubkey == pubkey && _videos.isNotEmpty) {
+    if (_currentPubkey == pubkey && state.hasVideos && !state.hasError) {
       // Already loaded for this user
       return;
     }
 
+    // Prevent concurrent loads for the same user
+    if (_loadingCompleter != null && _currentPubkey == pubkey) {
+      return _loadingCompleter!.future;
+    }
+
+    _loadingCompleter = Completer<void>();
+    _currentPubkey = pubkey;
+
     // Check cache first
-    final cached = _getCachedVideos(pubkey);
+    final cached = _getCachedProfileVideos(pubkey);
     if (cached != null) {
-      _videos = cached;
-      _currentPubkey = pubkey;
-      _hasMore = _hasMoreCache[pubkey] ?? true;
-      _loadingState = ProfileVideosLoadingState.loaded;
-      _error = null;
-      notifyListeners();
+      state = state.copyWith(
+        videos: cached,
+        isLoading: false,
+        hasMore: _profileVideosHasMoreCache[pubkey] ?? true,
+        error: null,
+      );
+      _loadingCompleter!.complete();
+      _loadingCompleter = null;
       return;
     }
 
-    _setLoadingState(ProfileVideosLoadingState.loading);
-    _currentPubkey = pubkey;
-    _videos = [];
-    _error = null;
-    _hasMore = true;
-    _lastTimestamp = null;
+    state = state.copyWith(
+      isLoading: true,
+      videos: [],
+      error: null,
+      hasMore: true,
+      lastTimestamp: null,
+    );
 
     try {
-      Log.debug('� Loading videos for user: ${pubkey.substring(0, 8)}...', name: 'ProfileVideosProvider', category: LogCategory.ui);
-      
-      // First check if we have videos in the VideoEventService cache
-      if (_videoEventService != null) {
-        final cachedVideos = _videoEventService!.getVideosByAuthor(pubkey);
-        if (cachedVideos.isNotEmpty) {
-          Log.info('Found ${cachedVideos.length} videos in cache for ${pubkey.substring(0, 8)}', name: 'ProfileVideosProvider', category: LogCategory.ui);
-          _videos = cachedVideos;
-          _hasMore = false; // We have all videos from cache
-          _setLoadingState(ProfileVideosLoadingState.loaded);
-          _cacheVideos(pubkey, _videos, _hasMore);
-          notifyListeners();
-          
-          // TODO: Background refresh if cache is stale
-          // This would check ProfileCacheService.shouldRefreshProfile()
-          // and create a background subscription if needed
-          
-          return; // Exit early - no subscription needed
-        } else {
-          Log.warning('No videos found in cache for ${pubkey.substring(0, 8)}, fetching from relays...', name: 'ProfileVideosProvider', category: LogCategory.ui);
-        }
-      }
-
-      // Cancel existing subscription if any
-      await _currentSubscription?.cancel();
-      _currentSubscription = null;
-
-      // Create filter for user's Kind 22 video events
-      final filter = Filter(
-        authors: [pubkey],
-        kinds: [22], // NIP-71 short video events
-        h: ['vine'], // Required for vine.hol.is relay
-        limit: _pageSize,
+      final videos = await ref.read(profileVideosProvider(pubkey).future);
+      state = state.copyWith(
+        videos: videos,
+        isLoading: false,
+        hasMore: videos.length >= _profileVideosPageSize,
+        lastTimestamp: videos.isNotEmpty ? videos.last.createdAt : null,
       );
-
-      Log.debug('Creating filter for profile videos:', name: 'ProfileVideosProvider', category: LogCategory.ui);
-      Log.debug('  - Author: $pubkey', name: 'ProfileVideosProvider', category: LogCategory.ui);
-      Log.debug('  - Kinds: [22]', name: 'ProfileVideosProvider', category: LogCategory.ui);
-      Log.debug('  - h: [vine]', name: 'ProfileVideosProvider', category: LogCategory.ui);
-      Log.verbose('  - Limit: $_pageSize', name: 'ProfileVideosProvider', category: LogCategory.ui);
-
-      final completer = Completer<void>();
-      final receivedVideos = <VideoEvent>[];
-
-      // Subscribe to video events using NostrService directly
-      final eventStream = _nostrService.subscribeToEvents(filters: [filter]);
-      
-      _currentSubscription = eventStream.listen(
-        (event) {
-          Log.debug('� Received event in profile videos: ${event.id.substring(0, 8)}, kind: ${event.kind}, author: ${event.pubkey.substring(0, 8)}', name: 'ProfileVideosProvider', category: LogCategory.ui);
-          try {
-            if (event.kind == 22) {
-              final videoEvent = VideoEvent.fromNostrEvent(event);
-              
-              // Avoid duplicates
-              if (!receivedVideos.any((v) => v.id == videoEvent.id)) {
-                receivedVideos.add(videoEvent);
-              }
-            } else {
-              Log.warning('Received non-video event, kind: ${event.kind}', name: 'ProfileVideosProvider', category: LogCategory.ui);
-            }
-          } catch (e) {
-            Log.error('Error parsing video event: $e', name: 'ProfileVideosProvider', category: LogCategory.ui);
-          }
-        },
-        onError: (error) {
-          Log.error('Error in video subscription: $error', name: 'ProfileVideosProvider', category: LogCategory.ui);
-          if (!completer.isCompleted) {
-            completer.completeError(error);
-          }
-        },
-        onDone: () {
-          if (!completer.isCompleted) {
-            completer.complete();
-          }
-        },
-      );
-
-      // Set timeout to avoid hanging indefinitely
-      Timer(const Duration(seconds: 8), () {
-        if (!completer.isCompleted) {
-          Log.debug('⏰ Video loading timeout reached for ${pubkey.substring(0, 8)}', name: 'ProfileVideosProvider', category: LogCategory.ui);
-          completer.complete();
-        }
-      });
-
-      await completer.future;
-
-      Log.info('Profile video subscription completed:', name: 'ProfileVideosProvider', category: LogCategory.ui);
-      Log.debug('  - Received ${receivedVideos.length} videos for author $pubkey', name: 'ProfileVideosProvider', category: LogCategory.ui);
-      if (receivedVideos.isNotEmpty) {
-        debugPrint('  - First video: ${receivedVideos.first.id.substring(0, 8)} (${receivedVideos.first.title ?? 'No title'})');
-      }
-
-      // Close the subscription after data fetch
-      await _currentSubscription?.cancel();
-      _currentSubscription = null;
-
-      // Sort videos by creation time (newest first)
-      receivedVideos.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-      _videos = receivedVideos;
-      _hasMore = receivedVideos.length >= _pageSize;
-      
-      if (receivedVideos.isNotEmpty) {
-        _lastTimestamp = receivedVideos.last.createdAt;
-      }
-
-      // Cache the results
-      _cacheVideos(pubkey, _videos, _hasMore);
-
-      _setLoadingState(ProfileVideosLoadingState.loaded);
-      Log.info('Loaded ${_videos.length} videos for user ${pubkey.substring(0, 8)}...', name: 'ProfileVideosProvider', category: LogCategory.ui);
-      
-      // Force notification even if empty to ensure UI updates
-      notifyListeners();
-
+      _loadingCompleter!.complete();
     } catch (e) {
-      _error = e.toString();
-      _setLoadingState(ProfileVideosLoadingState.error);
-      Log.error('Error loading videos: $e', name: 'ProfileVideosProvider', category: LogCategory.ui);
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+      _loadingCompleter!.completeError(e);
+    } finally {
+      _loadingCompleter = null;
     }
   }
 
-  /// Load more videos for pagination
+  /// Load more videos (pagination)
   Future<void> loadMoreVideos() async {
-    if (!_hasMore || _currentPubkey == null || isLoadingMore) {
+    if (_currentPubkey == null || 
+        state.isLoadingMore || 
+        !state.hasMore || 
+        state.lastTimestamp == null) {
       return;
     }
 
-    _setLoadingState(ProfileVideosLoadingState.loadingMore);
+    state = state.copyWith(isLoadingMore: true, error: null);
 
     try {
-      Log.debug('� Loading more videos for user: ${_currentPubkey!.substring(0, 8)}...', name: 'ProfileVideosProvider', category: LogCategory.ui);
-
-      // Cancel existing subscription if any
-      await _currentSubscription?.cancel();
-      _currentSubscription = null;
-
-      // Create filter for next page
+      final nostrService = ref.read(nostrServiceProvider);
+      
       final filter = Filter(
         authors: [_currentPubkey!],
-        kinds: [22], // NIP-71 short video events
-        h: ['vine'], // Required for vine.hol.is relay
-        until: _lastTimestamp, // Get videos older than the last one we have
-        limit: _pageSize,
+        kinds: [22], // Corrected from 34550
+        h: ['vine'],
+        until: state.lastTimestamp! - 1, // Load older videos
+        limit: _profileVideosPageSize,
       );
 
-      final completer = Completer<void>();
-      final receivedVideos = <VideoEvent>[];
+      final completer = Completer<List<VideoEvent>>();
+      final events = <Event>[];
 
-      // Subscribe to more video events using NostrService directly
-      final eventStream = _nostrService.subscribeToEvents(filters: [filter]);
-      
-      _currentSubscription = eventStream.listen(
+      final subscription = nostrService.subscribeToEvents(
+        filters: [filter],
+      );
+
+      subscription.listen(
         (event) {
-          try {
-            final videoEvent = VideoEvent.fromNostrEvent(event);
-            
-            // Avoid duplicates with existing videos
-            if (!_videos.any((v) => v.id == videoEvent.id) && 
-                !receivedVideos.any((v) => v.id == videoEvent.id)) {
-              receivedVideos.add(videoEvent);
-              Log.debug('� Received more video: ${videoEvent.id.substring(0, 8)}', name: 'ProfileVideosProvider', category: LogCategory.ui);
-            }
-          } catch (e) {
-            Log.error('Error parsing video event: $e', name: 'ProfileVideosProvider', category: LogCategory.ui);
-          }
+          events.add(event);
         },
         onError: (error) {
-          Log.error('Error in load more subscription: $error', name: 'ProfileVideosProvider', category: LogCategory.ui);
+          Log.error('Error loading more videos: $error',
+              name: 'ProfileVideosProvider', category: LogCategory.ui);
           if (!completer.isCompleted) {
-            completer.completeError(error);
+            completer.complete([]);
           }
         },
         onDone: () {
+          final videos = events
+              .map((event) => VideoEvent.fromNostrEvent(event))
+              .toList();
+          
           if (!completer.isCompleted) {
-            completer.complete();
+            completer.complete(videos);
           }
         },
       );
 
-      // Set timeout
+      // Timeout for fetching
       Timer(const Duration(seconds: 10), () {
         if (!completer.isCompleted) {
-          completer.complete();
+          final videos = events
+              .map((event) => VideoEvent.fromNostrEvent(event))
+              .toList();
+          completer.complete(videos);
         }
       });
 
-      await completer.future;
+      final newVideos = await completer.future;
 
-      // Cancel the subscription after data fetch to prevent resource leak  
-      await _currentSubscription?.cancel();
-      _currentSubscription = null;
+      // Sort new videos
+      newVideos.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
-      // Sort new videos by creation time
-      receivedVideos.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-      // Add new videos to existing list
-      _videos.addAll(receivedVideos);
-      _hasMore = receivedVideos.length >= _pageSize;
-      
-      if (receivedVideos.isNotEmpty) {
-        _lastTimestamp = receivedVideos.last.createdAt;
-      }
+      // Combine with existing videos
+      final allVideos = <VideoEvent>[...state.videos, ...newVideos];
+      final hasMore = newVideos.length >= _profileVideosPageSize;
 
       // Update cache
-      _cacheVideos(_currentPubkey!, _videos, _hasMore);
+      _cacheProfileVideos(_currentPubkey!, allVideos, hasMore);
 
-      _setLoadingState(ProfileVideosLoadingState.loaded);
-      Log.info('Loaded ${receivedVideos.length} more videos (total: ${_videos.length})', name: 'ProfileVideosProvider', category: LogCategory.ui);
+      state = state.copyWith(
+        videos: allVideos,
+        isLoadingMore: false,
+        hasMore: hasMore,
+        lastTimestamp: allVideos.isNotEmpty ? allVideos.last.createdAt : null,
+      );
 
+      Log.info('📱 Loaded ${newVideos.length} more videos (total: ${allVideos.length})',
+          name: 'ProfileVideosProvider', category: LogCategory.ui);
     } catch (e) {
-      _error = e.toString();
-      _setLoadingState(ProfileVideosLoadingState.error);
-      Log.error('Error loading more videos: $e', name: 'ProfileVideosProvider', category: LogCategory.ui);
+      state = state.copyWith(
+        isLoadingMore: false,
+        error: e.toString(),
+      );
+      Log.error('Error loading more videos: $e',
+          name: 'ProfileVideosProvider', category: LogCategory.ui);
     }
   }
 
-  /// Refresh videos for current user
+  /// Refresh videos by clearing cache and reloading
   Future<void> refreshVideos() async {
     if (_currentPubkey != null) {
-      _clearCache(_currentPubkey!);
+      _clearProfileVideosCache(_currentPubkey!);
+      ref.invalidate(profileVideosProvider(_currentPubkey!));
       await loadVideosForUser(_currentPubkey!);
     }
   }
 
-  /// Get cached videos if available and not expired
-  List<VideoEvent>? _getCachedVideos(String pubkey) {
-    final videos = _videosCache[pubkey];
-    final timestamp = _cacheTimestamps[pubkey];
+  /// Clear error state
+  void clearError() {
+    state = state.copyWith(error: null);
+  }
 
-    if (videos != null && timestamp != null) {
-      final age = DateTime.now().difference(timestamp);
-      if (age < _cacheExpiry) {
-        Log.debug('� Using cached videos for ${pubkey.substring(0, 8)} (age: ${age.inMinutes}min)', name: 'ProfileVideosProvider', category: LogCategory.ui);
-        return videos;
-      } else {
-        Log.debug('⏰ Video cache expired for ${pubkey.substring(0, 8)} (age: ${age.inMinutes}min)', name: 'ProfileVideosProvider', category: LogCategory.ui);
-        _clearCache(pubkey);
-      }
+  /// Add a new video to the current list (for optimistic updates)
+  void addVideo(VideoEvent video) {
+    if (_currentPubkey != null && video.pubkey == _currentPubkey) {
+      final updatedVideos = [video, ...state.videos];
+      state = state.copyWith(videos: updatedVideos);
+      
+      // Update cache
+      _cacheProfileVideos(_currentPubkey!, updatedVideos, state.hasMore);
     }
-
-    return null;
   }
 
-  /// Cache videos for a user
-  void _cacheVideos(String pubkey, List<VideoEvent> videos, bool hasMore) {
-    _videosCache[pubkey] = List.from(videos);
-    _cacheTimestamps[pubkey] = DateTime.now();
-    _hasMoreCache[pubkey] = hasMore;
-    Log.debug('� Cached ${videos.length} videos for ${pubkey.substring(0, 8)}', name: 'ProfileVideosProvider', category: LogCategory.ui);
-  }
-
-  /// Clear cache for a specific user
-  void _clearCache(String pubkey) {
-    _videosCache.remove(pubkey);
-    _cacheTimestamps.remove(pubkey);
-    _hasMoreCache.remove(pubkey);
-  }
-
-  /// Clear all cached videos
-  void clearAllCache() {
-    _videosCache.clear();
-    _cacheTimestamps.clear();
-    _hasMoreCache.clear();
-    Log.debug('�️ Cleared all video cache', name: 'ProfileVideosProvider', category: LogCategory.ui);
-  }
-
-  /// Set loading state and notify listeners
-  void _setLoadingState(ProfileVideosLoadingState state) {
-    _loadingState = state;
-    notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    Log.debug('�️ Disposing ProfileVideosProvider', name: 'ProfileVideosProvider', category: LogCategory.ui);
+  /// Remove a video from the current list
+  void removeVideo(String videoId) {
+    final updatedVideos = state.videos.where((v) => v.id != videoId).toList();
+    state = state.copyWith(videos: updatedVideos);
     
-    // Close subscription
-    _currentSubscription?.cancel();
-    _currentSubscription = null;
-    
-    super.dispose();
+    // Update cache if we have a current pubkey
+    if (_currentPubkey != null) {
+      _cacheProfileVideos(_currentPubkey!, updatedVideos, state.hasMore);
+    }
   }
 }

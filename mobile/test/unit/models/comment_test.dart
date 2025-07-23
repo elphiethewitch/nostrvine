@@ -6,14 +6,18 @@ import 'package:openvine/models/comment.dart';
 
 void main() {
   group('Comment Model Unit Tests', () {
-    const testCommentId = 'a1b2c3d4e5f6789012345678901234567890abcdef123456789012345678901234';
+    const testCommentId =
+        'a1b2c3d4e5f6789012345678901234567890abcdef123456789012345678901234';
     const testContent = 'This is a test comment';
-    const testAuthorPubkey = 'b2c3d4e5f6789012345678901234567890abcdef123456789012345678901234a';
-    const testRootEventId = 'c3d4e5f6789012345678901234567890abcdef123456789012345678901234ab';
-    const testRootAuthorPubkey = 'd4e5f6789012345678901234567890abcdef123456789012345678901234abc';
-    
+    const testAuthorPubkey =
+        'b2c3d4e5f6789012345678901234567890abcdef123456789012345678901234a';
+    const testRootEventId =
+        'c3d4e5f6789012345678901234567890abcdef123456789012345678901234ab';
+    const testRootAuthorPubkey =
+        'd4e5f6789012345678901234567890abcdef123456789012345678901234abc';
+
     late DateTime testCreatedAt;
-    
+
     setUp(() {
       testCreatedAt = DateTime.now();
     });
@@ -29,7 +33,7 @@ void main() {
           rootEventId: testRootEventId,
           rootAuthorPubkey: testRootAuthorPubkey,
         );
-        
+
         // Assert
         expect(comment.id, equals(testCommentId));
         expect(comment.content, equals(testContent));
@@ -43,9 +47,11 @@ void main() {
 
       test('should create comment with optional reply fields', () {
         // Arrange
-        const replyToEventId = 'e5f6789012345678901234567890abcdef123456789012345678901234abcd';
-        const replyToAuthorPubkey = 'f6789012345678901234567890abcdef123456789012345678901234abcde';
-        
+        const replyToEventId =
+            'e5f6789012345678901234567890abcdef123456789012345678901234abcd';
+        const replyToAuthorPubkey =
+            'f6789012345678901234567890abcdef123456789012345678901234abcde';
+
         // Act
         final comment = Comment(
           id: testCommentId,
@@ -57,7 +63,7 @@ void main() {
           replyToEventId: replyToEventId,
           replyToAuthorPubkey: replyToAuthorPubkey,
         );
-        
+
         // Assert
         expect(comment.replyToEventId, equals(replyToEventId));
         expect(comment.replyToAuthorPubkey, equals(replyToAuthorPubkey));
@@ -75,7 +81,7 @@ void main() {
           rootEventId: testRootEventId,
           rootAuthorPubkey: testRootAuthorPubkey,
         );
-        
+
         // Assert
         expect(comment.isReply, isFalse);
       });
@@ -91,7 +97,7 @@ void main() {
           rootAuthorPubkey: testRootAuthorPubkey,
           replyToEventId: 'some_parent_id',
         );
-        
+
         // Assert
         expect(comment.isReply, isTrue);
       });
@@ -101,7 +107,7 @@ void main() {
       test('should return "now" for very recent comment', () {
         // Arrange
         final recentTime = DateTime.now().subtract(const Duration(seconds: 5));
-        
+
         // Act
         final comment = Comment(
           id: testCommentId,
@@ -111,7 +117,7 @@ void main() {
           rootEventId: testRootEventId,
           rootAuthorPubkey: testRootAuthorPubkey,
         );
-        
+
         // Assert
         expect(comment.relativeTime, equals('now'));
       });
@@ -119,7 +125,7 @@ void main() {
       test('should return "now" for comment under 1 minute', () {
         // Arrange
         final timeAgo = DateTime.now().subtract(const Duration(seconds: 30));
-        
+
         // Act
         final comment = Comment(
           id: testCommentId,
@@ -129,7 +135,7 @@ void main() {
           rootEventId: testRootEventId,
           rootAuthorPubkey: testRootAuthorPubkey,
         );
-        
+
         // Assert
         expect(comment.relativeTime, equals('now'));
       });
@@ -137,7 +143,7 @@ void main() {
       test('should return minutes for comment under 1 hour', () {
         // Arrange
         final timeAgo = DateTime.now().subtract(const Duration(minutes: 15));
-        
+
         // Act
         final comment = Comment(
           id: testCommentId,
@@ -147,7 +153,7 @@ void main() {
           rootEventId: testRootEventId,
           rootAuthorPubkey: testRootAuthorPubkey,
         );
-        
+
         // Assert
         expect(comment.relativeTime, equals('15m ago'));
       });
@@ -155,7 +161,7 @@ void main() {
       test('should return hours for comment under 1 day', () {
         // Arrange
         final timeAgo = DateTime.now().subtract(const Duration(hours: 3));
-        
+
         // Act
         final comment = Comment(
           id: testCommentId,
@@ -165,7 +171,7 @@ void main() {
           rootEventId: testRootEventId,
           rootAuthorPubkey: testRootAuthorPubkey,
         );
-        
+
         // Assert
         expect(comment.relativeTime, equals('3h ago'));
       });
@@ -173,7 +179,7 @@ void main() {
       test('should return days for comment over 1 day', () {
         // Arrange
         final timeAgo = DateTime.now().subtract(const Duration(days: 2));
-        
+
         // Act
         final comment = Comment(
           id: testCommentId,
@@ -183,7 +189,7 @@ void main() {
           rootEventId: testRootEventId,
           rootAuthorPubkey: testRootAuthorPubkey,
         );
-        
+
         // Assert
         expect(comment.relativeTime, equals('2d ago'));
       });
@@ -202,10 +208,10 @@ void main() {
           replyToEventId: 'reply_id',
           replyToAuthorPubkey: 'reply_author',
         );
-        
+
         // Act
         final json = comment.toJson();
-        
+
         // Assert
         expect(json['id'], equals(testCommentId));
         expect(json['content'], equals(testContent));
@@ -229,10 +235,10 @@ void main() {
           'replyToEventId': 'reply_id',
           'replyToAuthorPubkey': 'reply_author',
         };
-        
+
         // Act
         final comment = Comment.fromJson(json);
-        
+
         // Assert
         expect(comment.id, equals(testCommentId));
         expect(comment.content, equals(testContent));
@@ -256,10 +262,10 @@ void main() {
           'replyToEventId': null,
           'replyToAuthorPubkey': null,
         };
-        
+
         // Act
         final comment = Comment.fromJson(json);
-        
+
         // Assert
         expect(comment.replyToEventId, isNull);
         expect(comment.replyToAuthorPubkey, isNull);
@@ -278,7 +284,7 @@ void main() {
           rootEventId: testRootEventId,
           rootAuthorPubkey: testRootAuthorPubkey,
         );
-        
+
         final comment2 = Comment(
           id: testCommentId,
           content: testContent,
@@ -287,7 +293,7 @@ void main() {
           rootEventId: testRootEventId,
           rootAuthorPubkey: testRootAuthorPubkey,
         );
-        
+
         // Assert
         expect(comment1, equals(comment2));
         expect(comment1.hashCode, equals(comment2.hashCode));
@@ -303,7 +309,7 @@ void main() {
           rootEventId: testRootEventId,
           rootAuthorPubkey: testRootAuthorPubkey,
         );
-        
+
         final comment2 = Comment(
           id: 'different_id_123456789012345678901234567890abcdef123456789012',
           content: testContent,
@@ -312,7 +318,7 @@ void main() {
           rootEventId: testRootEventId,
           rootAuthorPubkey: testRootAuthorPubkey,
         );
-        
+
         // Assert
         expect(comment1, isNot(equals(comment2)));
       });
@@ -329,7 +335,7 @@ void main() {
           rootEventId: testRootEventId,
           rootAuthorPubkey: testRootAuthorPubkey,
         );
-        
+
         // Assert
         expect(comment.content, equals(''));
       });
@@ -337,7 +343,7 @@ void main() {
       test('should handle very long content', () {
         // Arrange
         final longContent = 'A' * 1000;
-        
+
         // Act
         final comment = Comment(
           id: testCommentId,
@@ -347,7 +353,7 @@ void main() {
           rootEventId: testRootEventId,
           rootAuthorPubkey: testRootAuthorPubkey,
         );
-        
+
         // Assert
         expect(comment.content, equals(longContent));
         expect(comment.content.length, equals(1000));
@@ -356,7 +362,7 @@ void main() {
       test('should handle future timestamps', () {
         // Arrange
         final futureTime = DateTime.now().add(const Duration(hours: 1));
-        
+
         // Act
         final comment = Comment(
           id: testCommentId,
@@ -366,10 +372,11 @@ void main() {
           rootEventId: testRootEventId,
           rootAuthorPubkey: testRootAuthorPubkey,
         );
-        
+
         // Assert
         expect(comment.createdAt, equals(futureTime));
-        expect(comment.relativeTime, equals('now')); // Future times show as "now"
+        expect(
+            comment.relativeTime, equals('now')); // Future times show as "now"
       });
     });
   });

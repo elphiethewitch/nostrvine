@@ -2,24 +2,25 @@
 // ABOUTME: Tests that duplicate events are properly filtered to prevent redundant processing
 
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:nostr_sdk/event.dart';
 import 'package:nostr_sdk/filter.dart';
-import 'package:openvine/models/video_event.dart';
-import 'package:openvine/services/video_event_service.dart';
 import 'package:openvine/services/nostr_service_interface.dart';
 import 'package:openvine/services/subscription_manager.dart';
+import 'package:openvine/services/video_event_service.dart';
 
-// Mock classes  
+// Mock classes
 class MockNostrService extends Mock implements INostrService {}
+
 class MockEvent extends Mock implements Event {}
 
 class TestSubscriptionManager extends Mock implements SubscriptionManager {
-  final StreamController<Event> eventStreamController;
   TestSubscriptionManager(this.eventStreamController);
-  
+  final StreamController<Event> eventStreamController;
+
   @override
   Future<String> createSubscription({
     required String name,
@@ -34,7 +35,7 @@ class TestSubscriptionManager extends Mock implements SubscriptionManager {
     eventStreamController.stream.listen(onEvent);
     return 'mock_sub_$name';
   }
-  
+
   @override
   Future<void> cancelSubscription(String subscriptionId) async {
     // No-op for tests
@@ -57,16 +58,19 @@ void main() {
     setUp(() {
       mockNostrService = MockNostrService();
       eventStreamController = StreamController<Event>.broadcast();
-      
+
       // Setup mock responses
       when(() => mockNostrService.isInitialized).thenReturn(true);
       when(() => mockNostrService.connectedRelayCount).thenReturn(1);
-      when(() => mockNostrService.subscribeToEvents(filters: any(named: 'filters')))
+      when(() => mockNostrService.subscribeToEvents(
+              filters: any(named: 'filters')))
           .thenAnswer((_) => eventStreamController.stream);
-      
-      final testSubscriptionManager = TestSubscriptionManager(eventStreamController);
-      
-      videoEventService = VideoEventService(mockNostrService, subscriptionManager: testSubscriptionManager);
+
+      final testSubscriptionManager =
+          TestSubscriptionManager(eventStreamController);
+
+      videoEventService = VideoEventService(mockNostrService,
+          subscriptionManager: testSubscriptionManager);
     });
 
     tearDown(() async {
@@ -92,17 +96,17 @@ void main() {
 
       // Subscribe to video feed
       await videoEventService.subscribeToVideoFeed();
-      
+
       // Add a small delay to ensure subscription is set up
       await Future.delayed(const Duration(milliseconds: 10));
 
       // Send the same event multiple times
       eventStreamController.add(testEvent);
       await Future.delayed(const Duration(milliseconds: 10));
-      
+
       eventStreamController.add(testEvent);
       await Future.delayed(const Duration(milliseconds: 10));
-      
+
       eventStreamController.add(testEvent);
       await Future.delayed(const Duration(milliseconds: 10));
 
@@ -140,7 +144,7 @@ void main() {
 
       // Verify all unique events were added
       expect(videoEventService.videoEvents.length, equals(3));
-      
+
       // Verify they're in reverse chronological order (newest first)
       expect(videoEventService.videoEvents[0].id, equals('test-video-id-2'));
       expect(videoEventService.videoEvents[1].id, equals('test-video-id-1'));
@@ -160,7 +164,7 @@ void main() {
         createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       );
       event1.id = 'test-video-id-1';
-      
+
       final event2 = Event(
         'd0aa74d68e414f0305db9f7dc96ec32e616502e6ccf5bbf5739de19a96b67f3e',
         22,
@@ -180,28 +184,29 @@ void main() {
       // Send events in mixed order with duplicates
       eventStreamController.add(event1);
       await Future.delayed(const Duration(milliseconds: 10));
-      
+
       eventStreamController.add(event2);
       await Future.delayed(const Duration(milliseconds: 10));
-      
+
       eventStreamController.add(event1); // Duplicate
       await Future.delayed(const Duration(milliseconds: 10));
-      
+
       eventStreamController.add(event2); // Duplicate
       await Future.delayed(const Duration(milliseconds: 10));
-      
+
       eventStreamController.add(event1); // Another duplicate
       await Future.delayed(const Duration(milliseconds: 10));
 
       // Verify only unique events were added
       expect(videoEventService.videoEvents.length, equals(2));
-      
+
       // Verify order (newest first)
       expect(videoEventService.videoEvents[0].id, equals('test-video-id-2'));
       expect(videoEventService.videoEvents[1].id, equals('test-video-id-1'));
     });
 
-    test('should maintain deduplication across multiple subscriptions', () async {
+    test('should maintain deduplication across multiple subscriptions',
+        () async {
       // Create test event
       final testEvent = Event(
         'd0aa74d68e414f0305db9f7dc96ec32e616502e6ccf5bbf5739de19a96b67f3e',
@@ -218,31 +223,32 @@ void main() {
       // First subscription
       await videoEventService.subscribeToVideoFeed();
       await Future.delayed(const Duration(milliseconds: 10));
-      
+
       eventStreamController.add(testEvent);
       await Future.delayed(const Duration(milliseconds: 10));
-      
+
       expect(videoEventService.videoEvents.length, equals(1));
 
       // Unsubscribe and re-subscribe
       await videoEventService.unsubscribeFromVideoFeed();
       await Future.delayed(const Duration(milliseconds: 10));
-      
+
       // Create new stream controller for new subscription
       final newEventStreamController = StreamController<Event>.broadcast();
-      when(() => mockNostrService.subscribeToEvents(filters: any(named: 'filters')))
+      when(() => mockNostrService.subscribeToEvents(
+              filters: any(named: 'filters')))
           .thenAnswer((_) => newEventStreamController.stream);
-      
+
       await videoEventService.subscribeToVideoFeed(replace: false);
       await Future.delayed(const Duration(milliseconds: 10));
-      
+
       // Try to add the same event again
       newEventStreamController.add(testEvent);
       await Future.delayed(const Duration(milliseconds: 10));
-      
+
       // Should still have only one event
       expect(videoEventService.videoEvents.length, equals(1));
-      
+
       newEventStreamController.close();
     });
 
@@ -265,16 +271,17 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 10));
 
       // Send the same event rapidly without delays
-      for (int i = 0; i < 100; i++) {
+      for (var i = 0; i < 100; i++) {
         eventStreamController.add(testEvent);
       }
-      
+
       // Allow processing time
       await Future.delayed(const Duration(milliseconds: 50));
 
       // Should still have only one event despite rapid duplicates
       expect(videoEventService.videoEvents.length, equals(1));
-      expect(videoEventService.videoEvents.first.id, equals('rapid-test-video'));
+      expect(
+          videoEventService.videoEvents.first.id, equals('rapid-test-video'));
     });
 
     test('should handle events with invalid kind gracefully', () async {
@@ -290,7 +297,7 @@ void main() {
         createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       );
       validEvent.id = 'valid-video';
-      
+
       final invalidEvent = Event(
         'd0aa74d68e414f0305db9f7dc96ec32e616502e6ccf5bbf5739de19a96b67f3e',
         1, // Text note, not a video
@@ -323,15 +330,18 @@ void main() {
     setUp(() {
       mockNostrService = MockNostrService();
       eventStreamController = StreamController<Event>.broadcast();
-      
+
       when(() => mockNostrService.isInitialized).thenReturn(true);
       when(() => mockNostrService.connectedRelayCount).thenReturn(1);
-      when(() => mockNostrService.subscribeToEvents(filters: any(named: 'filters')))
+      when(() => mockNostrService.subscribeToEvents(
+              filters: any(named: 'filters')))
           .thenAnswer((_) => eventStreamController.stream);
-      
-      final testSubscriptionManager = TestSubscriptionManager(eventStreamController);
-      
-      videoEventService = VideoEventService(mockNostrService, subscriptionManager: testSubscriptionManager);
+
+      final testSubscriptionManager =
+          TestSubscriptionManager(eventStreamController);
+
+      videoEventService = VideoEventService(mockNostrService,
+          subscriptionManager: testSubscriptionManager);
     });
 
     tearDown(() async {
@@ -341,9 +351,10 @@ void main() {
     });
 
     test('should deduplicate reposts of the same video', () async {
-      final originalVideoId = 'original-video-id';
-      final originalPubkey = 'd0aa74d68e414f0305db9f7dc96ec32e616502e6ccf5bbf5739de19a96b67f3e';
-      
+      const originalVideoId = 'original-video-id';
+      const originalPubkey =
+          'd0aa74d68e414f0305db9f7dc96ec32e616502e6ccf5bbf5739de19a96b67f3e';
+
       // Create multiple reposts of the same video
       final repost1 = Event(
         '70ed6c56d6fb355f102a1e985741b5ee65f6ae9f772e028894b321bc74854082',
@@ -356,7 +367,7 @@ void main() {
         createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       );
       repost1.id = 'repost-1';
-      
+
       final repost2 = Event(
         '25315276cbaeb8f2ed998ed55d15ef8c9cf2027baea191d1253d9a5c69a2b856',
         6, // Another repost of same video
@@ -376,7 +387,7 @@ void main() {
       // Send both reposts
       eventStreamController.add(repost1);
       await Future.delayed(const Duration(milliseconds: 10));
-      
+
       eventStreamController.add(repost2);
       await Future.delayed(const Duration(milliseconds: 10));
 

@@ -4,20 +4,19 @@
 import 'package:flutter/material.dart';
 
 class NotificationBadge extends StatelessWidget {
+  const NotificationBadge({
+    required this.child,
+    required this.count,
+    super.key,
+    this.showBadge = true,
+    this.badgeColor,
+    this.textColor,
+  });
   final Widget child;
   final int count;
   final bool showBadge;
   final Color? badgeColor;
   final Color? textColor;
-
-  const NotificationBadge({
-    super.key,
-    required this.child,
-    required this.count,
-    this.showBadge = true,
-    this.badgeColor,
-    this.textColor,
-  });
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +82,15 @@ class NotificationBadge extends StatelessWidget {
 
 /// Animated notification badge with pulse effect for new notifications
 class AnimatedNotificationBadge extends StatefulWidget {
+  const AnimatedNotificationBadge({
+    required this.child,
+    required this.count,
+    super.key,
+    this.showBadge = true,
+    this.pulseOnNewNotification = true,
+    this.badgeColor,
+    this.textColor,
+  });
   final Widget child;
   final int count;
   final bool showBadge;
@@ -90,18 +98,9 @@ class AnimatedNotificationBadge extends StatefulWidget {
   final Color? badgeColor;
   final Color? textColor;
 
-  const AnimatedNotificationBadge({
-    super.key,
-    required this.child,
-    required this.count,
-    this.showBadge = true,
-    this.pulseOnNewNotification = true,
-    this.badgeColor,
-    this.textColor,
-  });
-
   @override
-  State<AnimatedNotificationBadge> createState() => _AnimatedNotificationBadgeState();
+  State<AnimatedNotificationBadge> createState() =>
+      _AnimatedNotificationBadgeState();
 }
 
 class _AnimatedNotificationBadgeState extends State<AnimatedNotificationBadge>
@@ -114,14 +113,14 @@ class _AnimatedNotificationBadgeState extends State<AnimatedNotificationBadge>
   void initState() {
     super.initState();
     _previousCount = widget.count;
-    
+
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
+
     _scaleAnimation = Tween<double>(
-      begin: 1.0,
+      begin: 1,
       end: 1.3,
     ).animate(
       CurvedAnimation(
@@ -134,7 +133,7 @@ class _AnimatedNotificationBadgeState extends State<AnimatedNotificationBadge>
   @override
   void didUpdateWidget(AnimatedNotificationBadge oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     if (widget.count > _previousCount && widget.pulseOnNewNotification) {
       _animationController.forward().then((_) {
         _animationController.reverse();
@@ -164,12 +163,10 @@ class _AnimatedNotificationBadgeState extends State<AnimatedNotificationBadge>
           top: -8,
           child: AnimatedBuilder(
             animation: _scaleAnimation,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: _scaleAnimation.value,
-                child: child,
-              );
-            },
+            builder: (context, child) => Transform.scale(
+              scale: _scaleAnimation.value,
+              child: child,
+            ),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               padding: EdgeInsets.symmetric(

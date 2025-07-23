@@ -20,7 +20,7 @@ void main() {
         title: 'Test Video 1',
       );
       testVideo2 = TestHelpers.createVideoEvent(
-        id: 'test-video-2', 
+        id: 'test-video-2',
         title: 'Test Video 2',
       );
     });
@@ -33,17 +33,17 @@ void main() {
       test('should implement all IVideoManager methods', () {
         // ASSERT - Check that mock implements the interface
         expect(mockManager, isA<IVideoManager>());
-        
+
         // Verify all required getters exist
         expect(() => mockManager.videos, returnsNormally);
         expect(() => mockManager.readyVideos, returnsNormally);
         expect(() => mockManager.stateChanges, returnsNormally);
-        
+
         // Verify all required methods exist and return expected types
         expect(mockManager.getVideoState('test'), isNull);
         expect(mockManager.getController('test'), isNull);
         expect(mockManager.getDebugInfo(), isA<Map<String, dynamic>>());
-        
+
         // Methods that don't return values
         mockManager.disposeVideo('test');
         mockManager.preloadAroundIndex(0);
@@ -60,17 +60,18 @@ void main() {
         expect(mockManager.videos, hasLength(2));
         expect(mockManager.videos[0].id, equals(testVideo2.id)); // Newest first
         expect(mockManager.videos[1].id, equals(testVideo1.id)); // Oldest last
-        
+
         final state1 = mockManager.getVideoState(testVideo1.id);
         expect(state1!.isReady, isTrue);
-        
+
         final state2 = mockManager.getVideoState(testVideo2.id);
         expect(state2!.loadingState, equals(VideoLoadingState.notLoaded));
       });
     });
 
     group('Test Control Features', () {
-      test('should control preload behavior with PreloadBehavior.alwaysFail', () async {
+      test('should control preload behavior with PreloadBehavior.alwaysFail',
+          () async {
         // ARRANGE
         mockManager.setPreloadBehavior(PreloadBehavior.alwaysFail);
         await mockManager.addVideoEvent(testVideo1);
@@ -84,7 +85,8 @@ void main() {
         expect(state.errorMessage, contains('always fail'));
       });
 
-      test('should control preload behavior with PreloadBehavior.failOnce', () async {
+      test('should control preload behavior with PreloadBehavior.failOnce',
+          () async {
         // ARRANGE
         mockManager.setPreloadBehavior(PreloadBehavior.failOnce);
         await mockManager.addVideoEvent(testVideo1);
@@ -113,7 +115,8 @@ void main() {
 
         // ASSERT
         final actualDelay = endTime.difference(startTime);
-        expect(actualDelay.inMilliseconds, greaterThanOrEqualTo(testDelay.inMilliseconds - 50));
+        expect(actualDelay.inMilliseconds,
+            greaterThanOrEqualTo(testDelay.inMilliseconds - 50));
       });
 
       test('should control memory pressure threshold', () async {
@@ -155,8 +158,10 @@ void main() {
         // ASSERT
         final stats = mockManager.getStatistics();
         expect(stats['preloadCallCount'], equals(1));
-        expect(stats['disposeCallCount'], greaterThanOrEqualTo(1)); // At least once direct call
-        expect(stats['memoryPressureCallCount'], greaterThanOrEqualTo(1)); // At least once
+        expect(stats['disposeCallCount'],
+            greaterThanOrEqualTo(1)); // At least once direct call
+        expect(stats['memoryPressureCallCount'],
+            greaterThanOrEqualTo(1)); // At least once
       });
 
       test('should log operations for verification', () async {
@@ -200,7 +205,8 @@ void main() {
         expect(debugInfo, containsPair('preloadCallCount', 0));
         expect(debugInfo, containsPair('disposeCallCount', 0));
         expect(debugInfo, containsPair('memoryPressureCallCount', 0));
-        expect(debugInfo, containsPair('preloadBehavior', PreloadBehavior.normal.toString()));
+        expect(debugInfo,
+            containsPair('preloadBehavior', PreloadBehavior.normal.toString()));
         expect(debugInfo, containsPair('preloadDelay', 50));
         expect(debugInfo, containsPair('memoryPressureThreshold', 10));
         expect(debugInfo, containsPair('operationLog', isA<List>()));
@@ -218,7 +224,8 @@ void main() {
 
         // ASSERT
         final state = mockManager.getVideoState(testVideo1.id);
-        expect(state!.loadingState, equals(VideoLoadingState.notLoaded)); // Unchanged
+        expect(state!.loadingState,
+            equals(VideoLoadingState.notLoaded)); // Unchanged
         expect(mockManager.isVideoPermanentlyFailed(testVideo1.id), isTrue);
       });
 
@@ -226,8 +233,8 @@ void main() {
         // ARRANGE
         mockManager.setPreloadBehavior(PreloadBehavior.randomFail);
         final testVideos = <VideoEvent>[];
-        
-        for (int i = 0; i < 10; i++) {
+
+        for (var i = 0; i < 10; i++) {
           final video = TestHelpers.createVideoEvent(id: 'video-$i');
           testVideos.add(video);
           await mockManager.addVideoEvent(video);
@@ -241,7 +248,7 @@ void main() {
         // ASSERT - Some should succeed, some should fail
         final readyCount = mockManager.readyVideos.length;
         final failedCount = mockManager.getDebugInfo()['failedVideos'] as int;
-        
+
         expect(readyCount + failedCount, equals(testVideos.length));
         expect(readyCount, greaterThan(0)); // At least some should succeed
         expect(failedCount, greaterThan(0)); // At least some should fail
@@ -275,7 +282,8 @@ void main() {
 
         // ASSERT
         final debugInfo = mockManager.getDebugInfo();
-        expect(debugInfo['preloadBehavior'], equals(PreloadBehavior.normal.toString()));
+        expect(debugInfo['preloadBehavior'],
+            equals(PreloadBehavior.normal.toString()));
         expect(debugInfo['preloadDelay'], equals(50));
         expect(debugInfo['memoryPressureThreshold'], equals(10));
         expect(mockManager.isVideoPermanentlyFailed('test'), isFalse);
@@ -286,9 +294,7 @@ void main() {
       test('should emit state changes on operations', () async {
         // ARRANGE
         final stateChanges = <void>[];
-        final subscription = mockManager.stateChanges.listen((change) {
-          stateChanges.add(change);
-        });
+        final subscription = mockManager.stateChanges.listen(stateChanges.add);
 
         // ACT
         await mockManager.addVideoEvent(testVideo1);
@@ -307,7 +313,7 @@ void main() {
 
       test('should close state change stream on disposal', () async {
         // ARRANGE
-        bool streamClosed = false;
+        var streamClosed = false;
         final subscription = mockManager.stateChanges.listen(
           (change) {},
           onDone: () => streamClosed = true,
@@ -333,7 +339,7 @@ void main() {
 
         // ACT - Start multiple concurrent operations
         final futures = <Future>[];
-        for (int i = 0; i < 5; i++) {
+        for (var i = 0; i < 5; i++) {
           futures.add(mockManager.preloadVideo(testVideo1.id));
         }
         await Future.wait(futures);
@@ -358,18 +364,21 @@ void main() {
 
       test('should handle operations on non-existent videos', () async {
         // ACT & ASSERT - Should handle gracefully
-        expect(() => mockManager.getVideoState('non-existent'), returnsNormally);
-        expect(() => mockManager.getController('non-existent'), returnsNormally);
+        expect(
+            () => mockManager.getVideoState('non-existent'), returnsNormally);
+        expect(
+            () => mockManager.getController('non-existent'), returnsNormally);
         expect(() => mockManager.disposeVideo('non-existent'), returnsNormally);
-        
+
         expect(mockManager.getVideoState('non-existent'), isNull);
         expect(mockManager.getController('non-existent'), isNull);
       });
 
       test('should maintain operation log size limits', () async {
         // ARRANGE & ACT - Perform many operations
-        for (int i = 0; i < 150; i++) {
-          await mockManager.addVideoEvent(TestHelpers.createVideoEvent(id: 'video-$i'));
+        for (var i = 0; i < 150; i++) {
+          await mockManager
+              .addVideoEvent(TestHelpers.createVideoEvent(id: 'video-$i'));
         }
 
         // ASSERT - Log should be capped at reasonable size
@@ -381,7 +390,7 @@ void main() {
     group('Mock Reliability and Consistency', () {
       test('should provide consistent behavior across multiple runs', () async {
         // Test the same operations multiple times to ensure consistency
-        for (int run = 0; run < 3; run++) {
+        for (var run = 0; run < 3; run++) {
           // ARRANGE
           final runManager = MockVideoManager();
           final video = TestHelpers.createVideoEvent(id: 'consistent-test');
@@ -404,11 +413,11 @@ void main() {
         // ARRANGE - Create two identical managers
         final manager1 = MockVideoManager();
         final manager2 = MockVideoManager();
-        
+
         const videoCount = 5;
-        
+
         // ACT - Perform identical operations on both
-        for (int i = 0; i < videoCount; i++) {
+        for (var i = 0; i < videoCount; i++) {
           final video = TestHelpers.createVideoEvent(id: 'deterministic-$i');
           await manager1.addVideoEvent(video);
           await manager2.addVideoEvent(video);
@@ -418,8 +427,9 @@ void main() {
 
         // ASSERT - Results should be identical
         expect(manager1.videos.length, equals(manager2.videos.length));
-        expect(manager1.readyVideos.length, equals(manager2.readyVideos.length));
-        
+        expect(
+            manager1.readyVideos.length, equals(manager2.readyVideos.length));
+
         final stats1 = manager1.getStatistics();
         final stats2 = manager2.getStatistics();
         expect(stats1['preloadCallCount'], equals(stats2['preloadCallCount']));
@@ -434,7 +444,7 @@ void main() {
         await mockManager.addVideoEvent(testVideo1);
         mockManager.setPreloadBehavior(PreloadBehavior.alwaysFail);
         await mockManager.preloadVideo(testVideo1.id);
-        
+
         final firstRunState = mockManager.getVideoState(testVideo1.id);
         expect(firstRunState!.hasFailed, isTrue);
 

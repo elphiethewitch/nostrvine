@@ -3,15 +3,17 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:openvine/models/video_event.dart';
 import 'package:openvine/services/hashtag_service.dart';
 import 'package:openvine/services/video_event_service.dart';
-import 'package:openvine/models/video_event.dart';
 
 class MockVideoEventService extends Mock implements VideoEventService {
   @override
-  List<VideoEvent> get videoEvents => super.noSuchMethod(
-    Invocation.getter(#videoEvents),
-  ) as List<VideoEvent>? ?? <VideoEvent>[];
+  List<VideoEvent> get videoEvents =>
+      super.noSuchMethod(
+        Invocation.getter(#videoEvents),
+      ) as List<VideoEvent>? ??
+      <VideoEvent>[];
 }
 
 void main() {
@@ -54,18 +56,22 @@ void main() {
       hashtagService = HashtagService(mockVideoService);
 
       final allHashtags = hashtagService.allHashtags;
-      expect(allHashtags, containsAll(['bitcoin', 'nostr', 'crypto', 'protocol']));
+      expect(
+          allHashtags, containsAll(['bitcoin', 'nostr', 'crypto', 'protocol']));
     });
 
     test('should calculate hashtag statistics correctly', () {
       final now = DateTime.now();
-      final recent = now.subtract(Duration(hours: 12));
-      final old = now.subtract(Duration(days: 2));
+      final recent = now.subtract(const Duration(hours: 12));
+      final old = now.subtract(const Duration(days: 2));
 
       final videoEvents = [
-        _createTestVideoEvent('1', ['bitcoin'], 'user1', recent.millisecondsSinceEpoch ~/ 1000),
-        _createTestVideoEvent('2', ['bitcoin'], 'user2', recent.millisecondsSinceEpoch ~/ 1000),
-        _createTestVideoEvent('3', ['bitcoin'], 'user3', old.millisecondsSinceEpoch ~/ 1000),
+        _createTestVideoEvent(
+            '1', ['bitcoin'], 'user1', recent.millisecondsSinceEpoch ~/ 1000),
+        _createTestVideoEvent(
+            '2', ['bitcoin'], 'user2', recent.millisecondsSinceEpoch ~/ 1000),
+        _createTestVideoEvent(
+            '3', ['bitcoin'], 'user3', old.millisecondsSinceEpoch ~/ 1000),
       ];
 
       when(() => mockVideoService.videoEvents).thenReturn(videoEvents);
@@ -111,16 +117,20 @@ void main() {
       ];
 
       when(() => mockVideoService.getVideoEventsByHashtags(['bitcoin']))
-          .thenReturn(videoEvents.where((v) => v.hashtags.contains('bitcoin')).toList());
+          .thenReturn(videoEvents
+              .where((v) => v.hashtags.contains('bitcoin'))
+              .toList());
       when(() => mockVideoService.getVideoEventsByHashtags(['nostr']))
-          .thenReturn(videoEvents.where((v) => v.hashtags.contains('nostr')).toList());
+          .thenReturn(
+              videoEvents.where((v) => v.hashtags.contains('nostr')).toList());
 
       final bitcoinVideos = hashtagService.getVideosByHashtags(['bitcoin']);
       final nostrVideos = hashtagService.getVideosByHashtags(['nostr']);
 
       expect(bitcoinVideos.length, 2);
       expect(nostrVideos.length, 2);
-      expect(bitcoinVideos.map((v) => v.id), containsAll(['video_1', 'video_3']));
+      expect(
+          bitcoinVideos.map((v) => v.id), containsAll(['video_1', 'video_3']));
       expect(nostrVideos.map((v) => v.id), containsAll(['video_2', 'video_3']));
     });
 
@@ -145,7 +155,7 @@ void main() {
       expect(bitcoinResults, contains('bitcoin'));
     });
 
-    test('should get editor\'s picks with multiple authors', () {
+    test("should get editor's picks with multiple authors", () {
       final videoEvents = [
         _createTestVideoEvent('1', ['bitcoin'], 'user1'),
         _createTestVideoEvent('2', ['bitcoin'], 'user2'),
@@ -169,24 +179,33 @@ void main() {
     });
 
     test('should subscribe to hashtag videos', () async {
-      when(() => mockVideoService.subscribeToHashtagVideos(any(), limit: any(named: 'limit')))
-          .thenAnswer((_) async => {});
+      when(() => mockVideoService.subscribeToHashtagVideos(any(),
+          limit: any(named: 'limit'))).thenAnswer((_) async => {});
 
-      await hashtagService.subscribeToHashtagVideos(['bitcoin', 'nostr'], limit: 50);
+      await hashtagService
+          .subscribeToHashtagVideos(['bitcoin', 'nostr'], limit: 50);
 
-      verify(() => mockVideoService.subscribeToHashtagVideos(['bitcoin', 'nostr'], limit: 50))
-          .called(1);
+      verify(() => mockVideoService
+          .subscribeToHashtagVideos(['bitcoin', 'nostr'], limit: 50)).called(1);
     });
 
     test('should calculate trending score correctly', () {
       final now = DateTime.now();
-      final recent = now.subtract(Duration(hours: 1));
+      final recent = now.subtract(const Duration(hours: 1));
 
       final videoEvents = [
-        _createTestVideoEvent('1', ['trending'], 'user1', recent.millisecondsSinceEpoch ~/ 1000),
-        _createTestVideoEvent('2', ['trending'], 'user2', recent.millisecondsSinceEpoch ~/ 1000),
-        _createTestVideoEvent('3', ['trending'], 'user3', recent.millisecondsSinceEpoch ~/ 1000),
-        _createTestVideoEvent('4', ['old'], 'user1', now.subtract(Duration(days: 10)).millisecondsSinceEpoch ~/ 1000),
+        _createTestVideoEvent(
+            '1', ['trending'], 'user1', recent.millisecondsSinceEpoch ~/ 1000),
+        _createTestVideoEvent(
+            '2', ['trending'], 'user2', recent.millisecondsSinceEpoch ~/ 1000),
+        _createTestVideoEvent(
+            '3', ['trending'], 'user3', recent.millisecondsSinceEpoch ~/ 1000),
+        _createTestVideoEvent(
+            '4',
+            ['old'],
+            'user1',
+            now.subtract(const Duration(days: 10)).millisecondsSinceEpoch ~/
+                1000),
       ];
 
       when(() => mockVideoService.videoEvents).thenReturn(videoEvents);
@@ -198,13 +217,17 @@ void main() {
       final trendingStats = hashtagService.getHashtagStats('trending');
       final oldStats = hashtagService.getHashtagStats('old');
 
-      expect(trendingStats!.trendingScore, greaterThan(oldStats!.trendingScore));
+      expect(
+          trendingStats!.trendingScore, greaterThan(oldStats!.trendingScore));
     });
   });
 }
 
-VideoEvent _createTestVideoEvent(String id, List<String> hashtags, String pubkey, [int? createdAt]) {
-  final timestamp = createdAt ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000);
+VideoEvent _createTestVideoEvent(
+    String id, List<String> hashtags, String pubkey,
+    [int? createdAt]) {
+  final timestamp =
+      createdAt ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000);
   return VideoEvent(
     id: 'video_$id',
     pubkey: pubkey,

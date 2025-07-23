@@ -3,18 +3,19 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
-import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
-import 'package:openvine/models/video_event.dart';
-import 'package:openvine/widgets/video_feed_item.dart';
-import 'package:openvine/services/video_manager_interface.dart';
-import 'package:openvine/services/social_service.dart';
-import 'package:openvine/services/auth_service.dart' hide UserProfile;
-import 'package:openvine/services/user_profile_service.dart';
-import 'package:openvine/services/analytics_service.dart';
-import 'package:openvine/models/video_state.dart';
+import 'package:mockito/mockito.dart';
 import 'package:openvine/models/user_profile.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/models/video_state.dart';
+import 'package:openvine/services/analytics_service.dart';
+import 'package:openvine/services/auth_service.dart' hide UserProfile;
+import 'package:openvine/services/social_service.dart';
+import 'package:openvine/services/user_profile_service.dart';
+import 'package:openvine/services/video_manager_interface.dart';
+import 'package:openvine/widgets/video_feed_item.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:openvine/providers/app_providers.dart';
 
 @GenerateMocks([
   IVideoManager,
@@ -32,14 +33,14 @@ void main() {
     late MockAuthService mockAuthService;
     late MockUserProfileService mockUserProfileService;
     late MockAnalyticsService mockAnalyticsService;
-    
+
     setUp(() {
       mockVideoManager = MockIVideoManager();
       mockSocialService = MockSocialService();
       mockAuthService = MockAuthService();
       mockUserProfileService = MockUserProfileService();
       mockAnalyticsService = MockAnalyticsService();
-      
+
       // Setup default mocks
       when(mockAuthService.currentPublicKeyHex).thenReturn('different_pubkey');
       when(mockSocialService.isFollowing(any)).thenReturn(false);
@@ -68,16 +69,19 @@ void main() {
     });
 
     Widget createTestWidget(VideoEvent video) {
-      return MaterialApp(
-        home: MultiProvider(
-          providers: [
-            Provider<IVideoManager>.value(value: mockVideoManager),
-            ChangeNotifierProvider<SocialService>.value(value: mockSocialService),
-            ChangeNotifierProvider<AuthService>.value(value: mockAuthService),
-            ChangeNotifierProvider<UserProfileService>.value(value: mockUserProfileService),
-            ChangeNotifierProvider<AnalyticsService>.value(value: mockAnalyticsService),
-          ],
-          child: Scaffold(
+      final container = ProviderContainer(
+        overrides: [
+          socialServiceProvider.overrideWithValue(mockSocialService),
+          authServiceProvider.overrideWithValue(mockAuthService),
+          userProfileServiceProvider.overrideWithValue(mockUserProfileService),
+          analyticsServiceProvider.overrideWithValue(mockAnalyticsService),
+        ],
+      );
+      
+      return ProviderScope(
+        parent: container,
+        child: MaterialApp(
+          home: Scaffold(
             body: VideoFeedItem(
               video: video,
               isActive: true,
@@ -87,7 +91,8 @@ void main() {
       );
     }
 
-    testWidgets('profile name uses Text widget instead of SelectableText', (WidgetTester tester) async {
+    testWidgets('profile name uses Text widget instead of SelectableText',
+        (tester) async {
       // Create test video
       final testVideo = VideoEvent(
         id: 'test_video_id',
@@ -100,7 +105,7 @@ void main() {
         rawTags: {},
         isRepost: false,
       );
-      
+
       // Setup video state
       when(mockVideoManager.getVideoState('test_video_id')).thenReturn(
         VideoState(
@@ -109,33 +114,34 @@ void main() {
         ),
       );
       when(mockVideoManager.getController('test_video_id')).thenReturn(null);
-      
+
       // Build widget
       await tester.pumpWidget(createTestWidget(testVideo));
       await tester.pumpAndSettle();
-      
+
       // Verify we're using Text widget for profile name, not SelectableText
       final textWidgetFinder = find.byWidgetPredicate(
         (widget) => widget is Text && widget.data == 'Test Display Name',
       );
       expect(textWidgetFinder, findsOneWidget);
-      
+
       // Verify the Text widget is wrapped in a GestureDetector
       final gestureDetectorFinder = find.ancestor(
         of: textWidgetFinder,
         matching: find.byType(GestureDetector),
       );
       expect(gestureDetectorFinder, findsWidgets);
-      
+
       // Verify the profile name is tappable
       await tester.tap(textWidgetFinder);
       await tester.pump();
-      
+
       // We should see the debug print in the console
       // "👤 Navigating to profile: creator_pubkey"
     });
 
-    testWidgets('reposter name also uses Text widget for tap functionality', (WidgetTester tester) async {
+    testWidgets('reposter name also uses Text widget for tap functionality',
+        (tester) async {
       // Create test reposted video
       final testVideo = VideoEvent(
         id: 'test_video_id',
@@ -149,7 +155,7 @@ void main() {
         isRepost: true,
         reposterPubkey: 'reposter_pubkey',
       );
-      
+
       // Setup video state
       when(mockVideoManager.getVideoState('test_video_id')).thenReturn(
         VideoState(
@@ -158,9 +164,10 @@ void main() {
         ),
       );
       when(mockVideoManager.getController('test_video_id')).thenReturn(null);
-      
+
       // Setup reposter profile
-      when(mockUserProfileService.getCachedProfile('reposter_pubkey')).thenReturn(
+      when(mockUserProfileService.getCachedProfile('reposter_pubkey'))
+          .thenReturn(
         UserProfile(
           pubkey: 'reposter_pubkey',
           name: 'Reposter',
@@ -174,23 +181,23 @@ void main() {
           rawData: {},
         ),
       );
-      
+
       // Build widget
       await tester.pumpWidget(createTestWidget(testVideo));
       await tester.pumpAndSettle();
-      
+
       // Find the reposter name text
       final reposterNameFinder = find.text('Reposted by Reposter Display Name');
       expect(reposterNameFinder, findsOneWidget);
-      
+
       // Verify it's a Text widget, not SelectableText
       final textWidget = tester.widget<Text>(reposterNameFinder);
       expect(textWidget, isA<Text>());
-      
+
       // Tap on the reposter name
       await tester.tap(reposterNameFinder);
       await tester.pump();
-      
+
       // We should see the debug print in the console
       // "👤 Navigating to reposter profile: reposter_pubkey"
     });

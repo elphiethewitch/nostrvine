@@ -1,0 +1,156 @@
+# Feature Flags System
+
+A comprehensive TDD-built feature flag system for OpenVine, providing build-time configuration, runtime management, and user override capabilities.
+
+## Architecture
+
+The feature flag system follows clean architecture principles with clear separation of concerns:
+
+- **Models**: Core data structures (`FeatureFlag`, `FeatureFlagState`, `FlagMetadata`)
+- **Services**: Business logic (`FeatureFlagService`, `BuildConfiguration`)
+- **Providers**: Riverpod state management and dependency injection
+- **Widgets**: UI components (`FeatureFlagWidget`, `FeatureFlagScreen`)
+
+## Available Feature Flags
+
+- `newCameraUI` - Enhanced camera interface with new controls
+- `enhancedVideoPlayer` - Improved video playback engine with better performance
+- `enhancedAnalytics` - Detailed usage tracking and insights
+- `newProfileLayout` - Redesigned user profile screen
+- `livestreamingBeta` - Live video streaming feature (beta)
+- `debugTools` - Developer debugging utilities and diagnostics
+
+## Quick Start
+
+### 1. Conditional UI Rendering
+
+```dart
+import 'package:openvine/features/feature_flags/widgets/feature_flag_widget.dart';
+import 'package:openvine/features/feature_flags/models/feature_flag.dart';
+
+FeatureFlagWidget(
+  flag: FeatureFlag.newCameraUI,
+  disabled: const StandardCameraWidget(),
+  child: const EnhancedCameraWidget(),
+)
+```
+
+### 2. Programmatic Flag Checking
+
+```dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:openvine/features/feature_flags/providers/feature_flag_providers.dart';
+
+class MyWidget extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isNewCameraEnabled = ref.watch(
+      isFeatureEnabledProvider(FeatureFlag.newCameraUI)
+    );
+    
+    if (isNewCameraEnabled) {
+      return const EnhancedCameraWidget();
+    } else {
+      return const StandardCameraWidget();
+    }
+  }
+}
+```
+
+### 3. Settings Screen Integration
+
+```dart
+import 'package:openvine/features/feature_flags/screens/feature_flag_screen.dart';
+
+// Navigate to feature flag settings
+Navigator.push(
+  context,
+  MaterialPageRoute(builder: (_) => const FeatureFlagScreen()),
+);
+```
+
+## Build Configuration
+
+Feature flags have build-time defaults that can be configured per environment:
+
+```dart
+// In BuildConfiguration
+bool getDefault(FeatureFlag flag) {
+  switch (flag) {
+    case FeatureFlag.debugTools:
+      return kDebugMode; // Only enabled in debug builds
+    case FeatureFlag.newCameraUI:
+      return false; // Disabled by default
+    // ... other flags
+  }
+}
+```
+
+## State Management
+
+The system uses Riverpod for reactive state management:
+
+- **Service Provider**: `featureFlagServiceProvider` - Core service instance
+- **State Provider**: `featureFlagStateProvider` - Complete flag state map
+- **Individual Provider**: `isFeatureEnabledProvider(flag)` - Single flag state
+
+## Persistence
+
+- User overrides are automatically persisted to `SharedPreferences`
+- Flags without user overrides use build-time defaults
+- Reset functionality restores all flags to build defaults
+
+## Error Handling
+
+The service gracefully handles storage errors:
+- Updates in-memory state even if persistence fails
+- Logs errors for debugging
+- Continues operation without crashing
+
+## Testing
+
+Comprehensive test coverage with 47 tests across:
+- Unit tests for models, services, and providers
+- Widget tests for UI components
+- Integration tests for end-to-end workflows
+- Error scenario testing
+
+### Test Example
+
+```dart
+testWidgets('should show enhanced feature when flag enabled', (tester) async {
+  final mockPrefs = MockSharedPreferences();
+  when(mockPrefs.getBool('ff_newCameraUI')).thenReturn(true);
+  
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(mockPrefs),
+      ],
+      child: MyApp(),
+    ),
+  );
+  
+  expect(find.text('Enhanced Camera'), findsOneWidget);
+});
+```
+
+## Best Practices
+
+1. **Always provide fallbacks**: Use the `disabled` parameter in `FeatureFlagWidget`
+2. **Use meaningful names**: Flag names should clearly indicate the feature
+3. **Test both states**: Ensure your app works with flags enabled and disabled
+4. **Consider performance**: Flag checks are fast but avoid excessive polling
+5. **Document dependencies**: Note if features depend on other flags or services
+
+## Implementation Details
+
+Built following TDD methodology with strict red-green-refactor cycles, the system provides:
+
+- Type-safe flag definitions with compile-time checking
+- Immutable state management with copy-on-write semantics
+- Reactive UI updates when flags change
+- Comprehensive error handling and graceful degradation
+- Clean separation of concerns with dependency injection
+
+For detailed implementation information, see the individual component files in the `lib/features/feature_flags/` directory.

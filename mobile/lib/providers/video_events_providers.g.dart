@@ -7,7 +7,7 @@ part of 'video_events_providers.dart';
 // **************************************************************************
 
 String _$videoEventsNostrServiceHash() =>
-    r'28f9463512b1dd6bb87bbd332de86bbf9861c643';
+    r'04277d1a60fe84fec2e2c0e25e06300b39d64f24';
 
 /// Provider for NostrService instance (Video Events specific)
 ///
@@ -28,7 +28,7 @@ final videoEventsNostrServiceProvider =
 // ignore: unused_element
 typedef VideoEventsNostrServiceRef = AutoDisposeProviderRef<INostrService>;
 String _$videoEventsSubscriptionManagerHash() =>
-    r'de8a57af8aaa84ed4118824ab67fc5b044a31a01';
+    r'b316afd0b391f09b481040d69432fd9e88fe15ae';
 
 /// Provider for SubscriptionManager instance (Video Events specific)
 ///
@@ -50,7 +50,7 @@ final videoEventsSubscriptionManagerProvider =
 typedef VideoEventsSubscriptionManagerRef
     = AutoDisposeProviderRef<SubscriptionManager>;
 String _$videoEventsLoadingHash() =>
-    r'1dd692805987ef7d470ad161a1e377aa6c8ef835';
+    r'722f24635d8119c0b6611f2dd799443d50043f19';
 
 /// Provider to check if video events are loading
 ///
@@ -69,7 +69,7 @@ final videoEventsLoadingProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef VideoEventsLoadingRef = AutoDisposeProviderRef<bool>;
-String _$videoEventCountHash() => r'e7c599f34b92ca4d88daf33c3164524164f8c527';
+String _$videoEventCountHash() => r'22ffcb27b11aa7cc89ace71a9d11f975c4aaf652';
 
 /// Provider to get video event count
 ///
@@ -88,7 +88,7 @@ final videoEventCountProvider = AutoDisposeProvider<int>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef VideoEventCountRef = AutoDisposeProviderRef<int>;
-String _$videoEventsHash() => r'd78867ba698328aa6cc924a9c0c4b31c904698d5';
+String _$videoEventsHash() => r'17970a2fb5442e6ceaaee5e11a9b76ce4c448efa';
 
 /// Stream provider for video events from Nostr
 ///

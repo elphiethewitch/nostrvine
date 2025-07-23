@@ -15,12 +15,12 @@ class AnalyticsState with _$AnalyticsState {
     String? lastEvent,
     String? error,
   }) = _AnalyticsState;
-  
+
   factory AnalyticsState.fromJson(Map<String, dynamic> json) =>
       _$AnalyticsStateFromJson(json);
-  
+
   const AnalyticsState._();
-  
+
   /// Create initial state
   static const AnalyticsState initial = AnalyticsState();
 }

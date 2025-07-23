@@ -1,0 +1,254 @@
+// ABOUTME: Service for handling video-related network operations extracted from VideoEventService
+// ABOUTME: Manages subscriptions, event streams, and queries for NIP-71 kind 22 video events
+
+import 'dart:async';
+
+import 'package:nostr_sdk/event.dart';
+import 'package:nostr_sdk/filter.dart';
+import 'package:openvine/exceptions/video_exceptions.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/services/nostr_service_interface.dart';
+import 'package:openvine/services/subscription_manager.dart';
+import 'package:openvine/utils/unified_logger.dart';
+
+/// Service responsible for video-related network operations
+class VideoNetworkService {
+  VideoNetworkService({
+    required INostrService nostrService,
+    required SubscriptionManager subscriptionManager,
+  })  : _nostrService = nostrService,
+        _subscriptionManager = subscriptionManager;
+  final INostrService _nostrService;
+  final SubscriptionManager _subscriptionManager;
+
+  // Stream controllers for events and errors
+  final StreamController<VideoEvent> _videoEventController =
+      StreamController<VideoEvent>.broadcast();
+  final StreamController<String> _errorController =
+      StreamController<String>.broadcast();
+
+  // Subscription tracking
+  String? _activeSubscriptionId;
+  StreamSubscription<Event>? _eventSubscription;
+  Map<String, dynamic> _currentSubscriptionParams = {};
+  bool _isSubscribed = false;
+
+  // Public streams
+  Stream<VideoEvent> get videoEventStream => _videoEventController.stream;
+  Stream<String> get errorStream => _errorController.stream;
+  bool get isSubscribed => _isSubscribed;
+
+  /// Subscribe to video feed with various filters
+  Future<void> subscribeToVideoFeed({
+    List<String>? authors,
+    List<String>? hashtags,
+    String? group,
+    int? since,
+    int? until,
+    int limit = 50,
+    bool includeReposts = false,
+  }) async {
+    // Check connection
+    if (_nostrService.connectedRelayCount == 0) {
+      throw ConnectionException('Not connected to any relays');
+    }
+
+    // Check for duplicate subscription
+    final newParams = {
+      'authors': authors,
+      'hashtags': hashtags,
+      'group': group,
+      'since': since,
+      'until': until,
+      'limit': limit,
+      'includeReposts': includeReposts,
+    };
+
+    if (_isSubscribed &&
+        _parametersMatch(_currentSubscriptionParams, newParams)) {
+      throw DuplicateSubscriptionException(
+          'Already subscribed with same parameters');
+    }
+
+    // Cancel existing subscription if any
+    await _cancelExistingSubscription();
+
+    // Build filters
+    final filters = <Filter>[];
+
+    // Video events filter (kind 22)
+    final videoFilter = Filter(
+      kinds: [22],
+      authors: authors,
+      t: hashtags,
+      h: group != null ? [group] : null,
+      since: since,
+      until: until,
+      limit: limit,
+    );
+    filters.add(videoFilter);
+
+    // Repost filter (kind 6) if requested
+    if (includeReposts) {
+      final repostFilter = Filter(
+        kinds: [6],
+        authors: authors,
+        since: since,
+        until: until,
+        limit: limit ~/ 2, // Half limit for reposts
+      );
+      filters.add(repostFilter);
+    }
+
+    // Create subscription
+    try {
+      _activeSubscriptionId = await _subscriptionManager.createSubscription(
+        name: 'video_feed',
+        filters: filters,
+        onEvent: _handleVideoEvent,
+        onError: _handleError,
+        onComplete: _handleDone,
+      );
+
+      // Also subscribe directly to the stream
+      _eventSubscription = _nostrService
+          .subscribeToEvents(
+            filters: filters,
+          )
+          .listen(
+            _handleVideoEvent,
+            onError: _handleError,
+            onDone: _handleDone,
+          );
+
+      _isSubscribed = true;
+      _currentSubscriptionParams = newParams;
+
+      Log.info(
+        'Subscribed to video feed with ${filters.length} filters',
+        name: 'VideoNetworkService',
+        category: LogCategory.video,
+      );
+    } catch (e) {
+      Log.error(
+        'Failed to subscribe to video feed: $e',
+        name: 'VideoNetworkService',
+        category: LogCategory.video,
+      );
+      rethrow;
+    }
+  }
+
+  /// Unsubscribe from current video feed
+  Future<void> unsubscribe() async {
+    await _cancelExistingSubscription();
+    _isSubscribed = false;
+    _currentSubscriptionParams = {};
+  }
+
+  /// Query for a specific video by ID
+  Future<VideoEvent?> queryVideoByVineId(String vineId) async {
+    try {
+      final filter = Filter(
+        ids: [vineId],
+      );
+
+      // Since queryEvents is not available in the interface,
+      // we'll use a temporary subscription to fetch the event
+      final completer = Completer<VideoEvent?>();
+      StreamSubscription<Event>? subscription;
+      Timer? timeoutTimer;
+
+      timeoutTimer = Timer(const Duration(seconds: 10), () {
+        subscription?.cancel();
+        if (!completer.isCompleted) {
+          completer.complete(null);
+        }
+      });
+
+      subscription = _nostrService.subscribeToEvents(
+        filters: [filter],
+      ).listen((event) {
+        if (event.id == vineId && event.kind == 22) {
+          timeoutTimer?.cancel();
+          subscription?.cancel();
+          if (!completer.isCompleted) {
+            completer.complete(VideoEvent.fromNostrEvent(event));
+          }
+        }
+      });
+
+      return completer.future;
+    } catch (e) {
+      Log.error(
+        'Failed to query video by ID: $e',
+        name: 'VideoNetworkService',
+        category: LogCategory.video,
+      );
+      return null;
+    }
+  }
+
+  void dispose() {
+    _cancelExistingSubscription();
+    _videoEventController.close();
+    _errorController.close();
+  }
+
+  // Private methods
+
+  void _handleVideoEvent(Event event) {
+    try {
+      if (event.kind == 22) {
+        final videoEvent = VideoEvent.fromNostrEvent(event);
+        _videoEventController.add(videoEvent);
+      } else if (event.kind == 6) {
+        // Handle reposts - extract the original video event
+        // This would need more implementation based on repost structure
+        Log.debug(
+          'Received repost event, processing not yet implemented',
+          name: 'VideoNetworkService',
+          category: LogCategory.video,
+        );
+      }
+    } catch (e) {
+      Log.error(
+        'Error processing video event: $e',
+        name: 'VideoNetworkService',
+        category: LogCategory.video,
+      );
+    }
+  }
+
+  void _handleError(dynamic error) {
+    final errorMessage = error.toString();
+    _errorController.add(errorMessage);
+    Log.error(
+      'Subscription error: $errorMessage',
+      name: 'VideoNetworkService',
+      category: LogCategory.video,
+    );
+  }
+
+  void _handleDone() {
+    Log.debug(
+      'Video subscription completed',
+      name: 'VideoNetworkService',
+      category: LogCategory.video,
+    );
+  }
+
+  Future<void> _cancelExistingSubscription() async {
+    if (_activeSubscriptionId != null) {
+      await _subscriptionManager.cancelSubscription(_activeSubscriptionId!);
+      _activeSubscriptionId = null;
+    }
+
+    await _eventSubscription?.cancel();
+    _eventSubscription = null;
+  }
+
+  bool _parametersMatch(
+          Map<String, dynamic> params1, Map<String, dynamic> params2) =>
+      params1.toString() == params2.toString();
+}

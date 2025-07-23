@@ -3,11 +3,11 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:openvine/main.dart' as app;
-import 'package:openvine/services/nostr_service.dart';
-import 'package:openvine/services/nostr_key_manager.dart';
-import 'package:nostr_sdk/filter.dart';
 import 'package:nostr_sdk/event.dart';
+import 'package:nostr_sdk/filter.dart';
+import 'package:openvine/main.dart' as app;
+import 'package:openvine/services/nostr_key_manager.dart';
+import 'package:openvine/services/nostr_service.dart';
 import 'package:openvine/utils/unified_logger.dart';
 
 void main() {
@@ -43,7 +43,7 @@ void main() {
         Filter(
           kinds: [22], // Video events
           limit: 5,
-        )
+        ),
       ];
       
       final events = <Event>[];
@@ -83,7 +83,7 @@ void main() {
           kinds: [0], // Profile metadata
           authors: [nostrService.publicKey!],
           limit: 1,
-        )
+        ),
       ];
       
       final profileEvents = <Event>[];
@@ -91,9 +91,7 @@ void main() {
         await nostrService.subscribeToEvents(filters: profileFilters)
           .take(1)
           .timeout(const Duration(seconds: 3), onTimeout: (sink) {})
-          .forEach((event) {
-            profileEvents.add(event);
-          });
+          .forEach(profileEvents.add);
       } catch (e) {
         Log.debug('Profile query error: $e');
       }

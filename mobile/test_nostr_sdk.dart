@@ -2,14 +2,13 @@
 // ABOUTME: Run with: dart test_nostr_sdk.dart
 
 import 'dart:async';
+
+import 'package:nostr_sdk/client_utils/keys.dart';
 import 'package:nostr_sdk/nostr.dart';
-import 'package:nostr_sdk/event.dart';
-import 'package:nostr_sdk/filter.dart';
+import 'package:nostr_sdk/relay/event_filter.dart';
 import 'package:nostr_sdk/relay/relay_base.dart';
 import 'package:nostr_sdk/relay/relay_status.dart';
-import 'package:nostr_sdk/relay/event_filter.dart';
 import 'package:nostr_sdk/signer/local_nostr_signer.dart';
-import 'package:nostr_sdk/client_utils/keys.dart';
 import 'package:openvine/utils/unified_logger.dart';
 
 void main() async {
@@ -34,7 +33,7 @@ void main() async {
   );
   
   // Add relay
-  final relayUrl = 'wss://vine.hol.is';
+  const relayUrl = 'wss://vine.hol.is';
   Log.debug('🔌 Connecting to $relayUrl...');
   
   final relay = RelayBase(relayUrl, RelayStatus(relayUrl));
@@ -54,10 +53,10 @@ void main() async {
   
   Log.debug('📡 Creating subscription...');
   
-  int eventCount = 0;
+  var eventCount = 0;
   final subscriptionId = nostr.subscribe(
     filters,
-    (Event event) {
+    (event) {
       eventCount++;
       Log.debug('📨 Event #$eventCount received:');
       Log.debug('  - Kind: ${event.kind}');
@@ -71,11 +70,11 @@ void main() async {
   
   // Wait for events
   Log.debug('⏳ Waiting for events (30 seconds)...');
-  await Future.delayed(Duration(seconds: 30));
+  await Future.delayed(const Duration(seconds: 30));
   
   Log.debug('🏁 Test complete. Received $eventCount events.');
   
   // Cleanup
   nostr.unsubscribe(subscriptionId);
-  await Future.delayed(Duration(seconds: 1));
+  await Future.delayed(const Duration(seconds: 1));
 }

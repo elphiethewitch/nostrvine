@@ -2,13 +2,14 @@
 // ABOUTME: Run with: dart test_video_event_service_debug.dart
 
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+
 import 'package:nostr_sdk/filter.dart';
-import 'lib/services/nostr_service.dart';
-import 'lib/services/nostr_key_manager.dart';
-import 'lib/services/video_event_service.dart';
-import 'lib/services/subscription_manager.dart';
 import 'package:openvine/utils/unified_logger.dart';
+
+import 'lib/services/nostr_key_manager.dart';
+import 'lib/services/nostr_service.dart';
+import 'lib/services/subscription_manager.dart';
+import 'lib/services/video_event_service.dart';
 
 void main() async {
   Log.debug('🚀 Testing VideoEventService with NostrService...\n');
@@ -45,7 +46,7 @@ void main() async {
     final filter = Filter(kinds: [22], limit: 5);
     final eventStream = nostrService.subscribeToEvents(filters: [filter]);
     
-    int directEventCount = 0;
+    var directEventCount = 0;
     final directSub = eventStream.listen((event) {
       directEventCount++;
       Log.debug('📨 Direct event #$directEventCount: kind=${event.kind}, id=${event.id.substring(0, 8)}...');
@@ -62,7 +63,7 @@ void main() async {
     
     // Wait for events
     Log.debug('\n⏳ Waiting for events (15 seconds)...');
-    await Future.delayed(Duration(seconds: 15));
+    await Future.delayed(const Duration(seconds: 15));
     
     Log.debug('\n📊 Final Results:');
     Log.debug('  - Direct events received: $directEventCount');

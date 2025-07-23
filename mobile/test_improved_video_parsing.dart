@@ -1,30 +1,30 @@
 // ABOUTME: Test the improved video URL parsing with various edge cases
 // ABOUTME: Run with: dart test_improved_video_parsing.dart
 
-import 'dart:convert';
 import 'package:nostr_sdk/event.dart';
-import 'lib/models/video_event.dart';
 import 'package:openvine/utils/unified_logger.dart';
+
+import 'lib/models/video_event.dart';
 
 void main() {
   Log.debug('🚀 Testing improved video URL parsing...\n');
   
   // Test case 1: URL in content (no tags)
-  test_UrlInContent();
+  testUrlInContent();
   
   // Test case 2: URL in unknown tag
-  test_UrlInUnknownTag();
+  testUrlInUnknownTag();
   
   // Test case 3: Broken apt.openvine.co URL replacement
-  test_BrokenUrlReplacement();
+  testBrokenUrlReplacement();
   
   // Test case 4: Multiple URL sources (priority handling)
-  test_MultipleUrlSources();
+  testMultipleUrlSources();
   
   Log.debug('\n✅ All tests completed!');
 }
 
-void test_UrlInContent() {
+void testUrlInContent() {
   Log.debug('=== Test 1: URL in content (no tags) ===');
   
   final event = Event(
@@ -50,7 +50,7 @@ void test_UrlInContent() {
   Log.debug('');
 }
 
-void test_UrlInUnknownTag() {
+void testUrlInUnknownTag() {
   Log.debug('=== Test 2: URL in unknown tag ===');
   
   final event = Event(
@@ -76,7 +76,7 @@ void test_UrlInUnknownTag() {
   Log.debug('');
 }
 
-void test_BrokenUrlReplacement() {
+void testBrokenUrlReplacement() {
   Log.debug('=== Test 3: Broken apt.openvine.co URL replacement ===');
   
   final event = Event(
@@ -102,7 +102,7 @@ void test_BrokenUrlReplacement() {
   Log.debug('');
 }
 
-void test_MultipleUrlSources() {
+void testMultipleUrlSources() {
   Log.debug('=== Test 4: Multiple URL sources (priority) ===');
   
   final event = Event(
@@ -110,7 +110,7 @@ void test_MultipleUrlSources() {
     22,
     [
       ['url', 'https://blossom.primal.net/priority.mp4'],
-      ['custom', 'https://nostr.build/fallback.mp4']
+      ['custom', 'https://nostr.build/fallback.mp4'],
     ],
     'Video with multiple URLs',
     createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,

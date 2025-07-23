@@ -36,16 +36,14 @@ This affects ALL event types:
 
 **Implementation**: 
 1. **Event Publishing**: The `AuthService.createAndSignEvent()` method automatically adds this tag to all events before publishing.
-2. **Event Querying**: ALL filter-based subscriptions now include `h: ['vine']` to only receive events with the required tag.
+2. **Event Querying**: **CRITICAL - We MUST include `h: ['vine']` in our query filters for vine.hol.is.** The relay only returns events that were stored with the vine tag. Other relays will ignore this filter parameter.
 
 **Files Updated**:
-- `nostr_sdk/lib/filter.dart` - Extended Filter class to support `h` parameter
-- `lib/services/video_event_service.dart` - Added vine tag to Kind 22 and Kind 6 filters
-- `lib/services/user_profile_service.dart` - Added vine tag to Kind 0 profile filters
-- `lib/services/social_service.dart` - Added vine tag to ALL event type filters (Kind 1, 3, 6, 7, 22)
+- `nostr_sdk/lib/filter.dart` - Extended Filter class to support `h` parameter for both publishing and querying
 - `lib/services/auth_service.dart` - Automatically adds vine tag to all published events
+- `lib/services/video_event_service.dart` - Includes vine tag in Kind 22 and Kind 6 queries
 
-This ensures both publishing AND querying compatibility with the vine.hol.is relay infrastructure.
+**Query Strategy**: We include the `h: ['vine']` filter to retrieve stored events from vine.hol.is, while other relays will simply ignore this filter parameter and return all their events normally.
 
 See `mobile/docs/NOSTR_EVENT_TYPES.md` for complete event type documentation.
 
@@ -73,6 +71,10 @@ flutter analyze                    # Static analysis
 npm run dev                        # Local Cloudflare Workers development
 npm run deploy                     # Deploy to Cloudflare
 npm test                           # Run backend tests
+
+# Analytics database management
+./flush-analytics-simple.sh true   # Dry run - preview analytics keys to delete
+./flush-analytics-simple.sh false  # Actually flush analytics database
 ```
 
 ## Native Build Scripts
@@ -164,10 +166,20 @@ class Controller extends ChangeNotifier {
 }
 ```
 
+## Analytics Database Management
+
+**Flush Script**: `/backend/flush-analytics-simple.sh` - Clears all analytics data from KV storage
+
+```bash
+./flush-analytics-simple.sh true   # Preview deletions
+./flush-analytics-simple.sh false  # Actually delete
+```
+
 ## Key Files
 - `mobile/lib/services/camera_service.dart` - Hybrid frame capture implementation
 - `mobile/lib/screens/camera_screen.dart` - Camera UI with real preview
 - `mobile/spike/frame_capture_approaches/` - Research prototypes and analysis
 - `backend/src/` - Cloudflare Workers GIF creation logic
+- `backend/flush-analytics-simple.sh` - Analytics database flush script
 
 [See ./.claude/memories/ for universal standards]

@@ -3,29 +3,30 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'package:web_socket_channel/io.dart';
+
 import 'package:openvine/utils/unified_logger.dart';
+import 'package:web_socket_channel/io.dart';
 
 void main() async {
   Log.debug('=== Relay Subscription Test ===\n');
-  
+
   // Track subscriptions we create
   final ourSubscriptions = <String>{};
-  
+
   try {
     final wsUrl = Uri.parse('wss://vine.hol.is');
     final channel = IOWebSocketChannel.connect(wsUrl);
-    
-    Log.debug('1. Connecting to ${wsUrl}...');
-    
+
+    Log.debug('1. Connecting to $wsUrl...');
+
     // Listen for messages
     channel.stream.listen(
       (message) {
         final data = jsonDecode(message);
-        
+
         if (data is List && data.isNotEmpty) {
           final messageType = data[0];
-          
+
           if (messageType == 'AUTH') {
             Log.debug('\n🔐 AUTH challenge: ${data[1]}');
             // For this test, we won't authenticate
@@ -48,41 +49,40 @@ void main() async {
       onError: (error) => Log.debug('❌ Error: $error'),
       onDone: () => Log.debug('🔌 Connection closed'),
     );
-    
+
     // Wait for AUTH challenges
-    await Future.delayed(Duration(seconds: 2));
-    
+    await Future.delayed(const Duration(seconds: 2));
+
     // Create a subscription
     final subId = 'test_${DateTime.now().millisecondsSinceEpoch}';
     ourSubscriptions.add(subId);
-    
+
     Log.debug('\n2. Creating subscription with ID: $subId');
-    
+
     final req = jsonEncode([
       'REQ',
       subId,
       {
         'kinds': [22],
-        'limit': 5
+        'limit': 5,
       }
     ]);
-    
+
     Log.debug('   Sending: $req');
     channel.sink.add(req);
-    
+
     // Wait for events
-    await Future.delayed(Duration(seconds: 5));
-    
+    await Future.delayed(const Duration(seconds: 5));
+
     // Close subscription
     Log.debug('\n3. Closing subscription...');
     channel.sink.add(jsonEncode(['CLOSE', subId]));
-    
-    await Future.delayed(Duration(seconds: 1));
+
+    await Future.delayed(const Duration(seconds: 1));
     await channel.sink.close();
-    
   } catch (e) {
     Log.debug('Error: $e');
   }
-  
+
   exit(0);
 }

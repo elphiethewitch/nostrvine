@@ -125,9 +125,9 @@ class MockCurationService extends _i1.Mock implements _i2.CurationService {
   _i4.Future<bool> createCurationSet({
     required String? id,
     required String? title,
+    required List<String>? videoIds,
     String? description,
     String? imageUrl,
-    required List<String>? videoIds,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -136,9 +136,9 @@ class MockCurationService extends _i1.Mock implements _i2.CurationService {
           {
             #id: id,
             #title: title,
+            #videoIds: videoIds,
             #description: description,
             #imageUrl: imageUrl,
-            #videoIds: videoIds,
           },
         ),
         returnValue: _i4.Future<bool>.value(false),

@@ -2,15 +2,16 @@
 // ABOUTME: Handles video playback state coordination and prevents multiple videos playing simultaneously
 
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/models/video_state.dart';
+import 'package:openvine/services/video_manager_interface.dart';
+import 'package:openvine/utils/unified_logger.dart';
 import 'package:video_player/video_player.dart';
-import '../models/video_event.dart';
-import '../models/video_state.dart';
-import 'video_manager_interface.dart';
-import '../utils/unified_logger.dart';
 
 /// Extension methods for VideoManagerService to handle playback control
-/// 
+///
 /// This class manages the lifecycle of video playback including:
 /// - Play/pause coordination (only one video plays at a time)
 /// - Volume management
@@ -41,29 +42,32 @@ mixin VideoControllerManager on ChangeNotifier {
       // Get the video manager (this mixin is used with VideoManagerService)
       final videoManager = this as IVideoManager;
       final controller = videoManager.getController(videoId);
-      
+
       if (controller == null) {
-        Log.info('VideoControllerManager: No controller found for $videoId', name: 'VideoControllerManager', category: LogCategory.video);
+        Log.info('VideoControllerManager: No controller found for $videoId',
+            name: 'VideoControllerManager', category: LogCategory.video);
         return;
       }
 
       // Pause currently playing video if different
-      if (_currentlyPlayingVideoId != null && _currentlyPlayingVideoId != videoId) {
+      if (_currentlyPlayingVideoId != null &&
+          _currentlyPlayingVideoId != videoId) {
         await pauseVideo(_currentlyPlayingVideoId!);
       }
 
       // Configure and play new video
       await _configureController(controller);
       await controller.play();
-      
+
       _currentlyPlayingVideoId = videoId;
       _trackPlayback(videoId);
-      
-      Log.debug('VideoControllerManager: Playing video $videoId', name: 'VideoControllerManager', category: LogCategory.video);
-      notifyListeners();
 
+      Log.debug('VideoControllerManager: Playing video $videoId',
+          name: 'VideoControllerManager', category: LogCategory.video);
+      notifyListeners();
     } catch (e) {
-      Log.error('VideoControllerManager: Error playing video $videoId: $e', name: 'VideoControllerManager', category: LogCategory.video);
+      Log.error('VideoControllerManager: Error playing video $videoId: $e',
+          name: 'VideoControllerManager', category: LogCategory.video);
     }
   }
 
@@ -72,20 +76,21 @@ mixin VideoControllerManager on ChangeNotifier {
     try {
       final videoManager = this as IVideoManager;
       final controller = videoManager.getController(videoId);
-      
+
       if (controller == null) return;
 
       await controller.pause();
-      
+
       if (_currentlyPlayingVideoId == videoId) {
         _currentlyPlayingVideoId = null;
       }
-      
-      Log.debug('VideoControllerManager: Paused video $videoId', name: 'VideoControllerManager', category: LogCategory.video);
-      notifyListeners();
 
+      Log.debug('VideoControllerManager: Paused video $videoId',
+          name: 'VideoControllerManager', category: LogCategory.video);
+      notifyListeners();
     } catch (e) {
-      Log.error('VideoControllerManager: Error pausing video $videoId: $e', name: 'VideoControllerManager', category: LogCategory.video);
+      Log.error('VideoControllerManager: Error pausing video $videoId: $e',
+          name: 'VideoControllerManager', category: LogCategory.video);
     }
   }
 
@@ -94,18 +99,18 @@ mixin VideoControllerManager on ChangeNotifier {
     if (_currentlyPlayingVideoId != null) {
       await pauseVideo(_currentlyPlayingVideoId!);
     }
-    
+
     // Backup: pause any controller that might be playing
     final videoManager = this as IVideoManager;
     final allVideos = videoManager.videos;
-    
+
     for (final video in allVideos) {
       final controller = videoManager.getController(video.id);
       if (controller?.value.isPlaying == true) {
         await controller!.pause();
       }
     }
-    
+
     _currentlyPlayingVideoId = null;
     notifyListeners();
   }
@@ -120,48 +125,49 @@ mixin VideoControllerManager on ChangeNotifier {
   /// Set global mute state for all videos
   void setMuted(bool muted) {
     _isMuted = muted;
-    
+
     // Apply to currently playing video immediately
     if (_currentlyPlayingVideoId != null) {
       final videoManager = this as IVideoManager;
       final controller = videoManager.getController(_currentlyPlayingVideoId!);
       controller?.setVolume(muted ? 0.0 : 1.0);
     }
-    
+
     notifyListeners();
   }
 
   /// Set looping behavior for videos
   void setLooping(bool looping) {
     _isLooping = looping;
-    
+
     // Apply to currently playing video immediately
     if (_currentlyPlayingVideoId != null) {
       final videoManager = this as IVideoManager;
       final controller = videoManager.getController(_currentlyPlayingVideoId!);
       controller?.setLooping(looping);
     }
-    
+
     notifyListeners();
   }
 
   /// Get playback statistics for debugging
-  Map<String, dynamic> getPlaybackStats() {
-    return {
-      'currentlyPlaying': _currentlyPlayingVideoId,
-      'isMuted': _isMuted,
-      'isLooping': _isLooping,
-      'totalPlaysTracked': _playCount.values.fold(0, (sum, count) => sum + count),
-      'uniqueVideosPlayed': _playCount.length,
-      'lastPlayTimes': _lastPlayTime.map((key, value) => 
-        MapEntry(key, value.toIso8601String())),
-    };
-  }
+  Map<String, dynamic> getPlaybackStats() => {
+        'currentlyPlaying': _currentlyPlayingVideoId,
+        'isMuted': _isMuted,
+        'isLooping': _isLooping,
+        'totalPlaysTracked':
+            _playCount.values.fold(0, (sum, count) => sum + count),
+        'uniqueVideosPlayed': _playCount.length,
+        'lastPlayTimes': _lastPlayTime.map(
+          (key, value) => MapEntry(key, value.toIso8601String()),
+        ),
+      };
 
   /// Handle video completion (for analytics and next video logic)
   void onVideoCompleted(String videoId) {
-    Log.info('VideoControllerManager: Video $videoId completed', name: 'VideoControllerManager', category: LogCategory.video);
-    
+    Log.info('VideoControllerManager: Video $videoId completed',
+        name: 'VideoControllerManager', category: LogCategory.video);
+
     if (_currentlyPlayingVideoId == videoId) {
       // If looping is disabled, move to next video
       if (!_isLooping) {
@@ -173,8 +179,9 @@ mixin VideoControllerManager on ChangeNotifier {
 
   /// Handle video errors during playback
   void onVideoError(String videoId, String error) {
-    Log.error('VideoControllerManager: Playback error for $videoId: $error', name: 'VideoControllerManager', category: LogCategory.video);
-    
+    Log.error('VideoControllerManager: Playback error for $videoId: $error',
+        name: 'VideoControllerManager', category: LogCategory.video);
+
     if (_currentlyPlayingVideoId == videoId) {
       _currentlyPlayingVideoId = null;
       notifyListeners();
@@ -186,7 +193,7 @@ mixin VideoControllerManager on ChangeNotifier {
     if (_currentlyPlayingVideoId == videoId) {
       _currentlyPlayingVideoId = null;
     }
-    
+
     _lastPlayTime.remove(videoId);
     _playCount.remove(videoId);
   }
@@ -197,17 +204,17 @@ mixin VideoControllerManager on ChangeNotifier {
     try {
       // Set volume based on mute state
       await controller.setVolume(_isMuted ? 0.0 : 1.0);
-      
+
       // Set looping behavior
       await controller.setLooping(_isLooping);
-      
+
       // Seek to beginning if needed
       if (controller.value.position != Duration.zero) {
         await controller.seekTo(Duration.zero);
       }
-
     } catch (e) {
-      Log.error('VideoControllerManager: Error configuring controller: $e', name: 'VideoControllerManager', category: LogCategory.video);
+      Log.error('VideoControllerManager: Error configuring controller: $e',
+          name: 'VideoControllerManager', category: LogCategory.video);
     }
   }
 
@@ -220,11 +227,11 @@ mixin VideoControllerManager on ChangeNotifier {
     // Find next video in sequence and play it
     final videoManager = this as IVideoManager;
     final videos = videoManager.videos;
-    
+
     final currentIndex = videos.indexWhere((v) => v.id == completedVideoId);
     if (currentIndex >= 0 && currentIndex < videos.length - 1) {
       final nextVideo = videos[currentIndex + 1];
-      
+
       // Schedule next video playback
       Future.delayed(const Duration(milliseconds: 100), () {
         playVideo(nextVideo.id);
@@ -234,12 +241,11 @@ mixin VideoControllerManager on ChangeNotifier {
 }
 
 /// Enhanced VideoManagerService with playback control
-class VideoManagerServiceWithPlayback extends ChangeNotifier 
+class VideoManagerServiceWithPlayback extends ChangeNotifier
     implements IVideoManager {
-  
-  final IVideoManager _baseManager;
-  
   VideoManagerServiceWithPlayback(this._baseManager);
+
+  final IVideoManager _baseManager;
 
   // Delegate all IVideoManager methods to base implementation
   @override
@@ -249,19 +255,23 @@ class VideoManagerServiceWithPlayback extends ChangeNotifier
   List<VideoEvent> get readyVideos => _baseManager.readyVideos;
 
   @override
-  VideoState? getVideoState(String videoId) => _baseManager.getVideoState(videoId);
+  VideoState? getVideoState(String videoId) =>
+      _baseManager.getVideoState(videoId);
 
   @override
-  VideoPlayerController? getController(String videoId) => _baseManager.getController(videoId);
+  VideoPlayerController? getController(String videoId) =>
+      _baseManager.getController(videoId);
 
   @override
-  Future<void> addVideoEvent(VideoEvent event) => _baseManager.addVideoEvent(event);
+  Future<void> addVideoEvent(VideoEvent event) =>
+      _baseManager.addVideoEvent(event);
 
   @override
-  Future<void> preloadVideo(String videoId) => _baseManager.preloadVideo(videoId);
+  Future<void> preloadVideo(String videoId) =>
+      _baseManager.preloadVideo(videoId);
 
   @override
-  void preloadAroundIndex(int currentIndex, {int? preloadRange}) => 
+  void preloadAroundIndex(int currentIndex, {int? preloadRange}) =>
       _baseManager.preloadAroundIndex(currentIndex, preloadRange: preloadRange);
 
   @override
@@ -274,7 +284,7 @@ class VideoManagerServiceWithPlayback extends ChangeNotifier
   Map<String, dynamic> getDebugInfo() {
     final baseInfo = _baseManager.getDebugInfo();
     final playbackInfo = _getPlaybackStats();
-    
+
     return {
       ...baseInfo,
       'playback': playbackInfo,
@@ -287,7 +297,7 @@ class VideoManagerServiceWithPlayback extends ChangeNotifier
   @override
   Future<void> handleMemoryPressure() async {
     await _baseManager.handleMemoryPressure();
-    
+
     // Also pause all videos during memory pressure
     pauseAllVideos();
   }
@@ -323,7 +333,8 @@ class VideoManagerServiceWithPlayback extends ChangeNotifier
     if (controller == null) return;
 
     // Pause current video if different
-    if (_currentlyPlayingVideoId != null && _currentlyPlayingVideoId != videoId) {
+    if (_currentlyPlayingVideoId != null &&
+        _currentlyPlayingVideoId != videoId) {
       pauseVideo(_currentlyPlayingVideoId!);
     }
 
@@ -331,7 +342,7 @@ class VideoManagerServiceWithPlayback extends ChangeNotifier
     await controller.setVolume(_isMuted ? 0.0 : 1.0);
     await controller.setLooping(_isLooping);
     await controller.play();
-    
+
     _currentlyPlayingVideoId = videoId;
     _trackPlayback(videoId);
     notifyListeners();
@@ -349,7 +360,8 @@ class VideoManagerServiceWithPlayback extends ChangeNotifier
       }
       notifyListeners();
     } catch (e) {
-      Log.error('Error pausing video $videoId: $e', name: 'VideoControllerManager', category: LogCategory.video);
+      Log.error('Error pausing video $videoId: $e',
+          name: 'VideoControllerManager', category: LogCategory.video);
     }
   }
 
@@ -364,7 +376,7 @@ class VideoManagerServiceWithPlayback extends ChangeNotifier
   void stopAllVideos() {
     // Stop all videos by pausing and seeking to start
     final allVideos = videos;
-    
+
     for (final video in allVideos) {
       final controller = getController(video.id);
       if (controller != null && controller.value.isInitialized) {
@@ -372,7 +384,7 @@ class VideoManagerServiceWithPlayback extends ChangeNotifier
         controller.seekTo(Duration.zero);
       }
     }
-    
+
     _currentlyPlayingVideoId = null;
   }
 
@@ -387,29 +399,30 @@ class VideoManagerServiceWithPlayback extends ChangeNotifier
       _trackPlayback(videoId);
       notifyListeners();
     } catch (e) {
-      Log.error('Error resuming video $videoId: $e', name: 'VideoControllerManager', category: LogCategory.video);
+      Log.error('Error resuming video $videoId: $e',
+          name: 'VideoControllerManager', category: LogCategory.video);
     }
   }
 
   void setMuted(bool muted) {
     _isMuted = muted;
-    
+
     if (_currentlyPlayingVideoId != null) {
       final controller = getController(_currentlyPlayingVideoId!);
       controller?.setVolume(muted ? 0.0 : 1.0);
     }
-    
+
     notifyListeners();
   }
 
   void setLooping(bool looping) {
     _isLooping = looping;
-    
+
     if (_currentlyPlayingVideoId != null) {
       final controller = getController(_currentlyPlayingVideoId!);
       controller?.setLooping(looping);
     }
-    
+
     notifyListeners();
   }
 
@@ -426,13 +439,11 @@ class VideoManagerServiceWithPlayback extends ChangeNotifier
     _playCount.remove(videoId);
   }
 
-  Map<String, dynamic> _getPlaybackStats() {
-    return {
-      'currentlyPlaying': _currentlyPlayingVideoId,
-      'isMuted': _isMuted,
-      'isLooping': _isLooping,
-      'totalPlays': _playCount.values.fold(0, (sum, count) => sum + count),
-      'uniqueVideosPlayed': _playCount.length,
-    };
-  }
+  Map<String, dynamic> _getPlaybackStats() => {
+        'currentlyPlaying': _currentlyPlayingVideoId,
+        'isMuted': _isMuted,
+        'isLooping': _isLooping,
+        'totalPlays': _playCount.values.fold(0, (sum, count) => sum + count),
+        'uniqueVideosPlayed': _playCount.length,
+      };
 }

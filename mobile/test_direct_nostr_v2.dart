@@ -2,23 +2,24 @@
 // ABOUTME: Run with: dart test_direct_nostr_v2.dart
 
 import 'dart:async';
-import 'package:nostr_sdk/nostr.dart';
+
+import 'package:nostr_sdk/client_utils/keys.dart';
 import 'package:nostr_sdk/event.dart';
 import 'package:nostr_sdk/filter.dart';
+import 'package:nostr_sdk/nostr.dart';
+import 'package:nostr_sdk/relay/event_filter.dart';
 import 'package:nostr_sdk/relay/relay_base.dart';
 import 'package:nostr_sdk/relay/relay_status.dart';
-import 'package:nostr_sdk/relay/event_filter.dart';
 import 'package:nostr_sdk/signer/local_nostr_signer.dart';
-import 'package:nostr_sdk/client_utils/keys.dart';
 import 'package:openvine/utils/unified_logger.dart';
 
 // Simplified NostrServiceV2 for testing
 class TestNostrServiceV2 {
+  
+  TestNostrServiceV2(this.privateKey);
   final String privateKey;
   Nostr? _nostrClient;
   final List<String> _connectedRelays = [];
-  
-  TestNostrServiceV2(this.privateKey);
   
   Future<void> initialize() async {
     Log.debug('🔧 Initializing TestNostrServiceV2...');
@@ -44,7 +45,7 @@ class TestNostrServiceV2 {
     );
     
     // Add relay
-    final relayUrl = 'wss://vine.hol.is';
+    const relayUrl = 'wss://vine.hol.is';
     final relay = RelayBase(relayUrl, RelayStatus(relayUrl));
     
     Log.debug('🔌 Connecting to $relayUrl...');
@@ -86,7 +87,7 @@ class TestNostrServiceV2 {
     // Create subscription using SDK
     final sdkSubId = _nostrClient!.subscribe(
       sdkFilters,
-      (Event event) {
+      (event) {
         Log.debug('📨 Received event: kind=${event.kind}, id=${event.id.substring(0, 8)}...');
         controller.add(event);
       },
@@ -132,7 +133,7 @@ void main() async {
     
     final eventStream = service.subscribeToEvents(filters: [filter]);
     
-    int eventCount = 0;
+    var eventCount = 0;
     final subscription = eventStream.listen((event) {
       eventCount++;
       Log.debug('✅ Event #$eventCount:');
@@ -144,7 +145,7 @@ void main() async {
     
     // Wait for events
     Log.debug('⏳ Waiting for events (20 seconds)...');
-    await Future.delayed(Duration(seconds: 20));
+    await Future.delayed(const Duration(seconds: 20));
     
     Log.debug('🏁 Test complete. Received $eventCount events.');
     

@@ -2,25 +2,21 @@
 // ABOUTME: Uploads videos directly to Cloudflare Workers → R2 storage with CDN serving
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
-import 'dart:convert';
-import '../config/app_config.dart';
-import 'nip98_auth_service.dart';
-import 'video_thumbnail_service.dart';
-import '../utils/unified_logger.dart';
+import 'package:openvine/config/app_config.dart';
+import 'package:openvine/services/nip98_auth_service.dart';
+import 'package:openvine/services/video_thumbnail_service.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 /// Result of a direct upload operation
 class DirectUploadResult {
-  final bool success;
-  final String? videoId;
-  final String? cdnUrl;
-  final String? thumbnailUrl;
-  final String? errorMessage;
-  final Map<String, dynamic>? metadata;
-
   const DirectUploadResult({
     required this.success,
     this.videoId,
@@ -35,35 +31,37 @@ class DirectUploadResult {
     required String cdnUrl,
     String? thumbnailUrl,
     Map<String, dynamic>? metadata,
-  }) {
-    return DirectUploadResult(
-      success: true,
-      videoId: videoId,
-      cdnUrl: cdnUrl,
-      thumbnailUrl: thumbnailUrl,
-      metadata: metadata,
-    );
-  }
+  }) =>
+      DirectUploadResult(
+        success: true,
+        videoId: videoId,
+        cdnUrl: cdnUrl,
+        thumbnailUrl: thumbnailUrl,
+        metadata: metadata,
+      );
 
-  factory DirectUploadResult.failure(String errorMessage) {
-    return DirectUploadResult(
-      success: false,
-      errorMessage: errorMessage,
-    );
-  }
+  factory DirectUploadResult.failure(String errorMessage) => DirectUploadResult(
+        success: false,
+        errorMessage: errorMessage,
+      );
+  final bool success;
+  final String? videoId;
+  final String? cdnUrl;
+  final String? thumbnailUrl;
+  final String? errorMessage;
+  final Map<String, dynamic>? metadata;
 }
 
 /// Service for uploading videos and images directly to CF Workers
 class DirectUploadService extends ChangeNotifier {
+  DirectUploadService({Nip98AuthService? authService})
+      : _authService = authService;
   static String get _baseUrl => AppConfig.backendBaseUrl;
-  
+
   final Map<String, StreamController<double>> _progressControllers = {};
   final Map<String, StreamSubscription<double>> _progressSubscriptions = {};
   final Nip98AuthService? _authService;
-  
-  DirectUploadService({Nip98AuthService? authService}) 
-      : _authService = authService;
-  
+
   /// Upload a video file directly to CF Workers with progress tracking
   Future<DirectUploadResult> uploadVideo({
     required File videoFile,
@@ -73,27 +71,69 @@ class DirectUploadService extends ChangeNotifier {
     List<String>? hashtags,
     void Function(double progress)? onProgress,
   }) async {
-    Log.debug('Starting direct upload for video: ${videoFile.path}', name: 'DirectUploadService', category: LogCategory.system);
-    
+    Log.debug('Starting direct upload for video: ${videoFile.path}',
+        name: 'DirectUploadService', category: LogCategory.system);
+
     String? videoId;
-    
+
     try {
       // Generate a temporary ID for progress tracking
       videoId = DateTime.now().millisecondsSinceEpoch.toString();
-      
+
       // Setup progress tracking
       final progressController = StreamController<double>.broadcast();
       _progressControllers[videoId] = progressController;
-      
+
       if (onProgress != null) {
         final subscription = progressController.stream.listen(onProgress);
         _progressSubscriptions[videoId] = subscription;
       }
+
+      // Step 1: Calculate SHA256 hash to check for duplicates
+      progressController.add(0.02); // 2% for hash calculation
+      Log.debug('📱 Calculating SHA256 hash for deduplication...',
+          name: 'DirectUploadService', category: LogCategory.system);
+
+      final fileBytes = await videoFile.readAsBytes();
+      final sha256Hash = await _calculateSHA256(fileBytes);
       
-      // Generate thumbnail before upload
-      progressController.add(0.05); // 5% for thumbnail generation
-      Log.debug('� Generating video thumbnail...', name: 'DirectUploadService', category: LogCategory.system);
+      Log.debug('SHA256 calculated: ${sha256Hash.substring(0, 16)}...',
+          name: 'DirectUploadService', category: LogCategory.system);
+
+      // Step 2: Check if file already exists on server
+      progressController.add(0.05); // 5% for duplicate check
+      final duplicateCheckResult = await _checkFileExists(sha256Hash);
       
+      if (duplicateCheckResult != null && duplicateCheckResult['exists'] == true) {
+        final existingUrl = duplicateCheckResult['url'];
+        Log.info('File already exists on server, skipping upload: $existingUrl',
+            name: 'DirectUploadService', category: LogCategory.system);
+        
+        progressController.add(1.0); // Mark as complete
+        
+        // Cleanup progress controller and subscription
+        _progressControllers.remove(videoId);
+        final subscription = _progressSubscriptions.remove(videoId);
+        await subscription?.cancel();
+        await progressController.close();
+        
+        // Return the existing file's metadata
+        return DirectUploadResult.success(
+          videoId: duplicateCheckResult['fileId'] ?? videoId,
+          cdnUrl: existingUrl,
+          metadata: {
+            'sha256': sha256Hash,
+            'deduplication': true,
+            'existing_file': true
+          },
+        );
+      }
+
+      // Step 3: Generate thumbnail before upload (file is new)
+      progressController.add(0.08); // 8% for thumbnail generation
+      Log.debug('📱 Generating video thumbnail...',
+          name: 'DirectUploadService', category: LogCategory.system);
+
       Uint8List? thumbnailBytes;
       try {
         thumbnailBytes = await VideoThumbnailService.extractThumbnailBytes(
@@ -101,32 +141,39 @@ class DirectUploadService extends ChangeNotifier {
           timeMs: 500, // Extract at 500ms
           quality: 80,
         );
-        
+
         if (thumbnailBytes != null) {
-          Log.info('Thumbnail generated: ${(thumbnailBytes.length / 1024).toStringAsFixed(2)}KB', name: 'DirectUploadService', category: LogCategory.system);
+          Log.info(
+              'Thumbnail generated: ${(thumbnailBytes.length / 1024).toStringAsFixed(2)}KB',
+              name: 'DirectUploadService',
+              category: LogCategory.system);
         } else {
-          Log.error('Failed to generate thumbnail, continuing without it', name: 'DirectUploadService', category: LogCategory.system);
+          Log.error('Failed to generate thumbnail, continuing without it',
+              name: 'DirectUploadService', category: LogCategory.system);
         }
       } catch (e) {
-        Log.error('Thumbnail generation error: $e, continuing without thumbnail', name: 'DirectUploadService', category: LogCategory.system);
+        Log.error(
+            'Thumbnail generation error: $e, continuing without thumbnail',
+            name: 'DirectUploadService',
+            category: LogCategory.system);
       }
 
       // Create multipart request for direct CF Workers upload
       final url = '$_baseUrl/api/upload';
       final uri = Uri.parse(url);
-      
+
       final request = http.MultipartRequest('POST', uri);
-      
+
       // Add authorization headers
       final headers = await _getAuthHeaders(url);
       request.headers.addAll(headers);
-      
+
       // Add video file with progress tracking
       final fileLength = await videoFile.length();
       final stream = videoFile.openRead();
-      
+
       // Create a progress-tracking stream
-      int bytesUploaded = 0;
+      var bytesUploaded = 0;
       final progressStream = stream.transform(
         StreamTransformer<List<int>, List<int>>.fromHandlers(
           handleData: (data, sink) {
@@ -137,10 +184,10 @@ class DirectUploadService extends ChangeNotifier {
           },
         ),
       );
-      
+
       final filename = videoFile.path.split('/').last;
       final contentType = _getContentType(filename);
-      
+
       final multipartFile = http.MultipartFile(
         'file',
         progressStream,
@@ -149,7 +196,7 @@ class DirectUploadService extends ChangeNotifier {
         contentType: contentType,
       );
       request.files.add(multipartFile);
-      
+
       // Add thumbnail to the same request if available
       if (thumbnailBytes != null) {
         final thumbnailFile = http.MultipartFile.fromBytes(
@@ -159,44 +206,47 @@ class DirectUploadService extends ChangeNotifier {
           contentType: MediaType('image', 'jpeg'),
         );
         request.files.add(thumbnailFile);
-        Log.verbose('Added thumbnail to upload request', name: 'DirectUploadService', category: LogCategory.system);
+        Log.verbose('Added thumbnail to upload request',
+            name: 'DirectUploadService', category: LogCategory.system);
       }
-      
+
       // Add optional metadata fields
       if (title != null) request.fields['title'] = title;
       if (description != null) request.fields['description'] = description;
       if (hashtags != null && hashtags.isNotEmpty) {
         request.fields['hashtags'] = hashtags.join(',');
       }
-      
+
       // Send request
       progressController.add(0.10); // 10% - Starting main upload
-      
+
       final streamedResponse = await request.send();
-      
+
       progressController.add(0.95); // Upload complete, processing response
-      
+
       final response = await http.Response.fromStream(streamedResponse);
-      
-      progressController.add(1.0); // Complete
-      
+
+      progressController.add(1); // Complete
+
       // Cleanup progress controller and subscription
       _progressControllers.remove(videoId);
       final subscription = _progressSubscriptions.remove(videoId);
       await subscription?.cancel();
       await progressController.close();
-      
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        Log.info('Direct upload successful', name: 'DirectUploadService', category: LogCategory.system);
-        Log.debug('� Response: $data', name: 'DirectUploadService', category: LogCategory.system);
-        
+        Log.info('Direct upload successful',
+            name: 'DirectUploadService', category: LogCategory.system);
+        Log.debug('📱 Response: $data',
+            name: 'DirectUploadService', category: LogCategory.system);
+
         // Updated NIP-96 response structure
         if (data['status'] == 'success') {
           // Extract video ID from URL if not provided separately
           final cdnUrl = data['download_url'] ?? data['url'];
           String? videoId = data['video_id'];
-          
+
           // Extract video ID from CDN URL if not provided
           if (videoId == null && cdnUrl != null) {
             final uri = Uri.parse(cdnUrl);
@@ -205,11 +255,12 @@ class DirectUploadService extends ChangeNotifier {
               videoId = pathSegments.last;
             }
           }
-          
+
           return DirectUploadResult.success(
             videoId: videoId ?? 'unknown',
             cdnUrl: cdnUrl,
-            thumbnailUrl: data['thumbnail_url'] ?? data['thumb_url'], // Get thumbnail URL from response
+            thumbnailUrl: data['thumbnail_url'] ??
+                data['thumb_url'], // Get thumbnail URL from response
             metadata: {
               'sha256': data['sha256'],
               'size': data['size'],
@@ -221,25 +272,32 @@ class DirectUploadService extends ChangeNotifier {
           );
         } else {
           final errorMsg = data['message'] ?? data['error'] ?? 'Upload failed';
-          Log.error('$errorMsg', name: 'DirectUploadService', category: LogCategory.system);
+          Log.error('$errorMsg',
+              name: 'DirectUploadService', category: LogCategory.system);
           return DirectUploadResult.failure(errorMsg);
         }
       } else {
         final errorBody = response.body;
-        Log.error('Upload failed with status ${response.statusCode}: $errorBody', name: 'DirectUploadService', category: LogCategory.system);
+        Log.error(
+            'Upload failed with status ${response.statusCode}: $errorBody',
+            name: 'DirectUploadService',
+            category: LogCategory.system);
         try {
           final errorData = jsonDecode(errorBody);
-          final errorMsg = 'Upload failed: ${errorData['message'] ?? errorData['error'] ?? 'Unknown error'}';
+          final errorMsg =
+              'Upload failed: ${errorData['message'] ?? errorData['error'] ?? 'Unknown error'}';
           return DirectUploadResult.failure(errorMsg);
         } catch (_) {
-          return DirectUploadResult.failure('Upload failed with status ${response.statusCode}');
+          return DirectUploadResult.failure(
+              'Upload failed with status ${response.statusCode}');
         }
       }
-      
     } catch (e, stackTrace) {
-      Log.error('Upload error: $e', name: 'DirectUploadService', category: LogCategory.system);
-      Log.verbose('� Stack trace: $stackTrace', name: 'DirectUploadService', category: LogCategory.system);
-      
+      Log.error('Upload error: $e',
+          name: 'DirectUploadService', category: LogCategory.system);
+      Log.verbose('📱 Stack trace: $stackTrace',
+          name: 'DirectUploadService', category: LogCategory.system);
+
       // Clean up progress tracking on error
       if (videoId != null) {
         final subscription = _progressSubscriptions.remove(videoId);
@@ -247,98 +305,100 @@ class DirectUploadService extends ChangeNotifier {
         await subscription?.cancel();
         await controller?.close();
       }
-      
+
       return DirectUploadResult.failure('Upload failed: $e');
     }
   }
-  
+
   /// Get authorization headers for backend requests
   Future<Map<String, String>> _getAuthHeaders(String url) async {
     final headers = <String, String>{
       'Accept': 'application/json',
     };
-    
+
     // Add NIP-98 authentication if available
     if (_authService?.canCreateTokens == true) {
       final authToken = await _authService!.createAuthToken(
         url: url,
         method: HttpMethod.post,
       );
-      
+
       if (authToken != null) {
         headers['Authorization'] = authToken.authorizationHeader;
-        Log.debug('� Added NIP-98 auth to upload request', name: 'DirectUploadService', category: LogCategory.system);
+        Log.debug('📱 Added NIP-98 auth to upload request',
+            name: 'DirectUploadService', category: LogCategory.system);
       } else {
-        Log.error('Failed to create NIP-98 auth token for upload', name: 'DirectUploadService', category: LogCategory.system);
+        Log.error('Failed to create NIP-98 auth token for upload',
+            name: 'DirectUploadService', category: LogCategory.system);
       }
     } else {
-      Log.warning('No authentication service available for upload', name: 'DirectUploadService', category: LogCategory.system);
+      Log.warning('No authentication service available for upload',
+          name: 'DirectUploadService', category: LogCategory.system);
     }
-    
+
     return headers;
   }
-  
+
   /// Cancel an ongoing upload
   Future<void> cancelUpload(String videoId) async {
     final controller = _progressControllers.remove(videoId);
     final subscription = _progressSubscriptions.remove(videoId);
-    
+
     if (controller != null || subscription != null) {
       await subscription?.cancel();
       await controller?.close();
-      Log.debug('Upload cancelled: $videoId', name: 'DirectUploadService', category: LogCategory.system);
+      Log.debug('Upload cancelled: $videoId',
+          name: 'DirectUploadService', category: LogCategory.system);
     }
   }
-  
+
   /// Get upload progress stream for a specific upload
-  Stream<double>? getProgressStream(String videoId) {
-    return _progressControllers[videoId]?.stream;
-  }
-  
+  Stream<double>? getProgressStream(String videoId) =>
+      _progressControllers[videoId]?.stream;
+
   /// Check if an upload is currently in progress
-  bool isUploading(String videoId) {
-    return _progressControllers.containsKey(videoId);
-  }
-  
+  bool isUploading(String videoId) => _progressControllers.containsKey(videoId);
+
   /// Upload a profile picture image directly to CF Workers
   Future<DirectUploadResult> uploadProfilePicture({
     required File imageFile,
     required String nostrPubkey,
     void Function(double progress)? onProgress,
   }) async {
-    Log.debug('Starting profile picture upload for: ${imageFile.path}', name: 'DirectUploadService', category: LogCategory.system);
-    
+    Log.debug('Starting profile picture upload for: ${imageFile.path}',
+        name: 'DirectUploadService', category: LogCategory.system);
+
     String? uploadId;
-    
+
     try {
       // Generate a temporary ID for progress tracking
       uploadId = DateTime.now().millisecondsSinceEpoch.toString();
-      
+
       // Setup progress tracking
       final progressController = StreamController<double>.broadcast();
       _progressControllers[uploadId] = progressController;
-      
+
       if (onProgress != null) {
         final subscription = progressController.stream.listen(onProgress);
         _progressSubscriptions[uploadId] = subscription;
       }
-      
+
       // Create multipart request for image upload (using same endpoint as videos)
       final url = '$_baseUrl/api/upload';
       final uri = Uri.parse(url);
-      
+
       final request = http.MultipartRequest('POST', uri);
-      
+
       // Add authorization headers
       final headers = await _getAuthHeaders(url);
       request.headers.addAll(headers);
-      
+
       // Add image file with progress tracking
       final fileLength = await imageFile.length();
       final stream = imageFile.openRead();
-      
+
       // Create a progress-tracking stream
-      int bytesUploaded = 0;
+      var bytesUploaded = 0;
       final progressStream = stream.transform(
         StreamTransformer<List<int>, List<int>>.fromHandlers(
           handleData: (data, sink) {
@@ -349,10 +409,10 @@ class DirectUploadService extends ChangeNotifier {
           },
         ),
       );
-      
+
       final filename = imageFile.path.split('/').last;
       final contentType = _getImageContentType(filename);
-      
+
       final multipartFile = http.MultipartFile(
         'file',
         progressStream,
@@ -361,36 +421,38 @@ class DirectUploadService extends ChangeNotifier {
         contentType: contentType,
       );
       request.files.add(multipartFile);
-      
+
       // Add metadata
       request.fields['type'] = 'profile_picture';
       request.fields['pubkey'] = nostrPubkey;
-      
+
       // Send request
       progressController.add(0.10); // 10% - Starting upload
-      
+
       final streamedResponse = await request.send();
-      
+
       progressController.add(0.95); // Upload complete, processing response
-      
+
       final response = await http.Response.fromStream(streamedResponse);
-      
-      progressController.add(1.0); // Complete
-      
+
+      progressController.add(1); // Complete
+
       // Cleanup progress controller and subscription
       _progressControllers.remove(uploadId);
       final subscription = _progressSubscriptions.remove(uploadId);
       await subscription?.cancel();
       await progressController.close();
-      
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        Log.info('Profile picture upload successful', name: 'DirectUploadService', category: LogCategory.system);
-        Log.debug('� Response: $data', name: 'DirectUploadService', category: LogCategory.system);
-        
+        Log.info('Profile picture upload successful',
+            name: 'DirectUploadService', category: LogCategory.system);
+        Log.debug('📱 Response: $data',
+            name: 'DirectUploadService', category: LogCategory.system);
+
         if (data['status'] == 'success') {
           final cdnUrl = data['url'] ?? data['download_url'];
-          
+
           return DirectUploadResult.success(
             videoId: uploadId,
             cdnUrl: cdnUrl,
@@ -409,31 +471,33 @@ class DirectUploadService extends ChangeNotifier {
         );
       }
     } catch (e, stack) {
-      Log.error('Profile picture upload error: $e', name: 'DirectUploadService', category: LogCategory.system);
-      Log.verbose('Stack trace: $stack', name: 'DirectUploadService', category: LogCategory.system);
-      
+      Log.error('Profile picture upload error: $e',
+          name: 'DirectUploadService', category: LogCategory.system);
+      Log.verbose('Stack trace: $stack',
+          name: 'DirectUploadService', category: LogCategory.system);
+
       // Cleanup on error
       if (uploadId != null) {
         _progressControllers.remove(uploadId);
         final subscription = _progressSubscriptions.remove(uploadId);
         await subscription?.cancel();
       }
-      
+
       if (e is DirectUploadException) {
         rethrow;
       }
-      
+
       return DirectUploadResult.failure(e.toString());
     }
   }
-  
+
   /// Get current uploads in progress
   List<String> get activeUploads => _progressControllers.keys.toList();
-  
+
   /// Determine content type based on file extension
   MediaType _getContentType(String filename) {
     final extension = filename.toLowerCase().split('.').last;
-    
+
     switch (extension) {
       case 'mp4':
         return MediaType('video', 'mp4');
@@ -449,15 +513,18 @@ class DirectUploadService extends ChangeNotifier {
         return MediaType('video', 'x-m4v');
       default:
         // Default to mp4 for unknown video files
-        Log.warning('Unknown video file extension: $extension, defaulting to mp4', name: 'DirectUploadService', category: LogCategory.system);
+        Log.warning(
+            'Unknown video file extension: $extension, defaulting to mp4',
+            name: 'DirectUploadService',
+            category: LogCategory.system);
         return MediaType('video', 'mp4');
     }
   }
-  
+
   /// Determine image content type based on file extension
   MediaType _getImageContentType(String filename) {
     final extension = filename.toLowerCase().split('.').last;
-    
+
     switch (extension) {
       case 'jpg':
       case 'jpeg':
@@ -473,11 +540,48 @@ class DirectUploadService extends ChangeNotifier {
         return MediaType('image', 'heic');
       default:
         // Default to jpeg for unknown image files
-        Log.warning('Unknown image file extension: $extension, defaulting to jpeg', name: 'DirectUploadService', category: LogCategory.system);
+        Log.warning(
+            'Unknown image file extension: $extension, defaulting to jpeg',
+            name: 'DirectUploadService',
+            category: LogCategory.system);
         return MediaType('image', 'jpeg');
     }
   }
-  
+
+  /// Calculate SHA256 hash of file bytes
+  Future<String> _calculateSHA256(Uint8List bytes) async {
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+  /// Check if file exists on server by SHA256 hash
+  Future<Map<String, dynamic>?> _checkFileExists(String sha256Hash) async {
+    try {
+      final url = '$_baseUrl/api/check/$sha256Hash';
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        Log.debug('File check result: ${data['exists'] ? 'exists' : 'not found'}',
+            name: 'DirectUploadService', category: LogCategory.system);
+        return data;
+      } else {
+        Log.warning('File check failed with status ${response.statusCode}',
+            name: 'DirectUploadService', category: LogCategory.system);
+        return null;
+      }
+    } catch (e) {
+      Log.warning('File check error: $e (continuing with upload)',
+          name: 'DirectUploadService', category: LogCategory.system);
+      return null;
+    }
+  }
+
   @override
   void dispose() {
     // Cancel all active uploads and subscriptions
@@ -495,16 +599,15 @@ class DirectUploadService extends ChangeNotifier {
 
 /// Exception thrown by DirectUploadService
 class DirectUploadException implements Exception {
-  final String message;
-  final String? code;
-  final dynamic originalError;
-  
   const DirectUploadException(
     this.message, {
     this.code,
     this.originalError,
   });
-  
+  final String message;
+  final String? code;
+  final dynamic originalError;
+
   @override
   String toString() => 'DirectUploadException: $message';
 }

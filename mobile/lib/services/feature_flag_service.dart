@@ -4,38 +4,58 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
+
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:openvine/utils/unified_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../utils/unified_logger.dart';
 
 /// Feature flag decision returned by the service
 class FeatureFlagDecision {
+  const FeatureFlagDecision({
+    required this.enabled,
+    required this.reason,
+    this.variant,
+    this.metadata,
+  });
+
+  factory FeatureFlagDecision.fromJson(Map<String, dynamic> json) =>
+      FeatureFlagDecision(
+        enabled: json['enabled'] as bool,
+        variant: json['variant'] as String?,
+        reason: json['reason'] as String,
+        metadata: json['metadata'] as Map<String, dynamic>?,
+      );
   final bool enabled;
   final String? variant;
   final String reason;
   final Map<String, dynamic>? metadata;
-
-  const FeatureFlagDecision({
-    required this.enabled,
-    this.variant,
-    required this.reason,
-    this.metadata,
-  });
-
-  factory FeatureFlagDecision.fromJson(Map<String, dynamic> json) {
-    return FeatureFlagDecision(
-      enabled: json['enabled'] as bool,
-      variant: json['variant'] as String?,
-      reason: json['reason'] as String,
-      metadata: json['metadata'] as Map<String, dynamic>?,
-    );
-  }
 }
 
 /// Feature flag configuration
 class FeatureFlag {
+  const FeatureFlag({
+    required this.name,
+    required this.enabled,
+    required this.rolloutPercentage,
+    required this.createdAt,
+    required this.updatedAt,
+    this.variants,
+    this.metadata,
+  });
+
+  factory FeatureFlag.fromJson(Map<String, dynamic> json) => FeatureFlag(
+        name: json['name'] as String,
+        enabled: json['enabled'] as bool,
+        rolloutPercentage: json['rolloutPercentage'] as int,
+        variants: (json['variants'] as List<dynamic>?)
+            ?.map((v) => FeatureFlagVariant.fromJson(v as Map<String, dynamic>))
+            .toList(),
+        metadata: json['metadata'] as Map<String, dynamic>?,
+        createdAt: DateTime.parse(json['createdAt'] as String),
+        updatedAt: DateTime.parse(json['updatedAt'] as String),
+      );
   final String name;
   final bool enabled;
   final int rolloutPercentage;
@@ -43,80 +63,61 @@ class FeatureFlag {
   final Map<String, dynamic>? metadata;
   final DateTime createdAt;
   final DateTime updatedAt;
-
-  const FeatureFlag({
-    required this.name,
-    required this.enabled,
-    required this.rolloutPercentage,
-    this.variants,
-    this.metadata,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  factory FeatureFlag.fromJson(Map<String, dynamic> json) {
-    return FeatureFlag(
-      name: json['name'] as String,
-      enabled: json['enabled'] as bool,
-      rolloutPercentage: json['rolloutPercentage'] as int,
-      variants: (json['variants'] as List<dynamic>?)
-          ?.map((v) => FeatureFlagVariant.fromJson(v as Map<String, dynamic>))
-          .toList(),
-      metadata: json['metadata'] as Map<String, dynamic>?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
-    );
-  }
 }
 
 /// Feature flag variant for A/B testing
 class FeatureFlagVariant {
-  final String name;
-  final int percentage;
-  final Map<String, dynamic>? metadata;
-
   const FeatureFlagVariant({
     required this.name,
     required this.percentage,
     this.metadata,
   });
 
-  factory FeatureFlagVariant.fromJson(Map<String, dynamic> json) {
-    return FeatureFlagVariant(
-      name: json['name'] as String,
-      percentage: json['percentage'] as int,
-      metadata: json['metadata'] as Map<String, dynamic>?,
-    );
-  }
+  factory FeatureFlagVariant.fromJson(Map<String, dynamic> json) =>
+      FeatureFlagVariant(
+        name: json['name'] as String,
+        percentage: json['percentage'] as int,
+        metadata: json['metadata'] as Map<String, dynamic>?,
+      );
+  final String name;
+  final int percentage;
+  final Map<String, dynamic>? metadata;
 }
 
 /// Feature flag service for Flutter
 class FeatureFlagService extends ChangeNotifier {
+  FeatureFlagService({
+    required this.apiBaseUrl,
+    required this.prefs,
+    this.apiKey,
+    this.userId,
+    Duration? cacheDuration,
+  }) : _cacheDuration = cacheDuration ?? const Duration(minutes: 5);
   final String apiBaseUrl;
   final String? apiKey;
   final String? userId;
   final SharedPreferences prefs;
-  
+
   // Cache for feature flag decisions
   final Map<String, FeatureFlagDecision> _decisionCache = {};
   final Map<String, DateTime> _cacheExpiry = {};
   final Duration _cacheDuration;
-  
+
   // Default flags for offline mode
   static const Map<String, bool> _defaultFlags = {
     'video_caching_system': false,
     'optimized_batch_api': false,
     'prefetch_manager': false,
     'analytics_v2': false,
+    // ProofMode feature flags
+    'proofmode_dev': false,
+    'proofmode_crypto': false,
+    'proofmode_capture': false,
+    'proofmode_publish': false,
+    'proofmode_verify': false,
+    'proofmode_ui': false,
+    'proofmode_production': false,
   };
-
-  FeatureFlagService({
-    required this.apiBaseUrl,
-    this.apiKey,
-    this.userId,
-    required this.prefs,
-    Duration? cacheDuration,
-  }) : _cacheDuration = cacheDuration ?? const Duration(minutes: 5);
 
   /// Check if a feature is enabled
   Future<bool> isEnabled(
@@ -145,40 +146,44 @@ class FeatureFlagService extends ChangeNotifier {
 
     try {
       // Make API request
-      final response = await http.post(
-        Uri.parse('$apiBaseUrl/api/feature-flags/$flagName/check'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (apiKey != null) 'Authorization': 'Bearer $apiKey',
-        },
-        body: jsonEncode({
-          'userId': userId ?? await _getOrCreateUserId(),
-          'attributes': attributes,
-        }),
-      ).timeout(const Duration(seconds: 5));
+      final response = await http
+          .post(
+            Uri.parse('$apiBaseUrl/api/feature-flags/$flagName/check'),
+            headers: {
+              'Content-Type': 'application/json',
+              if (apiKey != null) 'Authorization': 'Bearer $apiKey',
+            },
+            body: jsonEncode({
+              'userId': userId ?? await _getOrCreateUserId(),
+              'attributes': attributes,
+            }),
+          )
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
         final decision = FeatureFlagDecision.fromJson(json);
-        
+
         // Cache decision
         _decisionCache[flagName] = decision;
         _cacheExpiry[flagName] = DateTime.now().add(_cacheDuration);
-        
+
         // Persist to local storage for offline mode
         await _persistDecision(flagName, decision);
-        
+
         // Track analytics
         _trackFlagEvaluation(flagName, decision, attributes);
-        
+
         notifyListeners();
         return decision;
       } else {
-        Log.error('Feature flag API error: ${response.statusCode}', name: 'FeatureFlagService', category: LogCategory.system);
+        Log.error('Feature flag API error: ${response.statusCode}',
+            name: 'FeatureFlagService', category: LogCategory.system);
         return _getFallbackDecision(flagName);
       }
     } catch (e) {
-      Log.error('Feature flag error: $e', name: 'FeatureFlagService', category: LogCategory.system);
+      Log.error('Feature flag error: $e',
+          name: 'FeatureFlagService', category: LogCategory.system);
       return _getFallbackDecision(flagName);
     }
   }
@@ -200,18 +205,18 @@ class FeatureFlagService extends ChangeNotifier {
             .toList();
         return flags;
       } else {
-        throw Exception('Failed to fetch feature flags: ${response.statusCode}');
+        throw Exception(
+            'Failed to fetch feature flags: ${response.statusCode}');
       }
     } catch (e) {
-      Log.error('Error fetching all flags: $e', name: 'FeatureFlagService', category: LogCategory.system);
+      Log.error('Error fetching all flags: $e',
+          name: 'FeatureFlagService', category: LogCategory.system);
       rethrow;
     }
   }
 
   /// Get variant for A/B testing
-  String? getVariant(String flagName) {
-    return _decisionCache[flagName]?.variant;
-  }
+  String? getVariant(String flagName) => _decisionCache[flagName]?.variant;
 
   /// Clear cache for a specific flag or all flags
   void clearCache([String? flagName]) {
@@ -227,8 +232,8 @@ class FeatureFlagService extends ChangeNotifier {
 
   /// Preload feature flags for better performance
   Future<void> preloadFlags(List<String> flagNames) async {
-    final futures = flagNames.map((flag) => 
-      getDecision(flag, forceRefresh: true)
+    final futures = flagNames.map(
+      (flag) => getDecision(flag, forceRefresh: true),
     );
     await Future.wait(futures);
   }
@@ -239,7 +244,7 @@ class FeatureFlagService extends ChangeNotifier {
     final bytes = utf8.encode(data);
     final digest = sha256.convert(bytes);
     final hash = digest.toString();
-    
+
     // Convert first 8 chars of hash to number and map to 0-100
     final num = int.parse(hash.substring(0, 8), radix: 16);
     return (num % 100) + 1;
@@ -267,14 +272,14 @@ class FeatureFlagService extends ChangeNotifier {
 
   bool _isCacheValid(String flagName) {
     final expiry = _cacheExpiry[flagName];
-    return expiry != null && 
-           DateTime.now().isBefore(expiry) &&
-           _decisionCache.containsKey(flagName);
+    return expiry != null &&
+        DateTime.now().isBefore(expiry) &&
+        _decisionCache.containsKey(flagName);
   }
 
   Future<String> _getOrCreateUserId() async {
-    String? storedUserId = prefs.getString('feature_flag_user_id');
-    
+    var storedUserId = prefs.getString('feature_flag_user_id');
+
     if (storedUserId == null) {
       // Generate random user ID
       final random = Random.secure();
@@ -282,7 +287,7 @@ class FeatureFlagService extends ChangeNotifier {
       storedUserId = base64Url.encode(values);
       await prefs.setString('feature_flag_user_id', storedUserId);
     }
-    
+
     return storedUserId;
   }
 
@@ -319,13 +324,13 @@ class FeatureFlagService extends ChangeNotifier {
   Future<FeatureFlagDecision?> _loadPersistedDecision(String flagName) async {
     final key = 'feature_flag_decision_$flagName';
     final stored = prefs.getString(key);
-    
+
     if (stored == null) return null;
-    
+
     try {
       final data = jsonDecode(stored) as Map<String, dynamic>;
       final timestamp = DateTime.parse(data['timestamp'] as String);
-      
+
       // Use persisted decision if less than 24 hours old
       if (DateTime.now().difference(timestamp).inHours < 24) {
         return FeatureFlagDecision(
@@ -336,9 +341,10 @@ class FeatureFlagService extends ChangeNotifier {
         );
       }
     } catch (e) {
-      Log.error('Error loading persisted decision: $e', name: 'FeatureFlagService', category: LogCategory.system);
+      Log.error('Error loading persisted decision: $e',
+          name: 'FeatureFlagService', category: LogCategory.system);
     }
-    
+
     return null;
   }
 
@@ -356,14 +362,15 @@ class FeatureFlagService extends ChangeNotifier {
       'attributes': attributes,
       'timestamp': DateTime.now().toIso8601String(),
     };
-    
+
     _sendAnalytics(event);
   }
 
   Future<void> _sendAnalytics(Map<String, dynamic> event) async {
     // Queue analytics events to send in batch
     // This would integrate with your analytics service
-    Log.debug('Feature flag analytics: ${jsonEncode(event)}', name: 'FeatureFlagService', category: LogCategory.system);
+    Log.debug('Feature flag analytics: ${jsonEncode(event)}',
+        name: 'FeatureFlagService', category: LogCategory.system);
   }
 
   @override

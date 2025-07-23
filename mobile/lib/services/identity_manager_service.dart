@@ -3,20 +3,15 @@
 
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
+import 'package:openvine/services/secure_key_storage_service.dart';
+import 'package:openvine/utils/nostr_encoding.dart';
+import 'package:openvine/utils/unified_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'key_storage_service.dart';
-import '../utils/nostr_encoding.dart';
-import '../utils/unified_logger.dart';
 
 /// Represents a saved Nostr identity
 class SavedIdentity {
-  final String npub;
-  final String displayName;
-  final DateTime savedAt;
-  final DateTime? lastUsedAt;
-  final bool isActive;
-
   SavedIdentity({
     required this.npub,
     required this.displayName,
@@ -25,40 +20,45 @@ class SavedIdentity {
     this.isActive = false,
   });
 
-  Map<String, dynamic> toJson() => {
-    'npub': npub,
-    'displayName': displayName,
-    'savedAt': savedAt.toIso8601String(),
-    'lastUsedAt': lastUsedAt?.toIso8601String(),
-    'isActive': isActive,
-  };
-
   factory SavedIdentity.fromJson(Map<String, dynamic> json) => SavedIdentity(
-    npub: json['npub'] as String,
-    displayName: json['displayName'] as String,
-    savedAt: DateTime.parse(json['savedAt'] as String),
-    lastUsedAt: json['lastUsedAt'] != null 
-        ? DateTime.parse(json['lastUsedAt'] as String) 
-        : null,
-    isActive: json['isActive'] as bool? ?? false,
-  );
+        npub: json['npub'] as String,
+        displayName: json['displayName'] as String,
+        savedAt: DateTime.parse(json['savedAt'] as String),
+        lastUsedAt: json['lastUsedAt'] != null
+            ? DateTime.parse(json['lastUsedAt'] as String)
+            : null,
+        isActive: json['isActive'] as bool? ?? false,
+      );
+  final String npub;
+  final String displayName;
+  final DateTime savedAt;
+  final DateTime? lastUsedAt;
+  final bool isActive;
+
+  Map<String, dynamic> toJson() => {
+        'npub': npub,
+        'displayName': displayName,
+        'savedAt': savedAt.toIso8601String(),
+        'lastUsedAt': lastUsedAt?.toIso8601String(),
+        'isActive': isActive,
+      };
 }
 
 /// Service for managing multiple Nostr identities
 class IdentityManagerService extends ChangeNotifier {
+  IdentityManagerService({SecureKeyStorageService? keyStorage})
+      : _keyStorage = keyStorage ?? SecureKeyStorageService();
   static const String _identitiesKey = 'saved_nostr_identities';
   static const String _activeIdentityKey = 'active_nostr_identity';
-  
-  final KeyStorageService _keyStorage;
+
+  final SecureKeyStorageService _keyStorage;
   List<SavedIdentity> _savedIdentities = [];
   String? _activeIdentityNpub;
 
-  IdentityManagerService({KeyStorageService? keyStorage})
-      : _keyStorage = keyStorage ?? KeyStorageService();
-
-  List<SavedIdentity> get savedIdentities => List.unmodifiable(_savedIdentities);
+  List<SavedIdentity> get savedIdentities =>
+      List.unmodifiable(_savedIdentities);
   String? get activeIdentityNpub => _activeIdentityNpub;
-  
+
   /// Initialize the service and load saved identities
   Future<void> initialize() async {
     await _loadSavedIdentities();
@@ -68,7 +68,7 @@ class IdentityManagerService extends ChangeNotifier {
   Future<void> _loadSavedIdentities() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Load the list of saved identities
       final identitiesJson = prefs.getString(_identitiesKey);
       if (identitiesJson != null) {
@@ -77,58 +77,65 @@ class IdentityManagerService extends ChangeNotifier {
             .map((json) => SavedIdentity.fromJson(json as Map<String, dynamic>))
             .toList();
       }
-      
+
       // Load the active identity
       _activeIdentityNpub = prefs.getString(_activeIdentityKey);
-      
+
       notifyListeners();
-      Log.debug('� Loaded ${_savedIdentities.length} saved identities', name: 'IdentityManagerService', category: LogCategory.system);
+      Log.debug('📱 Loaded ${_savedIdentities.length} saved identities',
+          name: 'IdentityManagerService', category: LogCategory.system);
     } catch (e) {
-      Log.error('Error loading saved identities: $e', name: 'IdentityManagerService', category: LogCategory.system);
+      Log.error('Error loading saved identities: $e',
+          name: 'IdentityManagerService', category: LogCategory.system);
     }
   }
 
   /// Save the current identity before switching
   Future<void> saveCurrentIdentity() async {
     try {
-      final currentKeyPair = await _keyStorage.getKeyPair();
-      if (currentKeyPair == null) {
-        Log.warning('No current identity to save', name: 'IdentityManagerService', category: LogCategory.system);
+      final currentKeyContainer = await _keyStorage.getKeyContainer();
+      if (currentKeyContainer == null) {
+        Log.warning('No current identity to save',
+            name: 'IdentityManagerService', category: LogCategory.system);
         return;
       }
 
       // Check if this identity is already saved
       final existingIndex = _savedIdentities.indexWhere(
-        (identity) => identity.npub == currentKeyPair.npub,
+        (identity) => identity.npub == currentKeyContainer.npub,
       );
 
-      final displayName = NostrEncoding.maskKey(currentKeyPair.npub);
-      
+      final displayName = NostrEncoding.maskKey(currentKeyContainer.npub);
+
       if (existingIndex >= 0) {
         // Update existing identity
         _savedIdentities[existingIndex] = SavedIdentity(
-          npub: currentKeyPair.npub,
+          npub: currentKeyContainer.npub,
           displayName: displayName,
           savedAt: _savedIdentities[existingIndex].savedAt,
           lastUsedAt: DateTime.now(),
           isActive: true,
         );
-        Log.verbose('Updated existing identity: $displayName', name: 'IdentityManagerService', category: LogCategory.system);
+        Log.verbose('Updated existing identity: $displayName',
+            name: 'IdentityManagerService', category: LogCategory.system);
       } else {
         // Add new identity
-        _savedIdentities.add(SavedIdentity(
-          npub: currentKeyPair.npub,
-          displayName: displayName,
-          savedAt: DateTime.now(),
-          lastUsedAt: DateTime.now(),
-          isActive: true,
-        ));
-        Log.debug('� Saved new identity: $displayName', name: 'IdentityManagerService', category: LogCategory.system);
+        _savedIdentities.add(
+          SavedIdentity(
+            npub: currentKeyContainer.npub,
+            displayName: displayName,
+            savedAt: DateTime.now(),
+            lastUsedAt: DateTime.now(),
+            isActive: true,
+          ),
+        );
+        Log.debug('📱 Saved new identity: $displayName',
+            name: 'IdentityManagerService', category: LogCategory.system);
       }
 
       // Mark all other identities as inactive
-      for (int i = 0; i < _savedIdentities.length; i++) {
-        if (_savedIdentities[i].npub != currentKeyPair.npub) {
+      for (var i = 0; i < _savedIdentities.length; i++) {
+        if (_savedIdentities[i].npub != currentKeyContainer.npub) {
           _savedIdentities[i] = SavedIdentity(
             npub: _savedIdentities[i].npub,
             displayName: _savedIdentities[i].displayName,
@@ -139,10 +146,11 @@ class IdentityManagerService extends ChangeNotifier {
         }
       }
 
-      _activeIdentityNpub = currentKeyPair.npub;
+      _activeIdentityNpub = currentKeyContainer.npub;
       await _persistIdentities();
     } catch (e) {
-      Log.error('Error saving current identity: $e', name: 'IdentityManagerService', category: LogCategory.system);
+      Log.error('Error saving current identity: $e',
+          name: 'IdentityManagerService', category: LogCategory.system);
     }
   }
 
@@ -161,29 +169,31 @@ class IdentityManagerService extends ChangeNotifier {
       // Note: This requires that we've previously saved the nsec securely
       // For now, this is a limitation - we can only switch to identities
       // that were imported during this app's lifetime
-      
-      Log.debug('Switching to identity: ${identity.displayName}', name: 'IdentityManagerService', category: LogCategory.system);
-      
+
+      Log.debug('Switching to identity: ${identity.displayName}',
+          name: 'IdentityManagerService', category: LogCategory.system);
+
       // Update the active identity
       _activeIdentityNpub = npub;
-      
+
       // Update saved identities to mark the new one as active
-      for (int i = 0; i < _savedIdentities.length; i++) {
+      for (var i = 0; i < _savedIdentities.length; i++) {
         _savedIdentities[i] = SavedIdentity(
           npub: _savedIdentities[i].npub,
           displayName: _savedIdentities[i].displayName,
           savedAt: _savedIdentities[i].savedAt,
-          lastUsedAt: _savedIdentities[i].npub == npub 
-              ? DateTime.now() 
+          lastUsedAt: _savedIdentities[i].npub == npub
+              ? DateTime.now()
               : _savedIdentities[i].lastUsedAt,
           isActive: _savedIdentities[i].npub == npub,
         );
       }
-      
+
       await _persistIdentities();
       return true;
     } catch (e) {
-      Log.error('Error switching identity: $e', name: 'IdentityManagerService', category: LogCategory.system);
+      Log.error('Error switching identity: $e',
+          name: 'IdentityManagerService', category: LogCategory.system);
       return false;
     }
   }
@@ -192,15 +202,17 @@ class IdentityManagerService extends ChangeNotifier {
   Future<void> removeIdentity(String npub) async {
     try {
       _savedIdentities.removeWhere((identity) => identity.npub == npub);
-      
+
       if (_activeIdentityNpub == npub) {
         _activeIdentityNpub = null;
       }
-      
+
       await _persistIdentities();
-      Log.debug('�️ Removed identity with npub: ${NostrEncoding.maskKey(npub)}', name: 'IdentityManagerService', category: LogCategory.system);
+      Log.debug('📱️ Removed identity with npub: ${NostrEncoding.maskKey(npub)}',
+          name: 'IdentityManagerService', category: LogCategory.system);
     } catch (e) {
-      Log.error('Error removing identity: $e', name: 'IdentityManagerService', category: LogCategory.system);
+      Log.error('Error removing identity: $e',
+          name: 'IdentityManagerService', category: LogCategory.system);
     }
   }
 
@@ -208,22 +220,23 @@ class IdentityManagerService extends ChangeNotifier {
   Future<void> _persistIdentities() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       final identitiesJson = jsonEncode(
         _savedIdentities.map((id) => id.toJson()).toList(),
       );
-      
+
       await prefs.setString(_identitiesKey, identitiesJson);
-      
+
       if (_activeIdentityNpub != null) {
         await prefs.setString(_activeIdentityKey, _activeIdentityNpub!);
       } else {
         await prefs.remove(_activeIdentityKey);
       }
-      
+
       notifyListeners();
     } catch (e) {
-      Log.error('Error persisting identities: $e', name: 'IdentityManagerService', category: LogCategory.system);
+      Log.error('Error persisting identities: $e',
+          name: 'IdentityManagerService', category: LogCategory.system);
     }
   }
 
@@ -233,14 +246,16 @@ class IdentityManagerService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_identitiesKey);
       await prefs.remove(_activeIdentityKey);
-      
+
       _savedIdentities.clear();
       _activeIdentityNpub = null;
-      
+
       notifyListeners();
-      Log.debug('�️ Cleared all saved identities', name: 'IdentityManagerService', category: LogCategory.system);
+      Log.debug('📱️ Cleared all saved identities',
+          name: 'IdentityManagerService', category: LogCategory.system);
     } catch (e) {
-      Log.error('Error clearing identities: $e', name: 'IdentityManagerService', category: LogCategory.system);
+      Log.error('Error clearing identities: $e',
+          name: 'IdentityManagerService', category: LogCategory.system);
     }
   }
 }

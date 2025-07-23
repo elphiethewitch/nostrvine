@@ -2,29 +2,30 @@
 // ABOUTME: Uses VineRecordingController abstraction for consistent recording experience
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../services/vine_recording_controller.dart';
-import '../services/nostr_key_manager.dart';
-import '../services/upload_manager.dart';
-import '../services/video_manager_interface.dart';
-import '../widgets/vine_recording_controls.dart';
-import '../theme/vine_theme.dart';
-import 'video_metadata_screen.dart';
-import '../main.dart';
-import '../utils/unified_logger.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:openvine/main.dart';
+import 'package:openvine/providers/app_providers.dart';
+import 'package:openvine/providers/video_manager_providers.dart';
+import 'package:openvine/screens/video_metadata_screen.dart';
+import 'package:openvine/services/nostr_key_manager.dart';
+import 'package:openvine/services/upload_manager.dart';
+import 'package:openvine/services/vine_recording_controller.dart';
+import 'package:openvine/theme/vine_theme.dart';
+import 'package:openvine/utils/unified_logger.dart';
+import 'package:openvine/widgets/vine_recording_controls.dart';
 
-class UniversalCameraScreen extends StatefulWidget {
+class UniversalCameraScreen extends ConsumerStatefulWidget {
   const UniversalCameraScreen({super.key});
 
   @override
-  State<UniversalCameraScreen> createState() => _UniversalCameraScreenState();
+  ConsumerState<UniversalCameraScreen> createState() => _UniversalCameraScreenState();
 }
 
-class _UniversalCameraScreenState extends State<UniversalCameraScreen> {
+class _UniversalCameraScreenState extends ConsumerState<UniversalCameraScreen> {
   late VineRecordingController _recordingController;
   late final NostrKeyManager _keyManager;
   UploadManager? _uploadManager;
-  
+
   String? _errorMessage;
   bool _isProcessing = false;
 
@@ -43,40 +44,59 @@ class _UniversalCameraScreenState extends State<UniversalCameraScreen> {
 
   Future<void> _initializeServices() async {
     try {
-      // Stop all background videos immediately when camera screen opens
-      final videoManager = context.read<IVideoManager>();
-      videoManager.stopAllVideos();
-      Log.info('Stopped all background videos on camera screen init', name: 'UniversalCameraScreen', category: LogCategory.ui);
-      
-      // Get services from providers
-      _uploadManager = context.read<UploadManager>();
-      _keyManager = context.read<NostrKeyManager>();
-      
-      // Initialize recording controller
-      await _recordingController.initialize();
-      
-      setState(() {
-        _errorMessage = null;
+      // Use post-frame callback to avoid provider modification during build
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        try {
+          // Stop all background videos after widget tree is built
+          final videoManager = ref.read(videoManagerProvider.notifier);
+          videoManager.stopAllVideos();
+          Log.info('Stopped all background videos on camera screen init',
+              name: 'UniversalCameraScreen', category: LogCategory.ui);
+
+          // Get services from providers
+          _uploadManager = ref.read(uploadManagerProvider);
+          _keyManager = ref.read(nostrKeyManagerProvider);
+
+          // Initialize recording controller
+          await _recordingController.initialize();
+
+          if (mounted) {
+            setState(() {
+              _errorMessage = null;
+            });
+          }
+
+          // For macOS, give the camera widget time to mount and initialize
+          if (mounted && Theme.of(context).platform == TargetPlatform.macOS) {
+            Log.debug('📱 Waiting for macOS camera widget to mount...',
+                name: 'UniversalCameraScreen', category: LogCategory.ui);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Log.debug('📱 macOS camera widget should now be mounted',
+                  name: 'UniversalCameraScreen', category: LogCategory.ui);
+            });
+          }
+        } catch (e) {
+          if (mounted) {
+            setState(() {
+              _errorMessage = 'Failed to initialize camera: $e';
+            });
+          }
+          Log.error('Camera initialization failed: $e',
+              name: 'UniversalCameraScreen', category: LogCategory.ui);
+        }
       });
-      
-      // For macOS, give the camera widget time to mount and initialize
-      if (Theme.of(context).platform == TargetPlatform.macOS) {
-        Log.debug('� Waiting for macOS camera widget to mount...', name: 'UniversalCameraScreen', category: LogCategory.ui);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          Log.debug('� macOS camera widget should now be mounted', name: 'UniversalCameraScreen', category: LogCategory.ui);
-        });
-      }
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to initialize camera: $e';
       });
-      Log.error('Camera initialization failed: $e', name: 'UniversalCameraScreen', category: LogCategory.ui);
+      Log.error('Camera initialization failed: $e',
+          name: 'UniversalCameraScreen', category: LogCategory.ui);
     }
   }
 
   Future<void> _onRecordingComplete() async {
     if (_isProcessing) return;
-    
+
     setState(() {
       _isProcessing = true;
     });
@@ -84,7 +104,7 @@ class _UniversalCameraScreenState extends State<UniversalCameraScreen> {
     try {
       // Finish recording and get the video file
       final videoFile = await _recordingController.finishRecording();
-      
+
       if (videoFile != null && mounted) {
         // Navigate to metadata screen
         final result = await Navigator.push<Map<String, dynamic>>(
@@ -100,7 +120,7 @@ class _UniversalCameraScreenState extends State<UniversalCameraScreen> {
         if (result != null && mounted) {
           // Get current user's pubkey
           final pubkey = _keyManager.publicKey ?? '';
-          
+
           // Start upload through upload manager
           await _uploadManager!.startUpload(
             videoFile: videoFile,
@@ -111,23 +131,25 @@ class _UniversalCameraScreenState extends State<UniversalCameraScreen> {
           );
 
           // Don't reset here - let files persist until next recording session
-          
+
           // Navigate back to the main feed immediately after starting upload
           // The upload will continue in the background
           if (mounted) {
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
-                builder: (context) => const MainNavigationScreen(initialTabIndex: 0),
+                builder: (context) =>
+                    const MainNavigationScreen(initialTabIndex: 0),
               ),
             );
           }
         }
       }
     } catch (e) {
-      Log.error('Error processing recording: $e', name: 'UniversalCameraScreen', category: LogCategory.ui);
-      
+      Log.error('Error processing recording: $e',
+          name: 'UniversalCameraScreen', category: LogCategory.ui);
+
       // Don't reset here on error - let files persist until next recording session
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to process recording: $e')),
@@ -147,130 +169,132 @@ class _UniversalCameraScreenState extends State<UniversalCameraScreen> {
     Navigator.of(context).pop();
   }
 
-
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
+  Widget build(BuildContext context) => Scaffold(
         backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        title: const Text('Record Vine'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          title: const Text('Record Vine'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
         ),
-      ),
-      body: Stack(
-        children: [
-          // Camera preview (full screen)
-          if (_errorMessage == null)
-            Positioned.fill(
-              child: Builder(
-                builder: (context) {
-                  Log.debug('� Building camera preview widget', name: 'UniversalCameraScreen', category: LogCategory.ui);
-                  return _recordingController.cameraPreview;
-                },
-              ),
-            )
-          else
-            _buildErrorView(),
-          
-          // Recording UI overlay
-          if (_errorMessage == null)
-            Positioned.fill(
-              child: ListenableBuilder(
-                listenable: _recordingController,
-                builder: (context, child) {
-                  return VineRecordingUI(
+        body: Stack(
+          children: [
+            // Camera preview (full screen)
+            if (_errorMessage == null)
+              Positioned.fill(
+                child: Builder(
+                  builder: (context) {
+                    Log.debug('📱 Building camera preview widget',
+                        name: 'UniversalCameraScreen',
+                        category: LogCategory.ui);
+                    return _recordingController.cameraPreview;
+                  },
+                ),
+              )
+            else
+              _buildErrorView(),
+
+            // Recording UI overlay
+            if (_errorMessage == null)
+              Positioned.fill(
+                child: ListenableBuilder(
+                  listenable: _recordingController,
+                  builder: (context, child) => VineRecordingUI(
                     controller: _recordingController,
                     onRecordingComplete: _onRecordingComplete,
                     onCancel: _onCancel,
-                  );
-                },
-              ),
-            ),
-          
-          // Upload progress indicator removed - we navigate away immediately after upload starts
-          
-          // Processing overlay
-          if (_isProcessing)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black54,
-                child: const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(VineTheme.vineGreen),
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        'Processing your vine...',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ),
-            ),
-        ],
-      ),
-    );
-  }
 
-  Widget _buildErrorView() {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              color: Colors.white,
-              size: 64,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Camera Error',
-              style: Theme.of(context).textTheme.displayLarge?.copyWith(color: Colors.white),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _errorMessage ?? 'Unknown error',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey[700],
-                    foregroundColor: Colors.white,
+            // Upload progress indicator removed - we navigate away immediately after upload starts
+
+            // Processing overlay
+            if (_isProcessing)
+              const Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black54,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              VineTheme.vineGreen),
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Processing your vine...',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: const Text('Go Back'),
                 ),
-                const SizedBox(width: 16),
-                ElevatedButton(
-                  onPressed: _initializeServices,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: VineTheme.vineGreen,
-                  ),
-                  child: const Text('Try Again'),
-                ),
-              ],
-            ),
+              ),
           ],
         ),
-      ),
-    );
-  }
+      );
+
+  Widget _buildErrorView() => Center(
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                color: Colors.white,
+                size: 64,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Camera Error',
+                style: Theme.of(context)
+                    .textTheme
+                    .displayLarge
+                    ?.copyWith(color: Colors.white),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _errorMessage ?? 'Unknown error',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: Colors.white70),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[700],
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Go Back'),
+                  ),
+                  const SizedBox(width: 16),
+                  ElevatedButton(
+                    onPressed: _initializeServices,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: VineTheme.vineGreen,
+                    ),
+                    child: const Text('Try Again'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
 }

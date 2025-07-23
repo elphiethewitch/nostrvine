@@ -9,84 +9,33 @@ part 'pending_upload.g.dart';
 @HiveType(typeId: 1)
 enum UploadStatus {
   @HiveField(0)
-  pending,       // Waiting to start upload
-  
+  pending, // Waiting to start upload
+
   @HiveField(1)
-  uploading,     // Currently uploading to Cloudinary
-  
+  uploading, // Currently uploading to Cloudinary
+
   @HiveField(2)
-  retrying,      // Retrying after failure
-  
+  retrying, // Retrying after failure
+
   @HiveField(3)
-  processing,    // Cloudinary is processing the video
-  
+  processing, // Cloudinary is processing the video
+
   @HiveField(4)
   readyToPublish, // Processing complete, ready for Nostr publishing
-  
+
   @HiveField(5)
-  published,     // Successfully published to Nostr
-  
+  published, // Successfully published to Nostr
+
   @HiveField(6)
-  failed,        // Upload or processing failed
-  
+  failed, // Upload or processing failed
+
   @HiveField(7)
-  paused,        // Upload paused by user
+  paused, // Upload paused by user
 }
 
 /// Represents a video upload in progress or completed
 @HiveType(typeId: 2)
 class PendingUpload {
-  @HiveField(0)
-  final String id;
-  
-  @HiveField(1)
-  final String localVideoPath;
-  
-  @HiveField(2)
-  final String nostrPubkey;
-  
-  @HiveField(3)
-  final UploadStatus status;
-  
-  @HiveField(4)
-  final DateTime createdAt;
-  
-  @HiveField(5)
-  final String? cloudinaryPublicId; // Deprecated - use videoId instead
-  
-  @HiveField(15)
-  final String? videoId; // New field for direct upload
-  
-  @HiveField(16)
-  final String? cdnUrl; // Direct CDN URL from upload
-  
-  @HiveField(6)
-  final String? errorMessage;
-  
-  @HiveField(7)
-  final double? uploadProgress; // 0.0 to 1.0
-  
-  @HiveField(8)
-  final String? thumbnailPath;
-  
-  @HiveField(9)
-  final String? title;
-  
-  @HiveField(10)
-  final String? description;
-  
-  @HiveField(11)
-  final List<String>? hashtags;
-  
-  @HiveField(12)
-  final String? nostrEventId; // Set when published to Nostr
-  
-  @HiveField(13)
-  final DateTime? completedAt;
-  
-  @HiveField(14)
-  final int? retryCount;
-
   const PendingUpload({
     required this.id,
     required this.localVideoPath,
@@ -115,19 +64,68 @@ class PendingUpload {
     String? title,
     String? description,
     List<String>? hashtags,
-  }) {
-    return PendingUpload(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      localVideoPath: localVideoPath,
-      nostrPubkey: nostrPubkey,
-      status: UploadStatus.pending,
-      createdAt: DateTime.now(),
-      thumbnailPath: thumbnailPath,
-      title: title,
-      description: description,
-      hashtags: hashtags,
-    );
-  }
+  }) =>
+      PendingUpload(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        localVideoPath: localVideoPath,
+        nostrPubkey: nostrPubkey,
+        status: UploadStatus.pending,
+        createdAt: DateTime.now(),
+        thumbnailPath: thumbnailPath,
+        title: title,
+        description: description,
+        hashtags: hashtags,
+      );
+  @HiveField(0)
+  final String id;
+
+  @HiveField(1)
+  final String localVideoPath;
+
+  @HiveField(2)
+  final String nostrPubkey;
+
+  @HiveField(3)
+  final UploadStatus status;
+
+  @HiveField(4)
+  final DateTime createdAt;
+
+  @HiveField(5)
+  final String? cloudinaryPublicId; // Deprecated - use videoId instead
+
+  @HiveField(15)
+  final String? videoId; // New field for direct upload
+
+  @HiveField(16)
+  final String? cdnUrl; // Direct CDN URL from upload
+
+  @HiveField(6)
+  final String? errorMessage;
+
+  @HiveField(7)
+  final double? uploadProgress; // 0.0 to 1.0
+
+  @HiveField(8)
+  final String? thumbnailPath;
+
+  @HiveField(9)
+  final String? title;
+
+  @HiveField(10)
+  final String? description;
+
+  @HiveField(11)
+  final List<String>? hashtags;
+
+  @HiveField(12)
+  final String? nostrEventId; // Set when published to Nostr
+
+  @HiveField(13)
+  final DateTime? completedAt;
+
+  @HiveField(14)
+  final int? retryCount;
 
   /// Copy with updated fields
   PendingUpload copyWith({
@@ -148,30 +146,30 @@ class PendingUpload {
     String? nostrEventId,
     DateTime? completedAt,
     int? retryCount,
-  }) {
-    return PendingUpload(
-      id: id ?? this.id,
-      localVideoPath: localVideoPath ?? this.localVideoPath,
-      nostrPubkey: nostrPubkey ?? this.nostrPubkey,
-      status: status ?? this.status,
-      createdAt: createdAt ?? this.createdAt,
-      cloudinaryPublicId: cloudinaryPublicId ?? this.cloudinaryPublicId,
-      videoId: videoId ?? this.videoId,
-      cdnUrl: cdnUrl ?? this.cdnUrl,
-      errorMessage: errorMessage ?? this.errorMessage,
-      uploadProgress: uploadProgress ?? this.uploadProgress,
-      thumbnailPath: thumbnailPath ?? this.thumbnailPath,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      hashtags: hashtags ?? this.hashtags,
-      nostrEventId: nostrEventId ?? this.nostrEventId,
-      completedAt: completedAt ?? this.completedAt,
-      retryCount: retryCount ?? this.retryCount,
-    );
-  }
+  }) =>
+      PendingUpload(
+        id: id ?? this.id,
+        localVideoPath: localVideoPath ?? this.localVideoPath,
+        nostrPubkey: nostrPubkey ?? this.nostrPubkey,
+        status: status ?? this.status,
+        createdAt: createdAt ?? this.createdAt,
+        cloudinaryPublicId: cloudinaryPublicId ?? this.cloudinaryPublicId,
+        videoId: videoId ?? this.videoId,
+        cdnUrl: cdnUrl ?? this.cdnUrl,
+        errorMessage: errorMessage ?? this.errorMessage,
+        uploadProgress: uploadProgress ?? this.uploadProgress,
+        thumbnailPath: thumbnailPath ?? this.thumbnailPath,
+        title: title ?? this.title,
+        description: description ?? this.description,
+        hashtags: hashtags ?? this.hashtags,
+        nostrEventId: nostrEventId ?? this.nostrEventId,
+        completedAt: completedAt ?? this.completedAt,
+        retryCount: retryCount ?? this.retryCount,
+      );
 
   /// Check if the upload is in a terminal state
-  bool get isCompleted => status == UploadStatus.published || status == UploadStatus.failed;
+  bool get isCompleted =>
+      status == UploadStatus.published || status == UploadStatus.failed;
 
   /// Check if the upload can be retried
   bool get canRetry => status == UploadStatus.failed && (retryCount ?? 0) < 3;
@@ -205,7 +203,7 @@ class PendingUpload {
   double get progressValue {
     switch (status) {
       case UploadStatus.pending:
-        return 0.0;
+        return 0;
       case UploadStatus.uploading:
         return uploadProgress ?? 0.0;
       case UploadStatus.retrying:
@@ -215,18 +213,17 @@ class PendingUpload {
       case UploadStatus.readyToPublish:
         return 0.9; // Show 90% when ready
       case UploadStatus.published:
-        return 1.0;
+        return 1;
       case UploadStatus.failed:
-        return 0.0;
+        return 0;
       case UploadStatus.paused:
         return uploadProgress ?? 0.0; // Preserve current progress
     }
   }
 
   @override
-  String toString() {
-    return 'PendingUpload{id: $id, status: $status, progress: $uploadProgress, cloudinaryId: $cloudinaryPublicId}';
-  }
+  String toString() =>
+      'PendingUpload{id: $id, status: $status, progress: $uploadProgress, cloudinaryId: $cloudinaryPublicId}';
 
   @override
   bool operator ==(Object other) =>

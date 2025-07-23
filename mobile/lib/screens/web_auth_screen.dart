@@ -3,31 +3,31 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
-import '../services/web_auth_service.dart';
-import '../services/auth_service.dart';
-import '../utils/unified_logger.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:openvine/providers/app_providers.dart';
+import 'package:openvine/services/web_auth_service.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
-class WebAuthScreen extends StatefulWidget {
+class WebAuthScreen extends ConsumerStatefulWidget {
   const WebAuthScreen({super.key});
 
   @override
-  State<WebAuthScreen> createState() => _WebAuthScreenState();
+  ConsumerState<WebAuthScreen> createState() => _WebAuthScreenState();
 }
 
-class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateMixin {
+class _WebAuthScreenState extends ConsumerState<WebAuthScreen>
+    with TickerProviderStateMixin {
   final TextEditingController _bunkerUriController = TextEditingController();
   bool _isAuthenticating = false;
   String? _errorMessage;
-  
+
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
-    
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -36,9 +36,9 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
       opacity: _fadeController,
       child: Container(),
     ).opacity;
-    
+
     _fadeController.forward();
-    
+
     // Check for existing session
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkExistingSession();
@@ -52,38 +52,37 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
     super.dispose();
   }
 
-  void _checkExistingSession() async {
-    final webAuth = context.read<WebAuthService>();
+  Future<void> _checkExistingSession() async {
+    final webAuth = ref.read(webAuthServiceProvider);
     await webAuth.checkExistingSession();
-    
+
     if (webAuth.isAuthenticated && mounted) {
       _onAuthenticationSuccess();
     }
   }
 
-  void _onAuthenticationSuccess() async {
+  Future<void> _onAuthenticationSuccess() async {
     // Navigate to main app or trigger auth state update
     if (mounted) {
-      final authService = context.read<AuthService>();
-      final webAuth = context.read<WebAuthService>();
-      
+      final webAuth = ref.read(webAuthServiceProvider);
+
       try {
         // Set the public key in the main auth service to trigger authenticated state
         if (webAuth.publicKey != null) {
-          // For web authentication, we bypass the normal key generation
-          // and use the web authentication public key directly
+          // Web authentication not supported in secure mode
           final scaffoldMessenger = ScaffoldMessenger.of(context);
-          await authService.setWebAuthenticationKey(webAuth.publicKey!);
-          
+
           scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Text('Authenticated with ${webAuth.getMethodDisplayName(webAuth.currentMethod)}'),
-              backgroundColor: Colors.green,
+            const SnackBar(
+              content: Text(
+                  'Web authentication not supported in secure mode. Please use mobile app for secure key management.'),
+              backgroundColor: Colors.red,
             ),
           );
         }
       } catch (e) {
-        Log.error('Failed to integrate web auth with main auth service: $e', name: 'WebAuthScreen', category: LogCategory.ui);
+        Log.error('Failed to integrate web auth with main auth service: $e',
+            name: 'WebAuthScreen', category: LogCategory.ui);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -96,14 +95,14 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
     }
   }
 
-  void _authenticateWithNip07() async {
+  Future<void> _authenticateWithNip07() async {
     setState(() {
       _isAuthenticating = true;
       _errorMessage = null;
     });
 
     try {
-      final webAuth = context.read<WebAuthService>();
+      final webAuth = ref.read(webAuthServiceProvider);
       final result = await webAuth.authenticateWithNip07();
 
       if (mounted) {
@@ -118,7 +117,7 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Unexpected error: ${e.toString()}';
+          _errorMessage = 'Unexpected error: $e';
         });
       }
     } finally {
@@ -130,7 +129,7 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
     }
   }
 
-  void _authenticateWithBunker() async {
+  Future<void> _authenticateWithBunker() async {
     final bunkerUri = _bunkerUriController.text.trim();
     if (bunkerUri.isEmpty) {
       setState(() {
@@ -145,7 +144,7 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
     });
 
     try {
-      final webAuth = context.read<WebAuthService>();
+      final webAuth = ref.read(webAuthServiceProvider);
       final result = await webAuth.authenticateWithBunker(bunkerUri);
 
       if (mounted) {
@@ -160,7 +159,7 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Unexpected error: ${e.toString()}';
+          _errorMessage = 'Unexpected error: $e';
         });
       }
     } finally {
@@ -172,28 +171,29 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
     }
   }
 
-  void _pasteFromClipboard() async {
+  Future<void> _pasteFromClipboard() async {
     try {
       final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
       if (clipboardData?.text != null && mounted) {
         _bunkerUriController.text = clipboardData!.text!;
       }
     } catch (e) {
-      Log.error('Failed to paste from clipboard: $e', name: 'WebAuthScreen', category: LogCategory.ui);
+      Log.error('Failed to paste from clipboard: $e',
+          name: 'WebAuthScreen', category: LogCategory.ui);
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Consumer<WebAuthService>(
-        builder: (context, webAuth, child) {
-          return SafeArea(
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: Colors.black,
+        body: Consumer(
+          builder: (context, ref, child) {
+            final webAuth = ref.watch(webAuthServiceProvider);
+            return SafeArea(
             child: FadeTransition(
               opacity: _fadeAnimation,
               child: Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
                     Expanded(
@@ -211,11 +211,13 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
                                   color: Colors.purple,
                                 ),
                                 const SizedBox(height: 24),
-                                Text(
+                                const Text(
                                   'Connect to OpenVine',
-                                  style: GoogleFonts.pacifico(
+                                  style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    fontFamily: 'serif', // Fallback font
                                   ),
                                 ),
                                 const SizedBox(height: 8),
@@ -233,10 +235,13 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
                                 if (webAuth.isNip07Available) ...[
                                   _buildAuthMethodCard(
                                     title: 'Browser Extension',
-                                    subtitle: webAuth.getMethodDisplayName(WebAuthMethod.nip07),
+                                    subtitle: webAuth.getMethodDisplayName(
+                                        WebAuthMethod.nip07),
                                     icon: Icons.extension,
                                     color: Colors.blue,
-                                    onTap: _isAuthenticating ? null : _authenticateWithNip07,
+                                    onTap: _isAuthenticating
+                                        ? null
+                                        : _authenticateWithNip07,
                                     isRecommended: true,
                                   ),
                                   const SizedBox(height: 16),
@@ -253,16 +258,19 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
                                     decoration: BoxDecoration(
                                       color: Colors.red.withValues(alpha: 0.1),
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: Colors.red, width: 1),
+                                      border: Border.all(
+                                          color: Colors.red, width: 1),
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(Icons.error_outline, color: Colors.red),
+                                        const Icon(Icons.error_outline,
+                                            color: Colors.red),
                                         const SizedBox(width: 12),
                                         Expanded(
                                           child: Text(
                                             _errorMessage!,
-                                            style: const TextStyle(color: Colors.red),
+                                            style: const TextStyle(
+                                                color: Colors.red),
                                           ),
                                         ),
                                       ],
@@ -283,11 +291,12 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
                         color: Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Column(
+                      child: const Column(
                         children: [
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                              Icon(Icons.info_outline,
+                                  color: Colors.blue, size: 20),
                               SizedBox(width: 8),
                               Text(
                                 'New to Nostr?',
@@ -298,10 +307,11 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          const Text(
+                          SizedBox(height: 8),
+                          Text(
                             'Install a browser extension like Alby or nos2x for the easiest experience, or use nsec bunker for secure remote signing.',
-                            style: TextStyle(color: Colors.white70, fontSize: 14),
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 14),
                           ),
                         ],
                       ),
@@ -310,11 +320,10 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
                 ),
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
+            );
+          },
+        ),
+      );
 
   Widget _buildAuthMethodCard({
     required String title,
@@ -323,135 +332,72 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
     required Color color,
     required VoidCallback? onTap,
     bool isRecommended = false,
-  }) {
-    return Card(
-      color: Colors.white.withValues(alpha: 0.05),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: isRecommended
-                ? Border.all(color: Colors.purple, width: 2)
-                : null,
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        if (isRecommended) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.purple,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: const Text(
-                              'RECOMMENDED',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (_isAuthenticating && onTap != null)
-                const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  ),
-                )
-              else
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  color: Colors.white54,
-                  size: 16,
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBunkerAuthCard(WebAuthService webAuth) {
-    return Card(
-      color: Colors.white.withValues(alpha: 0.05),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+  }) =>
+      Card(
+        color: Colors.white.withValues(alpha: 0.05),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: isRecommended
+                  ? Border.all(color: Colors.purple, width: 2)
+                  : null,
+            ),
+            child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.2),
+                    color: color.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.phone_android, color: Colors.orange, size: 24),
+                  child: Icon(icon, color: color, size: 24),
                 ),
                 const SizedBox(width: 16),
-                const Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'nsec bunker',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          if (isRecommended) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.purple,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                'RECOMMENDED',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
+                      const SizedBox(height: 4),
                       Text(
-                        'Connect to a remote signer',
-                        style: TextStyle(
+                        subtitle,
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 14,
                         ),
@@ -459,70 +405,133 @@ class _WebAuthScreenState extends State<WebAuthScreen> with TickerProviderStateM
                     ],
                   ),
                 ),
+                if (_isAuthenticating && onTap != null)
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    color: Colors.white54,
+                    size: 16,
+                  ),
               ],
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _bunkerUriController,
-              enabled: !_isAuthenticating,
-              enableInteractiveSelection: true,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'bunker://pubkey?relay=wss://relay.example.com',
-                hintStyle: const TextStyle(color: Colors.white38),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide.none,
-                ),
-                suffixIcon: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      onPressed: _isAuthenticating ? null : _pasteFromClipboard,
-                      icon: const Icon(Icons.paste, color: Colors.white54),
-                      tooltip: 'Paste from clipboard',
+          ),
+        ),
+      );
+
+  Widget _buildBunkerAuthCard(WebAuthService webAuth) => Card(
+        color: Colors.white.withValues(alpha: 0.05),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    const SizedBox(width: 8),
-                  ],
-                ),
+                    child: const Icon(Icons.phone_android,
+                        color: Colors.orange, size: 24),
+                  ),
+                  const SizedBox(width: 16),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'nsec bunker',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Connect to a remote signer',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isAuthenticating ? null : _authenticateWithBunker,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
+              const SizedBox(height: 16),
+              TextField(
+                controller: _bunkerUriController,
+                enabled: !_isAuthenticating,
+                enableInteractiveSelection: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'bunker://pubkey?relay=wss://relay.example.com',
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.05),
+                  border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed:
+                            _isAuthenticating ? null : _pasteFromClipboard,
+                        icon: const Icon(Icons.paste, color: Colors.white54),
+                        tooltip: 'Paste from clipboard',
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                   ),
                 ),
-                child: _isAuthenticating
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
-                      )
-                    : const Text(
-                        'Connect to Bunker',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isAuthenticating ? null : _authenticateWithBunker,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: _isAuthenticating
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : const Text(
+                          'Connect to Bunker',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
 }

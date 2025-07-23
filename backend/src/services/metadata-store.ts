@@ -201,15 +201,9 @@ export class MetadataStore {
         return { exists: false };
       }
 
-      // Verify the file still exists in R2 by checking metadata
-      const metadata = await this.getVideoMetadata(existingFileId);
-      if (!metadata) {
-        // File was deleted, remove the SHA256 mapping
-        const key = `sha256:${sha256}`;
-        await this.kv.delete(key);
-        return { exists: false };
-      }
-
+      // SHA256 mapping exists, so file should exist
+      // Note: We don't check video metadata since uploads may not store it
+      // The SHA256 mapping itself is the authoritative source
       return {
         exists: true,
         fileId: existingFileId,
@@ -217,6 +211,39 @@ export class MetadataStore {
       };
     } catch (error) {
       console.error(`Failed to check duplicate for SHA256 ${sha256}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Store mapping from original Vine URL path to our fileId
+   * @param vineUrlPath The original vine URL path like "r/videos_h264high/7DB4F985..."
+   * @param fileId Our internal fileId
+   */
+  async setVineUrlMapping(vineUrlPath: string, fileId: string): Promise<void> {
+    try {
+      const key = `vine_url:${vineUrlPath}`;
+      await this.kv.put(key, fileId, {
+        expirationTtl: 60 * 60 * 24 * 365 // 1 year
+      });
+    } catch (error) {
+      console.error(`Failed to set Vine URL mapping for ${vineUrlPath}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get fileId from original Vine URL path
+   * @param vineUrlPath The original vine URL path like "r/videos_h264high/7DB4F985..."
+   * @returns fileId if found, null otherwise
+   */
+  async getFileIdByVineUrl(vineUrlPath: string): Promise<string | null> {
+    try {
+      const key = `vine_url:${vineUrlPath}`;
+      const fileId = await this.kv.get(key, 'text');
+      return fileId;
+    } catch (error) {
+      console.error(`Failed to get fileId for Vine URL ${vineUrlPath}:`, error);
       return null;
     }
   }

@@ -2,32 +2,30 @@
 // ABOUTME: Verifies that Kind 6 Nostr events are properly converted to VideoEvent reposts
 
 import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:nostr_sdk/nostr_sdk.dart';
-import 'package:openvine/services/video_event_service.dart';
 import 'package:openvine/services/nostr_service_interface.dart';
-import 'package:openvine/services/seen_videos_service.dart';
 import 'package:openvine/services/subscription_manager.dart';
+import 'package:openvine/services/video_event_service.dart';
+
 import './video_event_service_repost_test.mocks.dart';
 
 @GenerateMocks([
   INostrService,
-  SeenVideosService,
   SubscriptionManager,
 ])
 void main() {
   group('VideoEventService Kind 6 Repost Processing', () {
     late VideoEventService videoEventService;
     late MockINostrService mockNostrService;
-    late MockSeenVideosService mockSeenVideosService;
     late MockSubscriptionManager mockSubscriptionManager;
     late StreamController<Event> eventStreamController;
 
     setUp(() {
       mockNostrService = MockINostrService();
-      mockSeenVideosService = MockSeenVideosService();
       mockSubscriptionManager = MockSubscriptionManager();
       eventStreamController = StreamController<Event>.broadcast();
 
@@ -39,13 +37,11 @@ void main() {
         'wss://relay2.example.com',
         'wss://relay3.example.com',
       ]);
-      when(mockSeenVideosService.hasSeenVideo(any)).thenReturn(false);
       when(mockNostrService.subscribeToEvents(filters: anyNamed('filters')))
           .thenAnswer((_) => eventStreamController.stream);
 
       videoEventService = VideoEventService(
         mockNostrService,
-        seenVideosService: mockSeenVideosService,
         subscriptionManager: mockSubscriptionManager,
       );
     });
@@ -60,18 +56,20 @@ void main() {
       await videoEventService.subscribeToVideoFeed();
 
       // Verify that the filter includes both Kind 22 and Kind 6
-      verify(mockNostrService.subscribeToEvents(
-        filters: argThat(
-          predicate<List<Filter>>((filters) {
-            if (filters.isEmpty) return false;
-            final filter = filters.first;
-            return filter.kinds != null &&
-                filter.kinds!.contains(22) &&
-                filter.kinds!.contains(6);
-          }),
-          named: 'filters',
+      verify(
+        mockNostrService.subscribeToEvents(
+          filters: argThat(
+            predicate<List<Filter>>((filters) {
+              if (filters.isEmpty) return false;
+              final filter = filters.first;
+              return filter.kinds != null &&
+                  filter.kinds!.contains(22) &&
+                  filter.kinds!.contains(6);
+            }),
+            named: 'filters',
+          ),
         ),
-      )).called(1);
+      ).called(1);
     });
 
     test('should process Kind 6 repost event with cached original', () async {
@@ -105,32 +103,32 @@ void main() {
 
       // Subscribe and add events
       await videoEventService.subscribeToVideoFeed();
-      
+
       // First add the original video
       eventStreamController.add(originalEvent);
-      
+
       // Allow processing
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       // Then add the repost
       eventStreamController.add(repostEvent);
-      
+
       // Allow processing
       await Future.delayed(const Duration(milliseconds: 100));
 
       // Verify we have 2 events (original + repost)
       expect(videoEventService.videoEvents.length, 2);
-      
+
       // Find the repost event
       final repostVideoEvent = videoEventService.videoEvents
           .firstWhere((e) => e.isRepost && e.reposterId == 'repost789');
-      
+
       // Verify repost metadata
       expect(repostVideoEvent.isRepost, true);
       expect(repostVideoEvent.reposterId, 'repost789');
       expect(repostVideoEvent.reposterPubkey, 'reposter101');
       expect(repostVideoEvent.repostedAt, isNotNull);
-      
+
       // Verify original content is preserved
       expect(repostVideoEvent.id, 'original123');
       expect(repostVideoEvent.pubkey, 'author456');
@@ -138,7 +136,8 @@ void main() {
       expect(repostVideoEvent.videoUrl, 'https://example.com/video.mp4');
     });
 
-    test('should fetch original event for Kind 6 repost when not cached', () async {
+    test('should fetch original event for Kind 6 repost when not cached',
+        () async {
       // Create repost event without original being cached
       final repostEvent = Event(
         'reposter101', // pubkey
@@ -156,24 +155,26 @@ void main() {
       // Subscribe and add repost event
       await videoEventService.subscribeToVideoFeed();
       eventStreamController.add(repostEvent);
-      
+
       // Allow processing
       await Future.delayed(const Duration(milliseconds: 100));
 
       // Verify that a new subscription was created to fetch the original event
-      verify(mockNostrService.subscribeToEvents(
-        filters: argThat(
-          predicate<List<Filter>>((filters) {
-            if (filters.isEmpty) return false;
-            final filter = filters.first;
-            return filter.ids != null &&
-                filter.ids!.contains('original123') &&
-                filter.kinds != null &&
-                filter.kinds!.contains(22);
-          }),
-          named: 'filters',
+      verify(
+        mockNostrService.subscribeToEvents(
+          filters: argThat(
+            predicate<List<Filter>>((filters) {
+              if (filters.isEmpty) return false;
+              final filter = filters.first;
+              return filter.ids != null &&
+                  filter.ids!.contains('original123') &&
+                  filter.kinds != null &&
+                  filter.kinds!.contains(22);
+            }),
+            named: 'filters',
+          ),
         ),
-      )).called(greaterThan(0));
+      ).called(greaterThan(0));
     });
 
     test('should skip Kind 6 repost without e tag', () async {
@@ -193,7 +194,7 @@ void main() {
       // Subscribe and add event
       await videoEventService.subscribeToVideoFeed();
       eventStreamController.add(invalidRepostEvent);
-      
+
       // Allow processing
       await Future.delayed(const Duration(milliseconds: 100));
 
@@ -229,31 +230,32 @@ void main() {
 
       // Setup a separate stream for fetching original
       final fetchStreamController = StreamController<Event>.broadcast();
-      when(mockNostrService.subscribeToEvents(
-        filters: argThat(
-          predicate<List<Filter>>((filters) {
-            return filters.any((f) => f.ids?.contains('text123') ?? false);
-          }),
-          named: 'filters',
+      when(
+        mockNostrService.subscribeToEvents(
+          filters: argThat(
+            predicate<List<Filter>>((filters) =>
+                filters.any((f) => f.ids?.contains('text123') ?? false)),
+            named: 'filters',
+          ),
         ),
-      )).thenAnswer((_) => fetchStreamController.stream);
+      ).thenAnswer((_) => fetchStreamController.stream);
 
       // Subscribe and add repost
       await videoEventService.subscribeToVideoFeed();
       eventStreamController.add(repostEvent);
-      
+
       // Allow initial processing
       await Future.delayed(const Duration(milliseconds: 100));
-      
+
       // Simulate fetching the non-video original
       fetchStreamController.add(nonVideoEvent);
-      
+
       // Allow fetch processing
       await Future.delayed(const Duration(milliseconds: 100));
 
       // Verify no events were added since original is not a video
       expect(videoEventService.videoEvents.length, 0);
-      
+
       fetchStreamController.close();
     });
 
@@ -289,7 +291,7 @@ void main() {
 
       // Subscribe with hashtag filter
       await videoEventService.subscribeToVideoFeed(hashtags: ['bitcoin']);
-      
+
       // Add original and repost
       eventStreamController.add(originalEvent);
       await Future.delayed(const Duration(milliseconds: 50));
@@ -302,7 +304,7 @@ void main() {
       // Now subscribe with matching hashtag
       await videoEventService.unsubscribeFromVideoFeed();
       await videoEventService.subscribeToVideoFeed(hashtags: ['nostr']);
-      
+
       // Add events again
       eventStreamController.add(originalEvent);
       await Future.delayed(const Duration(milliseconds: 50));

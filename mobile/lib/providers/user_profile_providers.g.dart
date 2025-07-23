@@ -6,55 +6,185 @@ part of 'user_profile_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$nostrServiceHash() => r'cd561ebed06aa0e738e1dc69aea8e80e3ecb3401';
+String _$userProfileHash() => r'56a0dfec7b79dd90c83243fab90bc87a5d1ac448';
 
-/// See also [nostrService].
-@ProviderFor(nostrService)
-final nostrServiceProvider = AutoDisposeProvider<INostrService>.internal(
-  nostrService,
-  name: r'nostrServiceProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$nostrServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+/// Copied from Dart SDK
+class _SystemHash {
+  _SystemHash._();
+
+  static int combine(int hash, int value) {
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + value);
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
+    return hash ^ (hash >> 6);
+  }
+
+  static int finish(int hash) {
+    // ignore: parameter_assignments
+    hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
+    // ignore: parameter_assignments
+    hash = hash ^ (hash >> 11);
+    return 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
+  }
+}
+
+/// Async provider for loading a single user profile
+///
+/// Copied from [userProfile].
+@ProviderFor(userProfile)
+const userProfileProvider = UserProfileFamily();
+
+/// Async provider for loading a single user profile
+///
+/// Copied from [userProfile].
+class UserProfileFamily extends Family<AsyncValue<UserProfile?>> {
+  /// Async provider for loading a single user profile
+  ///
+  /// Copied from [userProfile].
+  const UserProfileFamily();
+
+  /// Async provider for loading a single user profile
+  ///
+  /// Copied from [userProfile].
+  UserProfileProvider call(
+    String pubkey,
+  ) {
+    return UserProfileProvider(
+      pubkey,
+    );
+  }
+
+  @override
+  UserProfileProvider getProviderOverride(
+    covariant UserProfileProvider provider,
+  ) {
+    return call(
+      provider.pubkey,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'userProfileProvider';
+}
+
+/// Async provider for loading a single user profile
+///
+/// Copied from [userProfile].
+class UserProfileProvider extends AutoDisposeFutureProvider<UserProfile?> {
+  /// Async provider for loading a single user profile
+  ///
+  /// Copied from [userProfile].
+  UserProfileProvider(
+    String pubkey,
+  ) : this._internal(
+          (ref) => userProfile(
+            ref as UserProfileRef,
+            pubkey,
+          ),
+          from: userProfileProvider,
+          name: r'userProfileProvider',
+          debugGetCreateSourceHash:
+              const bool.fromEnvironment('dart.vm.product')
+                  ? null
+                  : _$userProfileHash,
+          dependencies: UserProfileFamily._dependencies,
+          allTransitiveDependencies:
+              UserProfileFamily._allTransitiveDependencies,
+          pubkey: pubkey,
+        );
+
+  UserProfileProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.pubkey,
+  }) : super.internal();
+
+  final String pubkey;
+
+  @override
+  Override overrideWith(
+    FutureOr<UserProfile?> Function(UserProfileRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: UserProfileProvider._internal(
+        (ref) => create(ref as UserProfileRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        pubkey: pubkey,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<UserProfile?> createElement() {
+    return _UserProfileProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is UserProfileProvider && other.pubkey == pubkey;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, pubkey.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
 
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
-typedef NostrServiceRef = AutoDisposeProviderRef<INostrService>;
-String _$subscriptionManagerHash() =>
-    r'058bbe054d59bc11afc47562f88aee361efe0a50';
+mixin UserProfileRef on AutoDisposeFutureProviderRef<UserProfile?> {
+  /// The parameter `pubkey` of this provider.
+  String get pubkey;
+}
 
-/// See also [subscriptionManager].
-@ProviderFor(subscriptionManager)
-final subscriptionManagerProvider =
-    AutoDisposeProvider<SubscriptionManager>.internal(
-  subscriptionManager,
-  name: r'subscriptionManagerProvider',
+class _UserProfileProviderElement
+    extends AutoDisposeFutureProviderElement<UserProfile?> with UserProfileRef {
+  _UserProfileProviderElement(super.provider);
+
+  @override
+  String get pubkey => (origin as UserProfileProvider).pubkey;
+}
+
+String _$userProfileNotifierHash() =>
+    r'd6ecd94d8121729ec6a740efd04336d576bdc9b0';
+
+/// See also [UserProfileNotifier].
+@ProviderFor(UserProfileNotifier)
+final userProfileNotifierProvider =
+    AutoDisposeNotifierProvider<UserProfileNotifier, UserProfileState>.internal(
+  UserProfileNotifier.new,
+  name: r'userProfileNotifierProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
       ? null
-      : _$subscriptionManagerHash,
+      : _$userProfileNotifierHash,
   dependencies: null,
   allTransitiveDependencies: null,
 );
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef SubscriptionManagerRef = AutoDisposeProviderRef<SubscriptionManager>;
-String _$userProfilesHash() => r'0fbe7f7404bab9e1af0b252eff2a16b9315f419c';
-
-/// See also [UserProfiles].
-@ProviderFor(UserProfiles)
-final userProfilesProvider =
-    AutoDisposeNotifierProvider<UserProfiles, UserProfileState>.internal(
-  UserProfiles.new,
-  name: r'userProfilesProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$userProfilesHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-typedef _$UserProfiles = AutoDisposeNotifier<UserProfileState>;
+typedef _$UserProfileNotifier = AutoDisposeNotifier<UserProfileState>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

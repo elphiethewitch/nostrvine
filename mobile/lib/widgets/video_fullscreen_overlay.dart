@@ -2,41 +2,40 @@
 // ABOUTME: Displays video at full width with interaction buttons and smooth transitions
 
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nostr_sdk/event.dart';
-import '../models/video_event.dart';
-import '../theme/vine_theme.dart';
-import '../services/social_service.dart';
-import '../services/auth_service.dart';
-import '../services/user_profile_service.dart';
-import '../screens/comments_screen.dart';
-import '../screens/profile_screen.dart';
-import '../screens/hashtag_feed_screen.dart';
-import '../widgets/share_video_menu.dart';
-import '../utils/unified_logger.dart';
-import '../services/global_video_registry.dart';
+import 'package:openvine/main.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/providers/app_providers.dart';
+import 'package:openvine/screens/comments_screen.dart';
+import 'package:openvine/screens/hashtag_feed_screen.dart';
+import 'package:openvine/services/global_video_registry.dart';
+import 'package:openvine/services/social_service.dart';
+import 'package:openvine/theme/vine_theme.dart';
+import 'package:openvine/utils/unified_logger.dart';
+import 'package:openvine/widgets/share_video_menu.dart';
+import 'package:video_player/video_player.dart';
 
 /// Full-screen overlay that displays video with proper scaling and interactions
-class VideoFullscreenOverlay extends StatefulWidget {
+class VideoFullscreenOverlay extends ConsumerStatefulWidget {
+  const VideoFullscreenOverlay({
+    required this.video,
+    required this.onClose,
+    super.key,
+    this.onSwipeNext,
+    this.onSwipePrevious,
+  });
   final VideoEvent video;
   final VoidCallback onClose;
   final VoidCallback? onSwipeNext;
   final VoidCallback? onSwipePrevious;
 
-  const VideoFullscreenOverlay({
-    super.key,
-    required this.video,
-    required this.onClose,
-    this.onSwipeNext,
-    this.onSwipePrevious,
-  });
-
   @override
-  State<VideoFullscreenOverlay> createState() => _VideoFullscreenOverlayState();
+  ConsumerState<VideoFullscreenOverlay> createState() => _VideoFullscreenOverlayState();
 }
 
-class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with TickerProviderStateMixin {
+class _VideoFullscreenOverlayState extends ConsumerState<VideoFullscreenOverlay>
+    with TickerProviderStateMixin {
   VideoPlayerController? _controller;
   bool _isInitializing = false;
   bool _hasError = false;
@@ -55,21 +54,24 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
       parent: _fadeController,
       curve: Curves.easeInOut,
     );
-    
+
     _currentVideoId = widget.video.id;
     _fadeController.forward();
     _initializeVideo();
   }
-  
+
   @override
   void didUpdateWidget(VideoFullscreenOverlay oldWidget) {
     super.didUpdateWidget(oldWidget);
-    
+
     // Check if video has changed
     if (widget.video.id != _currentVideoId) {
-      Log.debug('Video changed from ${_currentVideoId?.substring(0, 8)} to ${widget.video.id.substring(0, 8)}', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+      Log.debug(
+          'Video changed from ${_currentVideoId?.substring(0, 8)} to ${widget.video.id.substring(0, 8)}',
+          name: 'VideoFullscreenOverlay',
+          category: LogCategory.ui);
       _currentVideoId = widget.video.id;
-      
+
       // Dispose old video and initialize new one
       _disposeVideo();
       setState(() {
@@ -88,14 +90,22 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
 
   Future<void> _initializeVideo() async {
     // More detailed debug logging
-    Log.debug('_initializeVideo called for ${widget.video.id.substring(0, 8)}...', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-    Log.debug('   - hasVideo: ${widget.video.hasVideo}', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-    Log.debug('   - videoUrl: ${widget.video.videoUrl}', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-    Log.debug('   - _isInitializing: $_isInitializing', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-    Log.debug('   - _controller: $_controller', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-    
+    Log.debug(
+        '_initializeVideo called for ${widget.video.id.substring(0, 8)}...',
+        name: 'VideoFullscreenOverlay',
+        category: LogCategory.ui);
+    Log.debug('   - hasVideo: ${widget.video.hasVideo}',
+        name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+    Log.debug('   - videoUrl: ${widget.video.videoUrl}',
+        name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+    Log.debug('   - _isInitializing: $_isInitializing',
+        name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+    Log.debug('   - _controller: $_controller',
+        name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+
     if (_isInitializing || _controller != null || !widget.video.hasVideo) {
-      Log.warning('Skipping initialization - conditions not met', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+      Log.warning('Skipping initialization - conditions not met',
+          name: 'VideoFullscreenOverlay', category: LogCategory.ui);
       return;
     }
 
@@ -105,50 +115,69 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
     });
 
     try {
-      Log.debug('Creating VideoPlayerController for URL: ${widget.video.videoUrl}', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-      
+      Log.debug(
+          'Creating VideoPlayerController for URL: ${widget.video.videoUrl}',
+          name: 'VideoFullscreenOverlay',
+          category: LogCategory.ui);
+
       final controller = VideoPlayerController.networkUrl(
         Uri.parse(widget.video.videoUrl!),
       );
-      
+
       _controller = controller;
-      
-      Log.debug('⏳ Initializing video controller...', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+
+      Log.debug('⏳ Initializing video controller...',
+          name: 'VideoFullscreenOverlay', category: LogCategory.ui);
       await controller.initialize();
-      Log.info('Video controller initialized successfully', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-      
+      Log.info('Video controller initialized successfully',
+          name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+
       if (mounted) {
         await controller.setLooping(true);
-        await controller.setVolume(1.0); // Enable audio
+        await controller.setVolume(1); // Enable audio
         await controller.play();
-        
+
         setState(() {
           _isInitializing = false;
         });
-        
-        Log.info('Fullscreen video playing with audio for ${widget.video.id.substring(0, 8)}', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-        Log.debug('   - Duration: ${controller.value.duration}', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-        Log.debug('   - Size: ${controller.value.size}', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-        Log.debug('   - AspectRatio: ${controller.value.aspectRatio}', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-        
+
+        Log.info(
+            'Fullscreen video playing with audio for ${widget.video.id.substring(0, 8)}',
+            name: 'VideoFullscreenOverlay',
+            category: LogCategory.ui);
+        Log.debug('   - Duration: ${controller.value.duration}',
+            name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+        Log.debug('   - Size: ${controller.value.size}',
+            name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+        Log.debug('   - AspectRatio: ${controller.value.aspectRatio}',
+            name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+
         // Register with global registry
         GlobalVideoRegistry().registerController(controller);
-        
+
         // Pause all other videos before playing this one
         GlobalVideoRegistry().pauseAllExcept(controller);
       }
     } catch (e, stackTrace) {
-      Log.error('Fullscreen video initialization failed: $e', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-      Log.verbose('� Stack trace: $stackTrace', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-      
+      Log.error('Fullscreen video initialization failed: $e',
+          name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+      Log.verbose('📱 Stack trace: $stackTrace',
+          name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+
       // Check if it's a CORS or network issue
       final errorMessage = e.toString().toLowerCase();
-      if (errorMessage.contains('cors') || errorMessage.contains('access-control') || 
-          errorMessage.contains('cross-origin') || errorMessage.contains('network')) {
-        Log.error('� This appears to be a CORS or network error', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-        Log.debug('   Check if the video URL is accessible and CORS headers are properly set', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+      if (errorMessage.contains('cors') ||
+          errorMessage.contains('access-control') ||
+          errorMessage.contains('cross-origin') ||
+          errorMessage.contains('network')) {
+        Log.error('📱 This appears to be a CORS or network error',
+            name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+        Log.debug(
+            '   Check if the video URL is accessible and CORS headers are properly set',
+            name: 'VideoFullscreenOverlay',
+            category: LogCategory.ui);
       }
-      
+
       if (mounted) {
         setState(() {
           _hasError = true;
@@ -159,7 +188,8 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
   }
 
   void _disposeVideo() {
-    Log.debug('�️ Disposing fullscreen video', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+    Log.debug('📱️ Disposing fullscreen video',
+        name: 'VideoFullscreenOverlay', category: LogCategory.ui);
     if (_controller != null) {
       GlobalVideoRegistry().unregisterController(_controller!);
       _controller!.dispose();
@@ -181,17 +211,15 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
     }
   }
 
-  void _handleClose() async {
+  Future<void> _handleClose() async {
     await _fadeController.reverse();
     widget.onClose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _fadeAnimation,
-      builder: (context, child) {
-        return Opacity(
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _fadeAnimation,
+        builder: (context, child) => Opacity(
           opacity: _fadeAnimation.value,
           child: Material(
             color: Colors.black,
@@ -204,7 +232,8 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
                     onTap: _togglePlayPause,
                     onHorizontalDragEnd: (details) {
                       // Handle horizontal swipes
-                      if (details.primaryVelocity != null && details.primaryVelocity!.abs() > 300) {
+                      if (details.primaryVelocity != null &&
+                          details.primaryVelocity!.abs() > 300) {
                         if (details.primaryVelocity! > 0) {
                           // Swiping right (previous video)
                           widget.onSwipePrevious?.call();
@@ -216,7 +245,8 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
                     },
                     onVerticalDragEnd: (details) {
                       // Handle vertical swipes
-                      if (details.primaryVelocity != null && details.primaryVelocity!.abs() > 300) {
+                      if (details.primaryVelocity != null &&
+                          details.primaryVelocity!.abs() > 300) {
                         if (details.primaryVelocity! > 0) {
                           // Swiping down (previous video)
                           widget.onSwipePrevious?.call();
@@ -229,14 +259,15 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
                     child: Center(
                       child: SizedBox(
                         width: MediaQuery.of(context).size.width,
-                        height: MediaQuery.of(context).size.width / _controller!.value.aspectRatio,
+                        height: MediaQuery.of(context).size.width /
+                            _controller!.value.aspectRatio,
                         child: VideoPlayer(_controller!),
                       ),
                     ),
                   )
                 else
                   _buildPlaceholder(),
-                
+
                 // Gradient overlay for controls
                 Positioned(
                   top: 0,
@@ -256,417 +287,403 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
                     ),
                   ),
                 ),
-                
+
                 // Top controls (close button)
                 _buildTopControls(),
-                
+
                 // Bottom overlay with video info and interactions
                 _buildBottomOverlay(),
-                
+
                 // Loading indicator
                 if (_isInitializing) _buildLoadingIndicator(),
-                
+
                 // Error indicator
                 if (_hasError) _buildErrorIndicator(),
               ],
             ),
           ),
-        );
-      },
-    );
-  }
-
-  Widget _buildTopControls() {
-    return Positioned(
-      top: MediaQuery.of(context).padding.top + 10,
-      left: 16,
-      right: 16,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Empty space for balance
-          const SizedBox.shrink(),
-          
-          // Close button
-          IconButton(
-            onPressed: _handleClose,
-            icon: const Icon(
-              Icons.close,
-              color: Colors.white,
-              size: 28,
-            ),
-            style: IconButton.styleFrom(
-              backgroundColor: Colors.black.withValues(alpha: 0.5),
-              shape: const CircleBorder(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomOverlay() {
-    return Positioned(
-      bottom: 0,
-      left: 0,
-      right: 0,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.bottomCenter,
-            end: Alignment.topCenter,
-            colors: [
-              Colors.black.withValues(alpha: 0.9),
-              Colors.black.withValues(alpha: 0.7),
-              Colors.transparent,
-            ],
-            stops: const [0.0, 0.3, 1.0],
-          ),
         ),
-        padding: EdgeInsets.only(
-          left: 16,
-          right: 16,
-          bottom: MediaQuery.of(context).padding.bottom + 16,
-          top: 60,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+      );
+
+  Widget _buildTopControls() => Positioned(
+        top: MediaQuery.of(context).padding.top + 10,
+        left: 16,
+        right: 16,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Creator info
-            _buildCreatorInfo(),
-            const SizedBox(height: 12),
-            
-            // Video title
-            if (widget.video.title?.isNotEmpty == true) ...[
-              SelectableText(
-                widget.video.title!,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-                maxLines: 2,
+            // Empty space for balance
+            const SizedBox.shrink(),
+
+            // Close button
+            IconButton(
+              onPressed: _handleClose,
+              icon: const Icon(
+                Icons.close,
+                color: Colors.white,
+                size: 28,
               ),
-              const SizedBox(height: 8),
-            ],
-            
-            // Video content/description
-            if (widget.video.content.isNotEmpty) ...[
-              SelectableText(
-                widget.video.content,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                ),
-                maxLines: 3,
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.black.withValues(alpha: 0.5),
+                shape: const CircleBorder(),
               ),
-              const SizedBox(height: 8),
-            ],
-            
-            // Hashtags
-            if (widget.video.hashtags.isNotEmpty) ...[
-              Wrap(
-                spacing: 8,
-                children: widget.video.hashtags.take(3).map((hashtag) {
-                  return GestureDetector(
-                    onTap: () => _navigateToHashtagFeed(hashtag),
-                    child: Text(
-                      '#$hashtag',
-                      style: const TextStyle(
-                        color: Colors.blue,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 16),
-            ],
-            
-            // Social action buttons
-            _buildSocialActions(),
+            ),
           ],
         ),
-      ),
-    );
-  }
+      );
 
-  Widget _buildCreatorInfo() {
-    return Consumer<UserProfileService>(
-      builder: (context, profileService, child) {
-        final profile = profileService.getCachedProfile(widget.video.pubkey);
-        final displayName = profile?.displayName ?? 
-                           profile?.name ?? 
-                           '@${widget.video.pubkey.substring(0, 8)}...';
-        
-        return Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.grey[800],
-              ),
-              child: const Icon(
-                Icons.person,
-                color: Colors.white70,
-                size: 20,
-              ),
+  Widget _buildBottomOverlay() => Positioned(
+        bottom: 0,
+        left: 0,
+        right: 0,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.bottomCenter,
+              end: Alignment.topCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.9),
+                Colors.black.withValues(alpha: 0.7),
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.3, 1.0],
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: GestureDetector(
-                onTap: () {
-                  Log.verbose('Navigating to profile: ${widget.video.pubkey}', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-                  // Pause video before navigating away
-                  if (_controller != null && _controller!.value.isPlaying) {
-                    _controller!.pause();
-                  }
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => ProfileScreen(
-                        profilePubkey: widget.video.pubkey,
-                      ),
-                    ),
-                  ).then((_) {
-                    // Resume video when returning
-                    if (_controller != null && mounted) {
-                      _controller!.play();
-                    }
-                  });
-                },
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: SelectableText(
-                            displayName,
+          ),
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            bottom: MediaQuery.of(context).padding.bottom + 16,
+            top: 60,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Creator info
+              _buildCreatorInfo(),
+              const SizedBox(height: 12),
+
+              // Video title
+              if (widget.video.title?.isNotEmpty == true) ...[
+                SelectableText(
+                  widget.video.title!,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 8),
+              ],
+
+              // Video content/description
+              if (widget.video.content.isNotEmpty) ...[
+                SelectableText(
+                  widget.video.content,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                  ),
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 8),
+              ],
+
+              // Hashtags
+              if (widget.video.hashtags.isNotEmpty) ...[
+                Wrap(
+                  spacing: 8,
+                  children: widget.video.hashtags
+                      .take(3)
+                      .map(
+                        (hashtag) => GestureDetector(
+                          onTap: () => _navigateToHashtagFeed(hashtag),
+                          child: Text(
+                            '#$hashtag',
                             style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                              color: Colors.blue,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
                               decoration: TextDecoration.underline,
                             ),
                           ),
                         ),
-                        if (profile?.nip05 != null && profile!.nip05!.isNotEmpty) ...[
-                          const SizedBox(width: 4),
-                          Container(
-                            padding: const EdgeInsets.all(2),
-                            decoration: const BoxDecoration(
-                              color: Colors.blue,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.check,
-                              color: Colors.white,
-                              size: 10,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    Text(
-                      _formatTimestamp(widget.video.timestamp),
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
+                      )
+                      .toList(),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Social action buttons
+              _buildSocialActions(),
+            ],
+          ),
+        ),
+      );
+
+  Widget _buildCreatorInfo() => Consumer(
+        builder: (context, ref, child) {
+          final profileService = ref.watch(userProfileServiceProvider);
+          final profile = profileService.getCachedProfile(widget.video.pubkey);
+          final displayName = profile?.displayName ??
+              profile?.name ??
+              '@${widget.video.pubkey.substring(0, 8)}...';
+
+          return Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.grey[800],
+                ),
+                child: const Icon(
+                  Icons.person,
+                  color: Colors.white70,
+                  size: 20,
                 ),
               ),
-            ),
-            
-            // Follow button
-            Consumer<SocialService>(
-              builder: (context, socialService, child) {
-                final isFollowing = socialService.isFollowing(widget.video.pubkey);
-                return ElevatedButton(
-                  onPressed: () => _handleFollow(context, socialService),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isFollowing ? Colors.grey[700] : Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    minimumSize: const Size(80, 32),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () {
+                    Log.verbose('Navigating to profile: ${widget.video.pubkey}',
+                        name: 'VideoFullscreenOverlay',
+                        category: LogCategory.ui);
+                    // Close the overlay first
+                    widget.onClose();
+                    // Use main navigation to switch to profile tab
+                    mainNavigationKey.currentState?.navigateToProfile(widget.video.pubkey);
+                  },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: SelectableText(
+                              displayName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                          if (profile?.nip05 != null &&
+                              profile!.nip05!.isNotEmpty) ...[
+                            const SizedBox(width: 4),
+                            Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: const BoxDecoration(
+                                color: Colors.blue,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 10,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      Text(
+                        _formatTimestamp(widget.video.timestamp),
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Text(
-                    isFollowing ? 'Following' : 'Follow',
-                    style: const TextStyle(fontSize: 12),
-                  ),
+                ),
+              ),
+
+              // Follow button
+              Consumer(
+                builder: (context, ref, child) {
+                  final socialService = ref.watch(socialServiceProvider);
+                  final isFollowing =
+                      socialService.isFollowing(widget.video.pubkey);
+                  return ElevatedButton(
+                    onPressed: () => _handleFollow(context, socialService),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          isFollowing ? Colors.grey[700] : Colors.blue,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      minimumSize: const Size(80, 32),
+                    ),
+                    child: Text(
+                      isFollowing ? 'Following' : 'Follow',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        },
+      );
+
+  Widget _buildSocialActions() => Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // Like button
+            Consumer(
+              builder: (context, ref, child) {
+                final socialService = ref.watch(socialServiceProvider);
+                final isLiked = socialService.isLiked(widget.video.id);
+                final likeCount =
+                    socialService.getCachedLikeCount(widget.video.id) ?? 0;
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildActionButton(
+                      icon: isLiked ? Icons.favorite : Icons.favorite_border,
+                      color: isLiked ? Colors.red : Colors.white,
+                      onPressed: () => _handleLike(context, socialService),
+                    ),
+                    if (likeCount > 0) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        _formatLikeCount(likeCount),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
                 );
               },
             ),
-          ],
-        );
-      },
-    );
-  }
 
-  Widget _buildSocialActions() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          // Like button
-          Consumer<SocialService>(
-            builder: (context, socialService, child) {
-              final isLiked = socialService.isLiked(widget.video.id);
-              final likeCount = socialService.getCachedLikeCount(widget.video.id) ?? 0;
-              
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildActionButton(
-                    icon: isLiked ? Icons.favorite : Icons.favorite_border,
-                    color: isLiked ? Colors.red : Colors.white,
-                    onPressed: () => _handleLike(context, socialService),
-                  ),
-                  if (likeCount > 0) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      _formatLikeCount(likeCount),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ],
-              );
-            },
-          ),
-          
-          // Comment button
-          _buildActionButton(
-            icon: Icons.comment_outlined,
-            onPressed: () => _openComments(context),
-          ),
-          
-          // Repost button
-          Consumer<SocialService>(
-            builder: (context, socialService, child) {
-              final hasReposted = socialService.hasReposted(widget.video.id);
-              return _buildActionButton(
-                icon: Icons.repeat,
-                color: hasReposted ? Colors.green : Colors.white,
-                onPressed: () => _handleRepost(context, socialService),
-              );
-            },
-          ),
-          
-          // Share button
-          _buildActionButton(
-            icon: Icons.share_outlined,
-            onPressed: () => _handleShare(context),
-          ),
-        ],
-      ),
-    );
-  }
+            // Comment button
+            _buildActionButton(
+              icon: Icons.comment_outlined,
+              onPressed: () => _openComments(context),
+            ),
+
+            // Repost button
+            Consumer(
+              builder: (context, ref, child) {
+                final socialService = ref.watch(socialServiceProvider);
+                final hasReposted = socialService.hasReposted(widget.video.id);
+                return _buildActionButton(
+                  icon: Icons.repeat,
+                  color: hasReposted ? Colors.green : Colors.white,
+                  onPressed: () => _handleRepost(context, socialService),
+                );
+              },
+            ),
+
+            // Share button
+            _buildActionButton(
+              icon: Icons.share_outlined,
+              onPressed: () => _handleShare(context),
+            ),
+          ],
+        ),
+      );
 
   Widget _buildActionButton({
     required IconData icon,
     required VoidCallback onPressed,
     Color? color,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        shape: BoxShape.circle,
-      ),
-      child: IconButton(
-        icon: Icon(
-          icon,
-          color: color ?? Colors.white,
-          size: 28,
+  }) =>
+      DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
         ),
-        onPressed: onPressed,
-        padding: const EdgeInsets.all(12),
-        constraints: const BoxConstraints(
-          minWidth: 56,
-          minHeight: 56,
+        child: IconButton(
+          icon: Icon(
+            icon,
+            color: color ?? Colors.white,
+            size: 28,
+          ),
+          onPressed: onPressed,
+          padding: const EdgeInsets.all(12),
+          constraints: const BoxConstraints(
+            minWidth: 56,
+            minHeight: 56,
+          ),
         ),
-      ),
-    );
-  }
+      );
 
-  Widget _buildLoadingIndicator() {
-    return Container(
-      color: Colors.black.withValues(alpha: 0.5),
-      child: const Center(
-        child: CircularProgressIndicator(
-          color: VineTheme.vineGreen,
-          strokeWidth: 3,
+  Widget _buildLoadingIndicator() => ColoredBox(
+        color: Colors.black.withValues(alpha: 0.5),
+        child: const Center(
+          child: CircularProgressIndicator(
+            color: VineTheme.vineGreen,
+            strokeWidth: 3,
+          ),
         ),
-      ),
-    );
-  }
+      );
 
-  Widget _buildErrorIndicator() {
-    return Container(
-      color: Colors.black.withValues(alpha: 0.5),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              color: Colors.red,
-              size: 48,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Failed to load video',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
+  Widget _buildErrorIndicator() => ColoredBox(
+        color: Colors.black.withValues(alpha: 0.5),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 48,
               ),
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _hasError = false;
-                  _isInitializing = true;
-                });
-                _initializeVideo();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: VineTheme.vineGreen,
+              const SizedBox(height: 16),
+              const Text(
+                'Failed to load video',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
               ),
-              child: const Text('Retry'),
-            ),
-          ],
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  setState(() {
+                    _hasError = false;
+                    _isInitializing = true;
+                  });
+                  _initializeVideo();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: VineTheme.vineGreen,
+                ),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
         ),
-      ),
-    );
-  }
+      );
 
-  Widget _buildPlaceholder() {
-    return Container(
-      color: Colors.grey[900],
-      child: const Center(
-        child: Icon(
-          Icons.play_circle_outline,
-          color: Colors.white54,
-          size: 64,
+  Widget _buildPlaceholder() => Container(
+        color: Colors.grey[900],
+        child: const Center(
+          child: Icon(
+            Icons.play_circle_outline,
+            color: Colors.white54,
+            size: 64,
+          ),
         ),
-      ),
-    );
-  }
+      );
 
   // Social action handlers
-  void _handleLike(BuildContext context, SocialService socialService) async {
+  Future<void> _handleLike(
+      BuildContext context, SocialService socialService) async {
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final authService = ref.read(authServiceProvider);
       if (!authService.isAuthenticated) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -684,7 +701,8 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to ${socialService.isLiked(widget.video.id) ? 'unlike' : 'like'} video: $e'),
+            content: Text(
+                'Failed to ${socialService.isLiked(widget.video.id) ? 'unlike' : 'like'} video: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -692,9 +710,10 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
     }
   }
 
-  void _handleRepost(BuildContext context, SocialService socialService) async {
+  Future<void> _handleRepost(
+      BuildContext context, SocialService socialService) async {
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final authService = ref.read(authServiceProvider);
       if (!authService.isAuthenticated) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -708,7 +727,7 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
       }
 
       await _performRepost(socialService);
-      
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -738,38 +757,39 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
       widget.video.content,
       createdAt: widget.video.createdAt,
     );
-    
+
     await socialService.repostEvent(eventWithCorrectData);
   }
 
   List<List<String>> _buildEventTags() {
     final tags = <List<String>>[];
-    
+
     // Add URL tag if video URL exists
     if (widget.video.videoUrl != null) {
       tags.add(['url', widget.video.videoUrl!]);
     }
-    
+
     // Add title tag if exists
     if (widget.video.title != null && widget.video.title!.isNotEmpty) {
       tags.add(['title', widget.video.title!]);
     }
-    
+
     // Add thumbnail tag if exists
-    if (widget.video.thumbnailUrl != null && widget.video.thumbnailUrl!.isNotEmpty) {
+    if (widget.video.thumbnailUrl != null &&
+        widget.video.thumbnailUrl!.isNotEmpty) {
       tags.add(['thumb', widget.video.thumbnailUrl!]);
     }
-    
+
     // Add duration tag if exists
     if (widget.video.duration != null) {
       tags.add(['duration', widget.video.duration!.toString()]);
     }
-    
+
     // Add hashtags as 't' tags
     for (final hashtag in widget.video.hashtags) {
       tags.add(['t', hashtag]);
     }
-    
+
     return tags;
   }
 
@@ -816,8 +836,9 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
   }
 
   void _navigateToHashtagFeed(String hashtag) {
-    Log.debug('� Navigating to hashtag feed: #$hashtag', name: 'VideoFullscreenOverlay', category: LogCategory.ui);
-    
+    Log.debug('📱 Navigating to hashtag feed: #$hashtag',
+        name: 'VideoFullscreenOverlay', category: LogCategory.ui);
+
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => HashtagFeedScreen(hashtag: hashtag),
@@ -825,9 +846,10 @@ class _VideoFullscreenOverlayState extends State<VideoFullscreenOverlay> with Ti
     );
   }
 
-  void _handleFollow(BuildContext context, SocialService socialService) async {
+  Future<void> _handleFollow(
+      BuildContext context, SocialService socialService) async {
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final authService = ref.read(authServiceProvider);
       if (!authService.isAuthenticated) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

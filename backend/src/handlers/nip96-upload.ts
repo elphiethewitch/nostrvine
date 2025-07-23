@@ -304,7 +304,8 @@ async function processVideoUpload(
         throw new Error('MEDIA_BUCKET binding is not available');
       }
       
-      const r2Key = `uploads/${fileId}.mp4`;
+      const fileExtension = getFileExtensionFromContentType(file.type);
+      const r2Key = `uploads/${fileId}${fileExtension}`;
       console.log('🔑 R2 key:', r2Key);
       
       const putResult = await env.MEDIA_BUCKET.put(r2Key, fileData, {
@@ -406,7 +407,8 @@ async function processDirectUpload(
     }
     
     // No duplicate found, proceed with upload
-    const fileName = `${fileId}.mp4`; // Use consistent naming
+    const fileExtension = getFileExtensionFromContentType(file.type);
+    const fileName = `${fileId}${fileExtension}`; // Use proper extension based on content type
     const r2Key = `uploads/${fileName}`;
     
     // Upload file to R2 storage
@@ -518,6 +520,41 @@ export async function handleUploadOptions(): Promise<Response> {
       'Access-Control-Max-Age': '86400'
     }
   });
+}
+
+/**
+ * Get appropriate file extension based on content type
+ */
+function getFileExtensionFromContentType(contentType: string): string {
+  switch (contentType.toLowerCase()) {
+    case 'video/mp4':
+      return '.mp4';
+    case 'video/quicktime':
+      return '.mov';
+    case 'video/webm':
+      return '.webm';
+    case 'video/x-msvideo':
+      return '.avi';
+    case 'video/x-matroska':
+      return '.mkv';
+    case 'video/x-m4v':
+      return '.m4v';
+    case 'image/jpeg':
+      return '.jpg';
+    case 'image/png':
+      return '.png';
+    case 'image/gif':
+      return '.gif';
+    case 'image/webp':
+      return '.webp';
+    case 'image/heic':
+      return '.heic';
+    case 'image/heif':
+      return '.heif';
+    default:
+      // Default to original filename extension or .mp4 for videos
+      return contentType.startsWith('video/') ? '.mp4' : '.jpg';
+  }
 }
 
 /**
@@ -636,12 +673,12 @@ export async function handleMediaServing(
     }
 
     // Find the file in R2 by scanning uploads/ prefix for this fileId
-    // The fileId is the full name like "1750592208655-13cdc4ee", file is stored as "uploads/1750592208655-13cdc4ee.mp4"
-    const searchKey = `uploads/${fileId}.mp4`;
-    console.log('🔍 Searching for R2 key:', searchKey);
+    // The fileId is the full name like "1750592208655-13cdc4ee", file is stored as "uploads/1750592208655-13cdc4ee.{ext}"
+    const searchPrefix = `uploads/${fileId}`;
+    console.log('🔍 Searching for R2 files with prefix:', searchPrefix);
     
     const listResult = await env.MEDIA_BUCKET.list({
-      prefix: searchKey
+      prefix: searchPrefix
     });
     
     console.log('📋 R2 list result:', {
@@ -716,6 +753,188 @@ export async function handleMediaServing(
 
   } catch (error) {
     console.error('Media serving error:', error);
+    return new Response('Internal server error', {
+      status: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' }
+    });
+  }
+}
+
+/**
+ * Handle original Vine URL compatibility
+ * Maps various original vine.co URL patterns to our fileIds:
+ * - /r/videos_h264high/ - High quality H.264 videos
+ * - /r/videos/ - Standard videos  
+ * - /r/videos_h264low/ - Lower quality videos
+ * - /r/thumbs/ - Thumbnail images
+ * - /r/avatars/ - User avatars
+ * - /v/ - Direct video links
+ * - /t/ - Thumbnail images
+ */
+export async function handleVineUrlCompat(
+  vineUrlPath: string,
+  request: Request,
+  env: Env
+): Promise<Response> {
+  try {
+    console.log('🍇 Vine URL compatibility request for path:', vineUrlPath);
+    
+    // Determine the URL pattern type for logging
+    let urlType = 'unknown';
+    if (vineUrlPath.startsWith('r/videos_h264high/')) urlType = 'high-quality video';
+    else if (vineUrlPath.startsWith('r/videos_h264low/')) urlType = 'low-quality video';
+    else if (vineUrlPath.startsWith('r/videos/')) urlType = 'standard video';
+    else if (vineUrlPath.startsWith('r/thumbs/')) urlType = 'thumbnail';
+    else if (vineUrlPath.startsWith('r/avatars/')) urlType = 'avatar';
+    else if (vineUrlPath.startsWith('v/')) urlType = 'direct video';
+    else if (vineUrlPath.startsWith('t/')) urlType = 'thumbnail image';
+    
+    console.log(`🔍 Detected URL type: ${urlType}`);
+    
+    if (!vineUrlPath) {
+      console.log('❌ No vine URL path provided');
+      return new Response('Vine URL path required', {
+        status: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      });
+    }
+
+    if (!env.METADATA_CACHE) {
+      console.log('❌ METADATA_CACHE not configured');
+      return new Response('Metadata cache not configured', {
+        status: 503,
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      });
+    }
+
+    // Look up our fileId from the original vine URL path
+    const metadataStore = new MetadataStore(env.METADATA_CACHE);
+    const fileId = await metadataStore.getFileIdByVineUrl(vineUrlPath);
+    
+    if (!fileId) {
+      console.log(`❌ No mapping found for vine URL path: ${vineUrlPath}`);
+      return new Response('File not found - no mapping for this Vine URL', {
+        status: 404,
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      });
+    }
+
+    console.log(`✅ Found mapping: ${vineUrlPath} -> ${fileId}`);
+    
+    // Now serve the file using our existing media serving logic
+    return await handleMediaServing(fileId, request, env);
+
+  } catch (error) {
+    console.error('Vine URL compatibility error:', error);
+    return new Response('Internal server error', {
+      status: 500,
+      headers: { 'Access-Control-Allow-Origin': '*' }
+    });
+  }
+}
+
+/**
+ * Handle release file downloads (DMG, APK, etc.)
+ */
+export async function handleReleaseDownload(
+  filename: string,
+  request: Request,
+  env: Env
+): Promise<Response> {
+  try {
+    console.log('📦 Release download request for filename:', filename);
+    
+    if (!filename) {
+      console.log('❌ No filename provided');
+      return new Response('Filename required', {
+        status: 400,
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      });
+    }
+
+    if (!env.MEDIA_BUCKET) {
+      console.log('❌ MEDIA_BUCKET not configured');
+      return new Response('Storage not configured', {
+        status: 503,
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      });
+    }
+
+    // Construct the R2 key for releases
+    const releaseKey = `releases/${filename}`;
+    
+    console.log(`🔍 Looking for release file: ${releaseKey}`);
+    
+    // First try to list objects to debug what's available
+    const listResult = await env.MEDIA_BUCKET.list({
+      prefix: 'releases/'
+    });
+    
+    console.log('📋 Available release files:', {
+      objects: listResult.objects?.length || 0,
+      keys: listResult.objects?.map(obj => obj.key) || []
+    });
+    
+    const r2Object = await env.MEDIA_BUCKET.get(releaseKey);
+    
+    if (!r2Object) {
+      console.log(`❌ Release file not found: ${releaseKey}`);
+      
+      // Also try the uploads directory as fallback
+      const uploadsKey = `uploads/${filename}`;
+      console.log(`🔍 Trying uploads fallback: ${uploadsKey}`);
+      const uploadsObject = await env.MEDIA_BUCKET.get(uploadsKey);
+      
+      if (uploadsObject) {
+        console.log(`✅ Found in uploads: ${uploadsKey}`);
+        const contentType = filename.endsWith('.dmg') ? 'application/x-apple-diskimage' : 'application/octet-stream';
+        
+        return new Response(uploadsObject.body, {
+          headers: {
+            'Content-Type': contentType,
+            'Content-Length': uploadsObject.size.toString(),
+            'Cache-Control': 'public, max-age=86400',
+            'Access-Control-Allow-Origin': '*',
+            'Content-Disposition': `attachment; filename="${filename}"`
+          }
+        });
+      }
+      
+      return new Response('Release file not found', {
+        status: 404,
+        headers: { 'Access-Control-Allow-Origin': '*' }
+      });
+    }
+
+    console.log(`✅ Found release file: ${releaseKey}, size: ${r2Object.size} bytes`);
+
+    // Determine content type based on file extension
+    let contentType = 'application/octet-stream';
+    if (filename.endsWith('.dmg')) {
+      contentType = 'application/x-apple-diskimage';
+    } else if (filename.endsWith('.apk')) {
+      contentType = 'application/vnd.android.package-archive';
+    } else if (filename.endsWith('.exe')) {
+      contentType = 'application/x-msdownload';
+    } else if (filename.endsWith('.zip')) {
+      contentType = 'application/zip';
+    }
+
+    // Set download headers
+    return new Response(r2Object.body, {
+      headers: {
+        'Content-Type': contentType,
+        'Content-Length': r2Object.size.toString(),
+        'Cache-Control': 'public, max-age=86400', // 24 hours cache for releases
+        'Access-Control-Allow-Origin': '*',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'ETag': r2Object.etag,
+        'Last-Modified': r2Object.uploaded?.toUTCString() || new Date().toUTCString()
+      }
+    });
+
+  } catch (error) {
+    console.error('Release download error:', error);
     return new Response('Internal server error', {
       status: 500,
       headers: { 'Access-Control-Allow-Origin': '*' }

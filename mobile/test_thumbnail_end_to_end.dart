@@ -3,12 +3,10 @@
 
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter/services.dart';
-import 'package:flutter_test/flutter_test.dart';
-import 'package:openvine/services/video_thumbnail_service.dart';
 import 'package:openvine/services/direct_upload_service.dart';
-import 'package:openvine/services/nip98_auth_service.dart';
-import 'package:openvine/services/video_event_publisher.dart';
+import 'package:openvine/services/video_thumbnail_service.dart';
 import 'package:openvine/utils/unified_logger.dart';
 
 void main() async {
@@ -90,9 +88,9 @@ void main() async {
     Log.debug('\n🧪 Test 4: Optimal timestamp calculation...');
     
     final testDurations = [
-      Duration(milliseconds: 500),  // Very short
-      Duration(seconds: 6, milliseconds: 300),  // Vine length
-      Duration(seconds: 30),  // Long video
+      const Duration(milliseconds: 500),  // Very short
+      const Duration(seconds: 6, milliseconds: 300),  // Vine length
+      const Duration(seconds: 30),  // Long video
     ];
     
     for (final duration in testDurations) {

@@ -2,31 +2,29 @@
 // ABOUTME: Ensures centralized control of video playback across the entire app
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:video_player/video_player.dart';
 import 'package:openvine/services/global_video_registry.dart';
 
 // Simple test double for VideoPlayerController
 class TestVideoController {
-  bool isPlaying;
-  bool isInitialized;
-  bool isDisposed;
-  bool pauseCalled = false;
-  
   TestVideoController({
     this.isPlaying = false,
     this.isInitialized = true,
     this.isDisposed = false,
   });
-  
+  bool isPlaying;
+  bool isInitialized;
+  bool isDisposed;
+  bool pauseCalled = false;
+
   void pause() {
     pauseCalled = true;
     isPlaying = false;
   }
-  
+
   void play() {
     isPlaying = true;
   }
-  
+
   void dispose() {
     isDisposed = true;
   }
@@ -45,7 +43,7 @@ void main() {
     test('should be a singleton', () {
       final registry1 = GlobalVideoRegistry();
       final registry2 = GlobalVideoRegistry();
-      
+
       expect(identical(registry1, registry2), isTrue);
     });
 
@@ -55,7 +53,7 @@ void main() {
 
     test('should provide debug info', () {
       final debugInfo = registry.getDebugInfo();
-      
+
       expect(debugInfo['totalControllers'], equals(0));
       expect(debugInfo['playingControllers'], equals(0));
       expect(debugInfo['pausedControllers'], equals(0));

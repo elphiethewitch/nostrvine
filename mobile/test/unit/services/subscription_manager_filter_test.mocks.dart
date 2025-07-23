@@ -4,12 +4,13 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i4;
-import 'dart:ui' as _i8;
+import 'dart:ui' as _i9;
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:nostr_sdk/event.dart' as _i5;
-import 'package:nostr_sdk/filter.dart' as _i6;
-import 'package:openvine/models/nip94_metadata.dart' as _i7;
+import 'package:mockito/src/dummies.dart' as _i5;
+import 'package:nostr_sdk/event.dart' as _i6;
+import 'package:nostr_sdk/filter.dart' as _i7;
+import 'package:openvine/models/nip94_metadata.dart' as _i8;
 import 'package:openvine/services/nostr_key_manager.dart' as _i2;
 import 'package:openvine/services/nostr_service_interface.dart' as _i3;
 
@@ -115,10 +116,55 @@ class MockINostrService extends _i1.Mock implements _i3.INostrService {
       ) as Map<String, dynamic>);
 
   @override
+  Map<String, bool> get relayAuthStates => (super.noSuchMethod(
+        Invocation.getter(#relayAuthStates),
+        returnValue: <String, bool>{},
+      ) as Map<String, bool>);
+
+  @override
+  _i4.Stream<Map<String, bool>> get authStateStream => (super.noSuchMethod(
+        Invocation.getter(#authStateStream),
+        returnValue: _i4.Stream<Map<String, bool>>.empty(),
+      ) as _i4.Stream<Map<String, bool>>);
+
+  @override
+  bool get isVineRelayAuthenticated => (super.noSuchMethod(
+        Invocation.getter(#isVineRelayAuthenticated),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  String get primaryRelay => (super.noSuchMethod(
+        Invocation.getter(#primaryRelay),
+        returnValue: _i5.dummyValue<String>(
+          this,
+          Invocation.getter(#primaryRelay),
+        ),
+      ) as String);
+
+  @override
   bool get hasListeners => (super.noSuchMethod(
         Invocation.getter(#hasListeners),
         returnValue: false,
       ) as bool);
+
+  @override
+  bool isRelayAuthenticated(String? relayUrl) => (super.noSuchMethod(
+        Invocation.method(
+          #isRelayAuthenticated,
+          [relayUrl],
+        ),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  void setAuthTimeout(Duration? timeout) => super.noSuchMethod(
+        Invocation.method(
+          #setAuthTimeout,
+          [timeout],
+        ),
+        returnValueForMissingStub: null,
+      );
 
   @override
   _i4.Future<void> initialize({List<String>? customRelays}) =>
@@ -133,8 +179,8 @@ class MockINostrService extends _i1.Mock implements _i3.INostrService {
       ) as _i4.Future<void>);
 
   @override
-  _i4.Stream<_i5.Event> subscribeToEvents({
-    required List<_i6.Filter>? filters,
+  _i4.Stream<_i6.Event> subscribeToEvents({
+    required List<_i7.Filter>? filters,
     bool? bypassLimits = false,
   }) =>
       (super.noSuchMethod(
@@ -146,11 +192,11 @@ class MockINostrService extends _i1.Mock implements _i3.INostrService {
             #bypassLimits: bypassLimits,
           },
         ),
-        returnValue: _i4.Stream<_i5.Event>.empty(),
-      ) as _i4.Stream<_i5.Event>);
+        returnValue: _i4.Stream<_i6.Event>.empty(),
+      ) as _i4.Stream<_i6.Event>);
 
   @override
-  _i4.Future<_i3.NostrBroadcastResult> broadcastEvent(_i5.Event? event) =>
+  _i4.Future<_i3.NostrBroadcastResult> broadcastEvent(_i6.Event? event) =>
       (super.noSuchMethod(
         Invocation.method(
           #broadcastEvent,
@@ -168,7 +214,7 @@ class MockINostrService extends _i1.Mock implements _i3.INostrService {
 
   @override
   _i4.Future<_i3.NostrBroadcastResult> publishFileMetadata({
-    required _i7.NIP94Metadata? metadata,
+    required _i8.NIP94Metadata? metadata,
     required String? content,
     List<String>? hashtags = const [],
   }) =>
@@ -307,7 +353,7 @@ class MockINostrService extends _i1.Mock implements _i3.INostrService {
       );
 
   @override
-  void addListener(_i8.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i9.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #addListener,
           [listener],
@@ -316,7 +362,7 @@ class MockINostrService extends _i1.Mock implements _i3.INostrService {
       );
 
   @override
-  void removeListener(_i8.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i9.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #removeListener,
           [listener],

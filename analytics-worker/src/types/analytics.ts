@@ -7,6 +7,14 @@ export interface ViewData {
   hashtags?: string[]; // Hashtags associated with this video
   creatorPubkey?: string; // Creator's public key
   title?: string; // Video title for display
+  // Enhanced engagement metrics
+  totalWatchTimeMs?: number; // Total accumulated watch time
+  completionRate?: number; // Average completion rate
+  loopCount?: number; // Total loops/replays
+  completedViews?: number; // Views that watched to completion
+  pauseCount?: number; // Number of times paused
+  skipCount?: number; // Number of times skipped
+  averageWatchTimeMs?: number; // Average watch time per view
   // Future: could add hourly buckets for trend calculation
 }
 
@@ -30,6 +38,14 @@ export interface ViewRequest {
   creatorPubkey?: string; // Optional: track creator metrics
   hashtags?: string[]; // Video hashtags for trending calculation
   title?: string; // Video title
+  // Enhanced engagement tracking
+  eventType?: 'view_start' | 'view_end' | 'loop' | 'pause' | 'resume' | 'skip';
+  watchDurationMs?: number; // How long they actually watched
+  totalDurationMs?: number; // Total video length
+  completionRate?: number; // Percentage watched (0.0 - 1.0)
+  loopCount?: number; // Number of times they replayed/looped
+  completedVideo?: boolean; // Whether they watched to the end
+  timestamp?: string; // ISO timestamp of the event
   // Future: could add optional userId for opt-in personalization
 }
 

@@ -4,11 +4,12 @@ import 'package:openvine/widgets/clickable_hashtag_text.dart';
 
 void main() {
   group('ClickableHashtagText', () {
-    testWidgets('displays plain text without hashtags correctly', (WidgetTester tester) async {
+    testWidgets('displays plain text without hashtags correctly',
+        (tester) async {
       const plainText = 'This is a simple text without hashtags';
-      
+
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: ClickableHashtagText(
               text: plainText,
@@ -21,11 +22,11 @@ void main() {
       expect(find.byType(SelectableText), findsOneWidget);
     });
 
-    testWidgets('displays text with single hashtag', (WidgetTester tester) async {
+    testWidgets('displays text with single hashtag', (tester) async {
       const textWithHashtag = 'Check out this #vine';
-      
+
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: ClickableHashtagText(
               text: textWithHashtag,
@@ -39,11 +40,11 @@ void main() {
       expect(find.byType(SelectableText), findsOneWidget);
     });
 
-    testWidgets('displays text with multiple hashtags', (WidgetTester tester) async {
+    testWidgets('displays text with multiple hashtags', (tester) async {
       const textWithHashtags = '#trending videos on #vine are #amazing';
-      
+
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: ClickableHashtagText(
               text: textWithHashtags,
@@ -56,11 +57,11 @@ void main() {
       expect(find.byType(SelectableText), findsOneWidget);
     });
 
-    testWidgets('handles hashtags at end of text', (WidgetTester tester) async {
+    testWidgets('handles hashtags at end of text', (tester) async {
       const textWithTrailingHashtag = 'This is awesome #vine';
-      
+
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: ClickableHashtagText(
               text: textWithTrailingHashtag,
@@ -73,11 +74,12 @@ void main() {
       expect(find.byType(SelectableText), findsOneWidget);
     });
 
-    testWidgets('handles hashtags with underscores and numbers', (WidgetTester tester) async {
+    testWidgets('handles hashtags with underscores and numbers',
+        (tester) async {
       const textWithComplexHashtags = 'Testing #vine_2024 and #test_123';
-      
+
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: ClickableHashtagText(
               text: textWithComplexHashtags,
@@ -90,14 +92,14 @@ void main() {
       expect(find.byType(SelectableText), findsOneWidget);
     });
 
-    testWidgets('respects maxLines property', (WidgetTester tester) async {
+    testWidgets('respects maxLines property', (tester) async {
       const longText = 'This is a very long text with #hashtag1 and #hashtag2 '
           'that should be truncated based on maxLines property. '
           'Here is more text with #hashtag3 and #hashtag4 '
           'that might not be visible due to line limits.';
-      
+
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: ClickableHashtagText(
               text: longText,
@@ -107,13 +109,14 @@ void main() {
         ),
       );
 
-      final selectableText = tester.widget<SelectableText>(find.byType(SelectableText));
+      final selectableText =
+          tester.widget<SelectableText>(find.byType(SelectableText));
       expect(selectableText.maxLines, 2);
     });
 
-    testWidgets('handles empty text', (WidgetTester tester) async {
+    testWidgets('handles empty text', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: ClickableHashtagText(
               text: '',
@@ -127,9 +130,9 @@ void main() {
       expect(find.byType(SelectableText), findsNothing);
     });
 
-    testWidgets('handles text with only spaces', (WidgetTester tester) async {
+    testWidgets('handles text with only spaces', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: Scaffold(
             body: ClickableHashtagText(
               text: '   ',
@@ -143,7 +146,7 @@ void main() {
       expect(find.byType(SelectableText), findsOneWidget);
     });
 
-    testWidgets('widget builds without errors', (WidgetTester tester) async {
+    testWidgets('widget builds without errors', (tester) async {
       // Test various edge cases to ensure no crashes
       final testCases = [
         'Normal text',
@@ -169,10 +172,10 @@ void main() {
             ),
           ),
         );
-        
+
         // Should not crash
         expect(find.byType(ClickableHashtagText), findsOneWidget);
-        
+
         // Clear the widget tree before next test
         await tester.pumpWidget(Container());
       }

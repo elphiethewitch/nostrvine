@@ -6,7 +6,7 @@ part of 'analytics_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$httpClientHash() => r'ecd4acdd7bf72fa50bdd6af529a0f33b9d3d9aca';
+String _$httpClientHash() => r'3e1d65fa831165b685a1881b712e31312635f7c7';
 
 /// See also [httpClient].
 @ProviderFor(httpClient)
@@ -22,7 +22,7 @@ final httpClientProvider = AutoDisposeProvider<http.Client>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef HttpClientRef = AutoDisposeProviderRef<http.Client>;
-String _$sharedPreferencesHash() => r'521242eaeb5f10f2cde43323533c84cd5c5135ef';
+String _$sharedPreferencesHash() => r'106b441400813a2b4bba3261097e11e5688efb98';
 
 /// See also [sharedPreferences].
 @ProviderFor(sharedPreferences)

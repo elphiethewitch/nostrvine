@@ -5,9 +5,9 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased Changes]
 
-### Added
+### Added 
 - **Riverpod Migration Complete**: Fully migrated video feed system from Provider to Riverpod 2.0
   - **VideoEventBridge Eliminated**: Replaced complex manual coordination with reactive provider architecture
   - **Reactive Video Feeds**: Following list changes now automatically trigger video feed updates
@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Pure Riverpod Implementation**: All video functionality now uses reactive StateNotifier and Stream providers
   - **Backward Compatibility**: Full IVideoManager interface support for existing code
   - **100% Test Coverage**: Comprehensive TDD approach with 24+ passing tests across all providers
+
 
 ### Removed  
 - **Legacy VideoEventBridge**: Removed deprecated Provider-based video coordination system

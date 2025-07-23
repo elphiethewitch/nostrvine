@@ -1,66 +1,75 @@
 // ABOUTME: App lifecycle handler that pauses all videos when app goes to background
-// ABOUTME: Ensures videos never play when app is not visible
+// ABOUTME: Ensures videos never play when app is not visible and manages background battery usage
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../services/video_visibility_manager.dart';
-import '../utils/unified_logger.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:openvine/providers/app_providers.dart';
+import 'package:openvine/services/background_activity_manager.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 /// Handles app lifecycle events for video playback
-class AppLifecycleHandler extends StatefulWidget {
-  final Widget child;
-  
+class AppLifecycleHandler extends ConsumerStatefulWidget {
   const AppLifecycleHandler({
-    super.key,
     required this.child,
+    super.key,
   });
-  
+  final Widget child;
+
   @override
-  State<AppLifecycleHandler> createState() => _AppLifecycleHandlerState();
+  ConsumerState<AppLifecycleHandler> createState() => _AppLifecycleHandlerState();
 }
 
-class _AppLifecycleHandlerState extends State<AppLifecycleHandler> with WidgetsBindingObserver {
+class _AppLifecycleHandlerState extends ConsumerState<AppLifecycleHandler>
+    with WidgetsBindingObserver {
+  late final BackgroundActivityManager _backgroundManager;
+
   @override
   void initState() {
     super.initState();
+    _backgroundManager = BackgroundActivityManager();
     WidgetsBinding.instance.addObserver(this);
   }
-  
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
-  
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    
-    final visibilityManager = context.read<VideoVisibilityManager>();
-    
+
+    final visibilityManager = ref.read(videoVisibilityManagerProvider);
+
+    // Notify background activity manager first
+    _backgroundManager.onAppLifecycleStateChanged(state);
+
     switch (state) {
       case AppLifecycleState.resumed:
-        Log.info('📱 App resumed - enabling visibility-based playback', 
-            name: 'AppLifecycleHandler', category: LogCategory.system);
+        Log.info(
+          '📱 App resumed - enabling visibility-based playback',
+          name: 'AppLifecycleHandler',
+          category: LogCategory.system,
+        );
         visibilityManager.resumeVisibilityBasedPlayback();
-        break;
-        
+
       case AppLifecycleState.inactive:
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:
-        Log.info('📱 App backgrounded - pausing all videos', 
-            name: 'AppLifecycleHandler', category: LogCategory.system);
+        Log.info(
+          '📱 App backgrounded - pausing all videos and suspending background activities',
+          name: 'AppLifecycleHandler',
+          category: LogCategory.system,
+        );
         visibilityManager.pauseAllVideos();
-        break;
-        
+
       case AppLifecycleState.detached:
         // App is being terminated
         break;
     }
   }
-  
+
   @override
-  Widget build(BuildContext context) {
-    return widget.child;
-  }
+  Widget build(BuildContext context) => widget.child;
 }

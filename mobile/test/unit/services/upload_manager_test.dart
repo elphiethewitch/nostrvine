@@ -2,17 +2,19 @@
 // ABOUTME: Tests file path lookup functionality and edge cases
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:openvine/models/pending_upload.dart';
-import 'package:openvine/services/upload_manager.dart';
 import 'package:openvine/services/direct_upload_service.dart';
-import 'package:hive/hive.dart';
+import 'package:openvine/services/upload_manager.dart';
 
 class MockDirectUploadService extends Mock implements DirectUploadService {}
+
 class MockBox<T> extends Mock implements Box<T> {
   @override
   bool get isOpen => true;
 }
+
 void main() {
   late UploadManager uploadManager;
   late MockDirectUploadService mockUploadService;
@@ -70,7 +72,8 @@ void main() {
         uploadManager.pendingUploads.addAll([upload1, upload2]);
 
         // Act
-        final result = uploadManager.getUploadByFilePath('/path/to/nonexistent.mp4');
+        final result =
+            uploadManager.getUploadByFilePath('/path/to/nonexistent.mp4');
 
         // Assert
         expect(result, isNull);
@@ -96,7 +99,8 @@ void main() {
         uploadManager.pendingUploads.add(uploadWithSpaces);
 
         // Act
-        final result = uploadManager.getUploadByFilePath('/path with spaces/my video.mp4');
+        final result =
+            uploadManager.getUploadByFilePath('/path with spaces/my video.mp4');
 
         // Assert
         expect(result, equals(uploadWithSpaces));
@@ -105,20 +109,22 @@ void main() {
       test('should handle special characters in file paths', () {
         // Arrange
         final uploadWithSpecialChars = PendingUpload.create(
-          localVideoPath: '/path/to/video@#\$%^&()_+.mp4',
+          localVideoPath: r'/path/to/video@#$%^&()_+.mp4',
           nostrPubkey: 'pubkey1',
         );
 
         uploadManager.pendingUploads.add(uploadWithSpecialChars);
 
         // Act
-        final result = uploadManager.getUploadByFilePath('/path/to/video@#\$%^&()_+.mp4');
+        final result =
+            uploadManager.getUploadByFilePath(r'/path/to/video@#$%^&()_+.mp4');
 
         // Assert
         expect(result, equals(uploadWithSpecialChars));
       });
 
-      test('should return first match when multiple uploads have same path', () {
+      test('should return first match when multiple uploads have same path',
+          () {
         // Arrange
         final upload1 = PendingUpload.create(
           localVideoPath: '/path/to/duplicate.mp4',
@@ -132,7 +138,8 @@ void main() {
         uploadManager.pendingUploads.addAll([upload1, upload2]);
 
         // Act
-        final result = uploadManager.getUploadByFilePath('/path/to/duplicate.mp4');
+        final result =
+            uploadManager.getUploadByFilePath('/path/to/duplicate.mp4');
 
         // Assert
         expect(result, equals(upload1));
@@ -148,8 +155,10 @@ void main() {
         uploadManager.pendingUploads.add(upload);
 
         // Act
-        final resultLowerCase = uploadManager.getUploadByFilePath('/path/to/video.mp4');
-        final resultCorrectCase = uploadManager.getUploadByFilePath('/Path/To/Video.mp4');
+        final resultLowerCase =
+            uploadManager.getUploadByFilePath('/path/to/video.mp4');
+        final resultCorrectCase =
+            uploadManager.getUploadByFilePath('/Path/To/Video.mp4');
 
         // Assert
         expect(resultLowerCase, isNull);

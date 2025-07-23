@@ -1,18 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
-import 'package:http/http.dart' as http;
+import 'package:mockito/mockito.dart';
+import 'package:nostr_sdk/event.dart';
+import 'package:openvine/models/curation_set.dart';
+import 'package:openvine/models/video_event.dart';
 import 'package:openvine/services/curation_service.dart';
 import 'package:openvine/services/nostr_service_interface.dart';
-import 'package:openvine/services/video_event_service.dart';
 import 'package:openvine/services/social_service.dart';
-import 'package:openvine/models/video_event.dart';
-import 'package:openvine/models/curation_set.dart';
-import 'package:nostr_sdk/nostr.dart';
-import 'package:nostr_sdk/filter.dart';
-import 'package:nostr_sdk/event.dart';
+import 'package:openvine/services/video_event_service.dart';
 
 @GenerateMocks([
   INostrService,
@@ -45,7 +43,8 @@ void main() {
   });
 
   group('Analytics Integration Tests', () {
-    test('calls real analytics API and mocks relay fetch for missing videos', () async {
+    test('calls real analytics API and mocks relay fetch for missing videos',
+        () async {
       // This test calls the real analytics API but mocks the relay responses
       // Mock local videos - empty so all trending videos will be "missing"
       when(mockVideoEventService.videoEvents).thenReturn([]);
@@ -68,9 +67,11 @@ void main() {
       missingVideoEvent.id = 'test_trending_video_id';
 
       final streamController = StreamController<Event>();
-      when(mockNostrService.subscribeToEvents(
-        filters: anyNamed('filters'),
-      )).thenAnswer((_) {
+      when(
+        mockNostrService.subscribeToEvents(
+          filters: anyNamed('filters'),
+        ),
+      ).thenAnswer((_) {
         // Add the missing video event to the stream
         Timer(const Duration(milliseconds: 100), () {
           streamController.add(missingVideoEvent);
@@ -85,7 +86,7 @@ void main() {
       // Assert - The test verifies that:
       // 1. The analytics API was called (this happens automatically)
       // 2. If there were missing videos, a Nostr subscription would be created
-      
+
       // Check if any Nostr subscriptions were made (depends on if analytics returned data)
       // Since we don't know what the analytics API will return, we just verify the call happened
       // and the service handled it without errors
@@ -95,14 +96,16 @@ void main() {
     test('handles analytics API errors gracefully', () async {
       // This test verifies that the service handles analytics API errors gracefully
       // by calling the real API and ensuring it doesn't crash
-      
+
       // Act - Call the analytics API (may succeed or fail depending on real API status)
       await curationService.refreshTrendingFromAnalytics();
 
       // Assert - The service should handle any errors gracefully
       // Even if API fails, local trending algorithm should still work
-      final trendingVideos = curationService.getVideosForSetType(CurationSetType.trending);
-      expect(trendingVideos, isNotNull); // Should return an empty list if no videos
+      final trendingVideos =
+          curationService.getVideosForSetType(CurationSetType.trending);
+      expect(trendingVideos,
+          isNotNull); // Should return an empty list if no videos
     });
 
     test('handles relay timeout when fetching missing videos', () async {
@@ -111,13 +114,13 @@ void main() {
 
       // Mock Nostr subscription that times out
       final streamController = StreamController<Event>();
-      when(mockNostrService.subscribeToEvents(
-        filters: anyNamed('filters'),
-      )).thenAnswer((_) {
+      when(
+        mockNostrService.subscribeToEvents(
+          filters: anyNamed('filters'),
+        ),
+      ).thenAnswer((_) {
         // Don't emit any events, let it timeout
-        Timer(const Duration(seconds: 10), () {
-          streamController.close();
-        });
+        Timer(const Duration(seconds: 10), streamController.close);
         return streamController.stream;
       });
 
@@ -125,19 +128,36 @@ void main() {
       await curationService.refreshTrendingFromAnalytics();
 
       // Assert - Service should handle timeouts gracefully
-      final trendingVideos = curationService.getVideosForSetType(CurationSetType.trending);
+      final trendingVideos =
+          curationService.getVideosForSetType(CurationSetType.trending);
       expect(trendingVideos, isNotNull);
     });
 
-    test('maintains order from analytics API when videos exist locally', () async {
+    test('maintains order from analytics API when videos exist locally',
+        () async {
       // Test that the order from analytics API is preserved
       // when we have local videos that match
 
       // Mock local videos in different order
       final videos = [
-        VideoEvent(id: 'third', pubkey: 'pub3', createdAt: 3, content: '', timestamp: DateTime.now()),
-        VideoEvent(id: 'first', pubkey: 'pub1', createdAt: 1, content: '', timestamp: DateTime.now()),
-        VideoEvent(id: 'second', pubkey: 'pub2', createdAt: 2, content: '', timestamp: DateTime.now()),
+        VideoEvent(
+            id: 'third',
+            pubkey: 'pub3',
+            createdAt: 3,
+            content: '',
+            timestamp: DateTime.now()),
+        VideoEvent(
+            id: 'first',
+            pubkey: 'pub1',
+            createdAt: 1,
+            content: '',
+            timestamp: DateTime.now()),
+        VideoEvent(
+            id: 'second',
+            pubkey: 'pub2',
+            createdAt: 2,
+            content: '',
+            timestamp: DateTime.now()),
       ];
       when(mockVideoEventService.videoEvents).thenReturn(videos);
 
@@ -145,9 +165,10 @@ void main() {
       await curationService.refreshTrendingFromAnalytics();
 
       // Assert - If analytics returns data with these IDs, order should be preserved
-      final trendingVideos = curationService.getVideosForSetType(CurationSetType.trending);
+      final trendingVideos =
+          curationService.getVideosForSetType(CurationSetType.trending);
       expect(trendingVideos, isNotNull);
-      
+
       // Note: Since we're calling the real API, we can't predict exact order
       // but we can verify the service handles ordering correctly
     });

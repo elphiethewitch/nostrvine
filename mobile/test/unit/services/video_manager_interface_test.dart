@@ -2,13 +2,12 @@
 // ABOUTME: Tests interface contracts, error conditions, and edge cases
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:video_player/video_player.dart';
 import 'package:openvine/models/video_event.dart';
 import 'package:openvine/models/video_state.dart';
 import 'package:openvine/services/video_manager_interface.dart';
+
 import '../../helpers/test_helpers.dart';
 import '../../mocks/mock_video_manager.dart';
-
 
 void main() {
   group('IVideoManager Interface Contract Tests', () {
@@ -45,7 +44,8 @@ void main() {
 
         // ASSERT
         expect(videoManager.videos, hasLength(2));
-        expect(videoManager.videos[0].id, equals(testVideo2.id)); // Newest first
+        expect(
+            videoManager.videos[0].id, equals(testVideo2.id)); // Newest first
         expect(videoManager.videos[1].id, equals(testVideo1.id)); // Oldest last
       });
 
@@ -95,11 +95,11 @@ void main() {
 
         // ACT - Start preloading
         final preloadFuture = videoManager.preloadVideo(testVideo1.id);
-        
+
         // Should be loading immediately
         final loadingState = videoManager.getVideoState(testVideo1.id);
         expect(loadingState!.isLoading, isTrue);
-        
+
         // Wait for completion
         await preloadFuture;
 
@@ -132,7 +132,7 @@ void main() {
     group('Video Preloading Contract', () {
       test('should preload videos around current index', () async {
         // ARRANGE - Add multiple videos
-        for (int i = 0; i < 5; i++) {
+        for (var i = 0; i < 5; i++) {
           final video = TestHelpers.createVideoEvent(
             id: 'video-$i',
             title: 'Video $i',
@@ -142,12 +142,12 @@ void main() {
 
         // ACT - Preload around index 2 with range 1
         videoManager.preloadAroundIndex(2, preloadRange: 1);
-        
+
         // Give time for preloading
         await Future.delayed(const Duration(milliseconds: 150));
 
         // ASSERT - Videos 1, 2, 3 should be ready or loading
-        for (int i = 1; i <= 3; i++) {
+        for (var i = 1; i <= 3; i++) {
           final state = videoManager.getVideoState('video-$i');
           expect(state, isNotNull);
           expect(state!.isLoading || state.isReady, isTrue);
@@ -169,7 +169,8 @@ void main() {
         expect(secondState!.isReady, isTrue);
       });
 
-      test('should throw exception for preloading non-existent video', () async {
+      test('should throw exception for preloading non-existent video',
+          () async {
         // ACT & ASSERT
         expect(
           () => videoManager.preloadVideo('non-existent'),
@@ -178,28 +179,32 @@ void main() {
       });
     });
 
-    group('Video Disposal Contract', () => {
-      test('should dispose video controller and update state', () async {
-        // ARRANGE
-        await videoManager.addVideoEvent(testVideo1);
-        await videoManager.preloadVideo(testVideo1.id);
-        final readyState = videoManager.getVideoState(testVideo1.id);
-        expect(readyState!.isReady, isTrue);
+    group(
+      'Video Disposal Contract',
+      () {
+        test('should dispose video controller and update state', () async {
+          // ARRANGE
+          await videoManager.addVideoEvent(testVideo1);
+          await videoManager.preloadVideo(testVideo1.id);
+          final readyState = videoManager.getVideoState(testVideo1.id);
+          expect(readyState!.isReady, isTrue);
 
-        // ACT
-        videoManager.disposeVideo(testVideo1.id);
+          // ACT
+          videoManager.disposeVideo(testVideo1.id);
 
-        // ASSERT
-        final disposedState = videoManager.getVideoState(testVideo1.id);
-        expect(disposedState!.isDisposed, isTrue);
-        expect(videoManager.getController(testVideo1.id), isNull);
-      }),
+          // ASSERT
+          final disposedState = videoManager.getVideoState(testVideo1.id);
+          expect(disposedState!.isDisposed, isTrue);
+          expect(videoManager.getController(testVideo1.id), isNull);
+        });
 
-      test('should handle disposal of non-existent video gracefully', () {
-        // ACT & ASSERT - Should not throw
-        expect(() => videoManager.disposeVideo('non-existent'), returnsNormally);
-      }),
-    });
+        test('should handle disposal of non-existent video gracefully', () {
+          // ACT & ASSERT - Should not throw
+          expect(
+              () => videoManager.disposeVideo('non-existent'), returnsNormally);
+        });
+      },
+    );
 
     group('Memory Management Contract', () {
       test('should provide debug information', () {
@@ -217,7 +222,7 @@ void main() {
 
       test('should handle memory pressure by disposing controllers', () async {
         // ARRANGE - Add and preload multiple videos
-        for (int i = 0; i < 3; i++) {
+        for (var i = 0; i < 3; i++) {
           final video = TestHelpers.createVideoEvent(id: 'video-$i');
           await videoManager.addVideoEvent(video);
           await videoManager.preloadVideo(video.id);
@@ -235,7 +240,8 @@ void main() {
     });
 
     group('Error Handling Contract', () {
-      test('should throw VideoManagerException for invalid video events', () async {
+      test('should throw VideoManagerException for invalid video events',
+          () async {
         // ARRANGE
         final invalidVideo = TestHelpers.createVideoEvent(id: ''); // Empty ID
 
@@ -246,7 +252,8 @@ void main() {
         );
       });
 
-      test('should include video ID in error messages when available', () async {
+      test('should include video ID in error messages when available',
+          () async {
         // ACT & ASSERT
         try {
           await videoManager.preloadVideo('non-existent');
@@ -278,7 +285,7 @@ void main() {
         // ARRANGE
         await videoManager.addVideoEvent(testVideo1);
         await videoManager.preloadVideo(testVideo1.id);
-        
+
         final debugInfoBefore = videoManager.getDebugInfo();
         expect(debugInfoBefore['totalVideos'], equals(1));
 
@@ -295,11 +302,14 @@ void main() {
 
       test('should be safe to dispose multiple times', () {
         // ACT & ASSERT - Should not throw
-        expect(() {
-          videoManager.dispose();
-          videoManager.dispose();
-          videoManager.dispose();
-        }, returnsNormally);
+        expect(
+          () {
+            videoManager.dispose();
+            videoManager.dispose();
+            videoManager.dispose();
+          },
+          returnsNormally,
+        );
       });
     });
 
@@ -352,7 +362,8 @@ void main() {
         expect(config.preloadAhead, equals(2));
         expect(config.preloadBehind, equals(1));
         expect(config.maxRetries, equals(1));
-        expect(config.preloadTimeout, equals(const Duration(milliseconds: 500)));
+        expect(
+            config.preloadTimeout, equals(const Duration(milliseconds: 500)));
         expect(config.enableMemoryManagement, isTrue);
       });
     });
@@ -426,7 +437,8 @@ void main() {
         expect(CleanupStrategy.values, hasLength(4));
         expect(CleanupStrategy.values, contains(CleanupStrategy.immediate));
         expect(CleanupStrategy.values, contains(CleanupStrategy.delayed));
-        expect(CleanupStrategy.values, contains(CleanupStrategy.memoryPressure));
+        expect(
+            CleanupStrategy.values, contains(CleanupStrategy.memoryPressure));
         expect(CleanupStrategy.values, contains(CleanupStrategy.limitBased));
       });
     });

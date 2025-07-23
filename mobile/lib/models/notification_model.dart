@@ -13,6 +13,38 @@ enum NotificationType {
 }
 
 class NotificationModel extends Equatable {
+  // Additional data
+
+  const NotificationModel({
+    required this.id,
+    required this.type,
+    required this.actorPubkey,
+    required this.message,
+    required this.timestamp,
+    this.actorName,
+    this.actorPictureUrl,
+    this.isRead = false,
+    this.targetEventId,
+    this.targetVideoUrl,
+    this.targetVideoThumbnail,
+    this.metadata,
+  });
+
+  factory NotificationModel.fromJson(Map<String, dynamic> json) =>
+      NotificationModel(
+        id: json['id'] as String,
+        type: NotificationType.values[json['type'] as int],
+        actorPubkey: json['actorPubkey'] as String,
+        actorName: json['actorName'] as String?,
+        actorPictureUrl: json['actorPictureUrl'] as String?,
+        message: json['message'] as String,
+        timestamp: DateTime.parse(json['timestamp'] as String),
+        isRead: json['isRead'] as bool? ?? false,
+        targetEventId: json['targetEventId'] as String?,
+        targetVideoUrl: json['targetVideoUrl'] as String?,
+        targetVideoThumbnail: json['targetVideoThumbnail'] as String?,
+        metadata: json['metadata'] as Map<String, dynamic>?,
+      );
   final String id;
   final NotificationType type;
   final String actorPubkey;
@@ -24,22 +56,7 @@ class NotificationModel extends Equatable {
   final String? targetEventId; // For likes, comments, reposts
   final String? targetVideoUrl; // For quick preview
   final String? targetVideoThumbnail;
-  final Map<String, dynamic>? metadata; // Additional data
-
-  const NotificationModel({
-    required this.id,
-    required this.type,
-    required this.actorPubkey,
-    this.actorName,
-    this.actorPictureUrl,
-    required this.message,
-    required this.timestamp,
-    this.isRead = false,
-    this.targetEventId,
-    this.targetVideoUrl,
-    this.targetVideoThumbnail,
-    this.metadata,
-  });
+  final Map<String, dynamic>? metadata;
 
   NotificationModel copyWith({
     String? id,
@@ -54,22 +71,21 @@ class NotificationModel extends Equatable {
     String? targetVideoUrl,
     String? targetVideoThumbnail,
     Map<String, dynamic>? metadata,
-  }) {
-    return NotificationModel(
-      id: id ?? this.id,
-      type: type ?? this.type,
-      actorPubkey: actorPubkey ?? this.actorPubkey,
-      actorName: actorName ?? this.actorName,
-      actorPictureUrl: actorPictureUrl ?? this.actorPictureUrl,
-      message: message ?? this.message,
-      timestamp: timestamp ?? this.timestamp,
-      isRead: isRead ?? this.isRead,
-      targetEventId: targetEventId ?? this.targetEventId,
-      targetVideoUrl: targetVideoUrl ?? this.targetVideoUrl,
-      targetVideoThumbnail: targetVideoThumbnail ?? this.targetVideoThumbnail,
-      metadata: metadata ?? this.metadata,
-    );
-  }
+  }) =>
+      NotificationModel(
+        id: id ?? this.id,
+        type: type ?? this.type,
+        actorPubkey: actorPubkey ?? this.actorPubkey,
+        actorName: actorName ?? this.actorName,
+        actorPictureUrl: actorPictureUrl ?? this.actorPictureUrl,
+        message: message ?? this.message,
+        timestamp: timestamp ?? this.timestamp,
+        isRead: isRead ?? this.isRead,
+        targetEventId: targetEventId ?? this.targetEventId,
+        targetVideoUrl: targetVideoUrl ?? this.targetVideoUrl,
+        targetVideoThumbnail: targetVideoThumbnail ?? this.targetVideoThumbnail,
+        metadata: metadata ?? this.metadata,
+      );
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -85,23 +101,6 @@ class NotificationModel extends Equatable {
         'targetVideoThumbnail': targetVideoThumbnail,
         'metadata': metadata,
       };
-
-  factory NotificationModel.fromJson(Map<String, dynamic> json) {
-    return NotificationModel(
-      id: json['id'] as String,
-      type: NotificationType.values[json['type'] as int],
-      actorPubkey: json['actorPubkey'] as String,
-      actorName: json['actorName'] as String?,
-      actorPictureUrl: json['actorPictureUrl'] as String?,
-      message: json['message'] as String,
-      timestamp: DateTime.parse(json['timestamp'] as String),
-      isRead: json['isRead'] as bool? ?? false,
-      targetEventId: json['targetEventId'] as String?,
-      targetVideoUrl: json['targetVideoUrl'] as String?,
-      targetVideoThumbnail: json['targetVideoThumbnail'] as String?,
-      metadata: json['metadata'] as Map<String, dynamic>?,
-    );
-  }
 
   String get typeIcon {
     switch (type) {
@@ -134,6 +133,36 @@ class NotificationModel extends Equatable {
       return '${difference.inDays}d ago';
     } else {
       return '${timestamp.day}/${timestamp.month}/${timestamp.year}';
+    }
+  }
+
+  /// Get the navigation action for this notification
+  String get navigationAction {
+    switch (type) {
+      case NotificationType.like:
+      case NotificationType.comment:
+      case NotificationType.repost:
+        return targetEventId != null ? 'open_video' : 'open_profile';
+      case NotificationType.follow:
+      case NotificationType.mention:
+        return 'open_profile';
+      case NotificationType.system:
+        return 'none';
+    }
+  }
+
+  /// Get the primary navigation target (video ID or actor pubkey)
+  String? get navigationTarget {
+    switch (type) {
+      case NotificationType.like:
+      case NotificationType.comment:
+      case NotificationType.repost:
+        return targetEventId ?? actorPubkey;
+      case NotificationType.follow:
+      case NotificationType.mention:
+        return actorPubkey;
+      case NotificationType.system:
+        return null;
     }
   }
 

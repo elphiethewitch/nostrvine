@@ -2,13 +2,15 @@
 // ABOUTME: Tests HTTP requests, error handling, and response parsing for ready events API
 
 import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mocktail/mocktail.dart';
 import 'package:http/http.dart' as http;
+import 'package:mocktail/mocktail.dart';
 import 'package:openvine/services/api_service.dart';
 
 // Mock classes
 class MockHttpClient extends Mock implements http.Client {}
+
 class MockResponse extends Mock implements http.Response {}
 
 void main() {
@@ -36,7 +38,7 @@ void main() {
         final mockResponse = MockResponse();
         when(() => mockResponse.statusCode).thenReturn(204);
         when(() => mockResponse.body).thenReturn('');
-        
+
         when(() => mockClient.get(any(), headers: any(named: 'headers')))
             .thenAnswer((_) async => mockResponse);
 
@@ -55,20 +57,22 @@ void main() {
               'public_id': 'test-public-id',
               'secure_url': 'https://cloudinary.com/test.mp4',
               'content_suggestion': 'Test video',
-              'tags': [['url', 'https://cloudinary.com/test.mp4']],
+              'tags': [
+                ['url', 'https://cloudinary.com/test.mp4']
+              ],
               'metadata': {'width': 1920, 'height': 1080},
               'processed_at': '2024-01-01T12:00:00Z',
               'original_upload_id': 'upload-123',
               'mime_type': 'video/mp4',
               'file_size': 1024000,
             }
-          ]
+          ],
         });
 
         final mockResponse = MockResponse();
         when(() => mockResponse.statusCode).thenReturn(200);
         when(() => mockResponse.body).thenReturn(responseBody);
-        
+
         when(() => mockClient.get(any(), headers: any(named: 'headers')))
             .thenAnswer((_) async => mockResponse);
 
@@ -89,18 +93,20 @@ void main() {
         final mockResponse = MockResponse();
         when(() => mockResponse.statusCode).thenReturn(200);
         when(() => mockResponse.body).thenReturn('invalid json {');
-        
+
         when(() => mockClient.get(any(), headers: any(named: 'headers')))
             .thenAnswer((_) async => mockResponse);
 
         // Act & Assert
         expect(
           () => apiService.getReadyEvents(),
-          throwsA(isA<ApiException>().having(
-            (e) => e.message,
-            'message',
-            contains('Invalid response format'),
-          )),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.message,
+              'message',
+              contains('Invalid response format'),
+            ),
+          ),
         );
       });
 
@@ -112,11 +118,13 @@ void main() {
         // Act & Assert
         expect(
           () => apiService.getReadyEvents(),
-          throwsA(isA<ApiException>().having(
-            (e) => e.message,
-            'message',
-            contains('Network error'),
-          )),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.message,
+              'message',
+              contains('Network error'),
+            ),
+          ),
         );
       });
 
@@ -125,18 +133,20 @@ void main() {
         final mockResponse = MockResponse();
         when(() => mockResponse.statusCode).thenReturn(500);
         when(() => mockResponse.body).thenReturn('Internal Server Error');
-        
+
         when(() => mockClient.get(any(), headers: any(named: 'headers')))
             .thenAnswer((_) async => mockResponse);
 
         // Act & Assert
         expect(
           () => apiService.getReadyEvents(),
-          throwsA(isA<ApiException>().having(
-            (e) => e.statusCode,
-            'statusCode',
-            500,
-          )),
+          throwsA(
+            isA<ApiException>().having(
+              (e) => e.statusCode,
+              'statusCode',
+              500,
+            ),
+          ),
         );
       });
 
@@ -145,7 +155,7 @@ void main() {
         final mockResponse = MockResponse();
         when(() => mockResponse.statusCode).thenReturn(204);
         when(() => mockResponse.body).thenReturn('');
-        
+
         when(() => mockClient.get(any(), headers: any(named: 'headers')))
             .thenAnswer((_) async => mockResponse);
 
@@ -153,10 +163,12 @@ void main() {
         await apiService.getReadyEvents();
 
         // Assert
-        final captured = verify(() => mockClient.get(
-          any(),
-          headers: captureAny(named: 'headers'),
-        )).captured.first as Map<String, String>;
+        final captured = verify(
+          () => mockClient.get(
+            any(),
+            headers: captureAny(named: 'headers'),
+          ),
+        ).captured.first as Map<String, String>;
 
         expect(captured['Content-Type'], 'application/json');
         expect(captured['Accept'], 'application/json');
@@ -170,7 +182,7 @@ void main() {
         // Arrange
         final mockResponse = MockResponse();
         when(() => mockResponse.statusCode).thenReturn(200);
-        
+
         when(() => mockClient.delete(any(), headers: any(named: 'headers')))
             .thenAnswer((_) async => mockResponse);
 
@@ -185,7 +197,7 @@ void main() {
         // Arrange
         final mockResponse = MockResponse();
         when(() => mockResponse.statusCode).thenReturn(404);
-        
+
         when(() => mockClient.delete(any(), headers: any(named: 'headers')))
             .thenAnswer((_) async => mockResponse);
 
@@ -201,7 +213,7 @@ void main() {
         final mockResponse = MockResponse();
         when(() => mockResponse.statusCode).thenReturn(500);
         when(() => mockResponse.body).thenReturn('Server error');
-        
+
         when(() => mockClient.delete(any(), headers: any(named: 'headers')))
             .thenAnswer((_) async => mockResponse);
 
@@ -227,12 +239,14 @@ void main() {
         final mockResponse = MockResponse();
         when(() => mockResponse.statusCode).thenReturn(200);
         when(() => mockResponse.body).thenReturn(responseBody);
-        
-        when(() => mockClient.post(
-          any(),
-          headers: any(named: 'headers'),
-          body: any(named: 'body'),
-        )).thenAnswer((_) async => mockResponse);
+
+        when(
+          () => mockClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: any(named: 'body'),
+          ),
+        ).thenAnswer((_) async => mockResponse);
 
         // Act
         final result = await apiService.requestSignedUpload(
@@ -248,11 +262,13 @@ void main() {
         expect(result['api_key'], 'test-key');
 
         // Verify request body
-        final captured = verify(() => mockClient.post(
-          any(),
-          headers: any(named: 'headers'),
-          body: captureAny(named: 'body'),
-        )).captured.first as String;
+        final captured = verify(
+          () => mockClient.post(
+            any(),
+            headers: any(named: 'headers'),
+            body: captureAny(named: 'body'),
+          ),
+        ).captured.first as String;
 
         final requestData = jsonDecode(captured);
         expect(requestData['nostr_pubkey'], 'test-pubkey');
@@ -268,7 +284,7 @@ void main() {
         // Arrange
         final mockResponse = MockResponse();
         when(() => mockResponse.statusCode).thenReturn(200);
-        
+
         when(() => mockClient.get(any())).thenAnswer((_) async => mockResponse);
 
         // Act
@@ -282,7 +298,7 @@ void main() {
         // Arrange
         final mockResponse = MockResponse();
         when(() => mockResponse.statusCode).thenReturn(500);
-        
+
         when(() => mockClient.get(any())).thenAnswer((_) async => mockResponse);
 
         // Act
@@ -317,7 +333,7 @@ void main() {
         final mockResponse = MockResponse();
         when(() => mockResponse.statusCode).thenReturn(200);
         when(() => mockResponse.body).thenReturn(responseBody);
-        
+
         when(() => mockClient.get(any(), headers: any(named: 'headers')))
             .thenAnswer((_) async => mockResponse);
 
@@ -336,7 +352,7 @@ void main() {
   group('ApiException', () {
     test('should format error message correctly', () {
       // Act
-      final exception = ApiException('Test error', statusCode: 404);
+      const exception = ApiException('Test error', statusCode: 404);
 
       // Assert
       expect(exception.toString(), 'ApiException: Test error (404)');
@@ -344,7 +360,7 @@ void main() {
 
     test('should handle missing status code', () {
       // Act
-      final exception = ApiException('Test error');
+      const exception = ApiException('Test error');
 
       // Assert
       expect(exception.toString(), 'ApiException: Test error (no status)');

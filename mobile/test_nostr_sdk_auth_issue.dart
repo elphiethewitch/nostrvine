@@ -2,14 +2,13 @@
 // ABOUTME: Run with: dart test_nostr_sdk_auth_issue.dart
 
 import 'dart:async';
+
+import 'package:nostr_sdk/client_utils/keys.dart';
 import 'package:nostr_sdk/nostr.dart';
-import 'package:nostr_sdk/event.dart';
-import 'package:nostr_sdk/filter.dart';
+import 'package:nostr_sdk/relay/event_filter.dart';
 import 'package:nostr_sdk/relay/relay_base.dart';
 import 'package:nostr_sdk/relay/relay_status.dart';
-import 'package:nostr_sdk/relay/event_filter.dart';
 import 'package:nostr_sdk/signer/local_nostr_signer.dart';
-import 'package:nostr_sdk/client_utils/keys.dart';
 import 'package:openvine/utils/unified_logger.dart';
 
 void main() async {
@@ -53,7 +52,7 @@ Future<void> testBasicSDKUsage() async {
   );
   
   // Add relay
-  final relayUrl = 'wss://vine.hol.is';
+  const relayUrl = 'wss://vine.hol.is';
   Log.debug('🔌 Connecting to $relayUrl...');
   
   final relay = RelayBase(relayUrl, RelayStatus(relayUrl));
@@ -65,7 +64,7 @@ Future<void> testBasicSDKUsage() async {
   Log.debug('  - Read access: ${relay.relayStatus.readAccess}');
   
   // Wait for potential AUTH
-  await Future.delayed(Duration(seconds: 3));
+  await Future.delayed(const Duration(seconds: 3));
   
   Log.debug('📡 Post-delay relay status:');
   Log.debug('  - Connected: ${relay.relayStatus.connected}');
@@ -82,10 +81,10 @@ Future<void> testBasicSDKUsage() async {
   
   Log.debug('📡 Creating subscription...');
   
-  int eventCount = 0;
+  var eventCount = 0;
   final subscriptionId = nostr.subscribe(
     filters,
-    (Event event) {
+    (event) {
       eventCount++;
       Log.debug('📨 Event received:');
       Log.debug('  - Kind: ${event.kind}');
@@ -97,7 +96,7 @@ Future<void> testBasicSDKUsage() async {
   
   // Wait for events
   Log.debug('⏳ Waiting for events (10 seconds)...');
-  await Future.delayed(Duration(seconds: 10));
+  await Future.delayed(const Duration(seconds: 10));
   
   Log.debug('📊 Result: Received $eventCount events');
   
@@ -129,7 +128,7 @@ Future<void> testSDKWithSendAfterAuth() async {
   );
   
   // Add relay
-  final relayUrl = 'wss://vine.hol.is';
+  const relayUrl = 'wss://vine.hol.is';
   Log.debug('🔌 Connecting to $relayUrl...');
   
   final relay = RelayBase(relayUrl, RelayStatus(relayUrl));
@@ -139,7 +138,7 @@ Future<void> testSDKWithSendAfterAuth() async {
   
   // Wait longer for AUTH to complete
   Log.debug('⏳ Waiting for AUTH to complete (5 seconds)...');
-  await Future.delayed(Duration(seconds: 5));
+  await Future.delayed(const Duration(seconds: 5));
   
   Log.debug('📡 Post-AUTH relay status:');
   Log.debug('  - Connected: ${relay.relayStatus.connected}');
@@ -157,13 +156,13 @@ Future<void> testSDKWithSendAfterAuth() async {
   
   Log.debug('📡 Creating subscription with sendAfterAuth...');
   
-  int eventCount = 0;
+  var eventCount = 0;
   
   // Note: The nostr_sdk subscribe method doesn't expose sendAfterAuth parameter directly
   // This is likely the issue - the SDK may not support it in the subscribe method
   final subscriptionId = nostr.subscribe(
     filters,
-    (Event event) {
+    (event) {
       eventCount++;
       Log.debug('📨 Event received:');
       Log.debug('  - Kind: ${event.kind}');
@@ -177,7 +176,7 @@ Future<void> testSDKWithSendAfterAuth() async {
   
   // Wait for events
   Log.debug('⏳ Waiting for events (10 seconds)...');
-  await Future.delayed(Duration(seconds: 10));
+  await Future.delayed(const Duration(seconds: 10));
   
   Log.debug('📊 Result: Received $eventCount events');
   
@@ -206,14 +205,14 @@ Future<void> testRelayAuthStatus() async {
   );
   
   // Add relay
-  final relayUrl = 'wss://vine.hol.is';
+  const relayUrl = 'wss://vine.hol.is';
   Log.debug('🔌 Connecting to $relayUrl...');
   
   final relay = RelayBase(relayUrl, RelayStatus(relayUrl));
   
   // Monitor relay status changes
   Log.debug('📊 Monitoring relay status changes...');
-  Timer.periodic(Duration(seconds: 1), (timer) {
+  Timer.periodic(const Duration(seconds: 1), (timer) {
     Log.debug('  Status at ${timer.tick}s: connected=${relay.relayStatus.connected}, authed=${relay.relayStatus.authed}, read=${relay.relayStatus.readAccess}');
     if (timer.tick >= 10) timer.cancel();
   });
@@ -230,7 +229,7 @@ Future<void> testRelayAuthStatus() async {
   });
   
   // Wait and observe
-  await Future.delayed(Duration(seconds: 12));
+  await Future.delayed(const Duration(seconds: 12));
   
   Log.debug('\n📊 Final relay status:');
   Log.debug('  - Connected: ${relay.relayStatus.connected}');

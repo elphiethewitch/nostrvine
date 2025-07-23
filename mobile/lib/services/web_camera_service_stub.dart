@@ -7,23 +7,27 @@ import 'package:flutter/material.dart';
 /// Stub for WebCameraService on non-web platforms
 class WebCameraService {
   Future<void> initialize() async {
-    throw UnsupportedError('WebCameraService is only supported on web platform');
+    throw UnsupportedError(
+        'WebCameraService is only supported on web platform');
   }
-  
+
   Future<void> startRecording() async {
-    throw UnsupportedError('WebCameraService is only supported on web platform');
+    throw UnsupportedError(
+        'WebCameraService is only supported on web platform');
   }
-  
+
   Future<String?> stopRecording() async {
-    throw UnsupportedError('WebCameraService is only supported on web platform');
+    throw UnsupportedError(
+        'WebCameraService is only supported on web platform');
   }
-  
+
   Future<void> switchCamera() async {
-    throw UnsupportedError('WebCameraService is only supported on web platform');
+    throw UnsupportedError(
+        'WebCameraService is only supported on web platform');
   }
-  
+
   void dispose() {}
-  
+
   static void revokeBlobUrl(String blobUrl) {
     // No-op on non-web platforms
   }
@@ -31,25 +35,22 @@ class WebCameraService {
 
 /// Stub for WebCameraPreview on non-web platforms
 class WebCameraPreview extends StatelessWidget {
-  final dynamic cameraService;
-  
   const WebCameraPreview({
-    super.key,
     required this.cameraService,
+    super.key,
   });
+  final dynamic cameraService;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: Colors.black,
-      child: const Center(
-        child: Text(
-          'Web camera not available on this platform',
-          style: TextStyle(color: Colors.white),
+  Widget build(BuildContext context) => const ColoredBox(
+        color: Colors.black,
+        child: Center(
+          child: Text(
+            'Web camera not available on this platform',
+            style: TextStyle(color: Colors.white),
+          ),
         ),
-      ),
-    );
-  }
+      );
 }
 
 /// Stub function for blobUrlToBytes on non-web platforms

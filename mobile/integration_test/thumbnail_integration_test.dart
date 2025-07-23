@@ -2,20 +2,21 @@
 // ABOUTME: Tests the complete flow from camera recording to thumbnail upload to NIP-71 events
 
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:openvine/main.dart' as app;
 import 'package:openvine/services/camera_service.dart';
-import 'package:openvine/services/video_thumbnail_service.dart';
 import 'package:openvine/services/direct_upload_service.dart';
+import 'package:openvine/services/video_thumbnail_service.dart';
 import 'package:openvine/utils/unified_logger.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   group('Thumbnail Integration Tests', () {
-    testWidgets('Record video and generate thumbnail end-to-end', (WidgetTester tester) async {
+    testWidgets('Record video and generate thumbnail end-to-end', (tester) async {
       Log.debug('🎬 Starting real thumbnail integration test...');
       
       // Start the app
@@ -152,8 +153,8 @@ void main() {
         }
         
         // Test optimal timestamp calculation
-        final timestamp1 = VideoThumbnailService.getOptimalTimestamp(Duration(seconds: 6, milliseconds: 300));
-        final timestamp2 = VideoThumbnailService.getOptimalTimestamp(Duration(seconds: 30));
+        final timestamp1 = VideoThumbnailService.getOptimalTimestamp(const Duration(seconds: 6, milliseconds: 300));
+        final timestamp2 = VideoThumbnailService.getOptimalTimestamp(const Duration(seconds: 30));
         
         Log.debug('✅ Optimal timestamp for vine (6.3s): ${timestamp1}ms');
         Log.debug('✅ Optimal timestamp for long video (30s): ${timestamp2}ms');
@@ -168,9 +169,9 @@ void main() {
       }
       
       Log.debug('\n🎉 Thumbnail integration test completed!');
-    }, timeout: const Timeout(Duration(minutes: 2)));
+    }, timeout: const Timeout(Duration(minutes: 2)),);
     
-    testWidgets('Test upload manager thumbnail integration', (WidgetTester tester) async {
+    testWidgets('Test upload manager thumbnail integration', (tester) async {
       Log.debug('\n📋 Testing UploadManager thumbnail integration...');
       
       // Start the app to get services initialized

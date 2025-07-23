@@ -22,8 +22,8 @@ class CommentAdapter extends TypeAdapter<Comment> {
       authorPubkey: fields[2] as String,
       createdAt: fields[3] as DateTime,
       rootEventId: fields[4] as String,
-      replyToEventId: fields[5] as String?,
       rootAuthorPubkey: fields[6] as String,
+      replyToEventId: fields[5] as String?,
       replyToAuthorPubkey: fields[7] as String?,
     );
   }

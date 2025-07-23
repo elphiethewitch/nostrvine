@@ -2,21 +2,16 @@
 // ABOUTME: Handles sending videos to specific users and managing sharing options
 
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
-import '../models/video_event.dart';
-import 'nostr_service_interface.dart';
-import 'auth_service.dart';
-import 'user_profile_service.dart';
-import '../utils/unified_logger.dart';
+import 'package:openvine/models/video_event.dart';
+import 'package:openvine/services/auth_service.dart';
+import 'package:openvine/services/nostr_service_interface.dart';
+import 'package:openvine/services/user_profile_service.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 /// Represents a user that can receive shared videos
 class ShareableUser {
-  final String pubkey;
-  final String? displayName;
-  final String? picture;
-  final bool isFollowing;
-  final bool isFollower;
-
   const ShareableUser({
     required this.pubkey,
     this.displayName,
@@ -24,33 +19,44 @@ class ShareableUser {
     this.isFollowing = false,
     this.isFollower = false,
   });
+  final String pubkey;
+  final String? displayName;
+  final String? picture;
+  final bool isFollowing;
+  final bool isFollower;
 }
 
 /// Result of sharing operation
 class ShareResult {
-  final bool success;
-  final String? error;
-  final String? messageEventId;
-
   const ShareResult({
     required this.success,
     this.error,
     this.messageEventId,
   });
+  final bool success;
+  final String? error;
+  final String? messageEventId;
 
   static ShareResult createSuccess(String messageEventId) => ShareResult(
-    success: true,
-    messageEventId: messageEventId,
-  );
+        success: true,
+        messageEventId: messageEventId,
+      );
 
   static ShareResult failure(String error) => ShareResult(
-    success: false,
-    error: error,
-  );
+        success: false,
+        error: error,
+      );
 }
 
 /// Service for sharing videos with other users
 class VideoSharingService extends ChangeNotifier {
+  VideoSharingService({
+    required INostrService nostrService,
+    required AuthService authService,
+    required UserProfileService userProfileService,
+  })  : _nostrService = nostrService,
+        _authService = authService,
+        _userProfileService = userProfileService;
   final INostrService _nostrService;
   final AuthService _authService;
   final UserProfileService _userProfileService;
@@ -58,16 +64,9 @@ class VideoSharingService extends ChangeNotifier {
   final List<ShareableUser> _recentlySharedWith = [];
   final Map<String, DateTime> _shareHistory = {};
 
-  VideoSharingService({
-    required INostrService nostrService,
-    required AuthService authService,
-    required UserProfileService userProfileService,
-  }) : _nostrService = nostrService,
-       _authService = authService,
-       _userProfileService = userProfileService;
-
   // Getters
-  List<ShareableUser> get recentlySharedWith => List.unmodifiable(_recentlySharedWith);
+  List<ShareableUser> get recentlySharedWith =>
+      List.unmodifiable(_recentlySharedWith);
 
   /// Share a video with a specific user via Nostr DM
   Future<ShareResult> shareVideoWithUser({
@@ -76,7 +75,10 @@ class VideoSharingService extends ChangeNotifier {
     String? personalMessage,
   }) async {
     try {
-      Log.debug('� Sharing video with user: ${recipientPubkey.substring(0, 8)}...', name: 'VideoSharingService', category: LogCategory.video);
+      Log.debug(
+          '📱 Sharing video with user: ${recipientPubkey.substring(0, 8)}...',
+          name: 'VideoSharingService',
+          category: LogCategory.video);
 
       if (!_authService.isAuthenticated) {
         return ShareResult.failure('User not authenticated');
@@ -84,7 +86,7 @@ class VideoSharingService extends ChangeNotifier {
 
       // Create encrypted DM with video reference
       final dmContent = _createShareMessage(video, personalMessage);
-      
+
       // Create NIP-04 encrypted DM (kind 4)
       final tags = <List<String>>[
         ['p', recipientPubkey], // Recipient
@@ -106,21 +108,22 @@ class VideoSharingService extends ChangeNotifier {
 
       // Broadcast the DM
       final result = await _nostrService.broadcastEvent(event);
-      
+
       if (result.successCount > 0) {
         // Update sharing history
         _shareHistory[recipientPubkey] = DateTime.now();
         await _updateRecentlySharedWith(recipientPubkey);
-        
-        Log.info('Video shared successfully: ${event.id}', name: 'VideoSharingService', category: LogCategory.video);
+
+        Log.info('Video shared successfully: ${event.id}',
+            name: 'VideoSharingService', category: LogCategory.video);
         notifyListeners();
         return ShareResult.createSuccess(event.id);
       } else {
         return ShareResult.failure('Failed to broadcast share message');
       }
-
     } catch (e) {
-      Log.error('Error sharing video: $e', name: 'VideoSharingService', category: LogCategory.video);
+      Log.error('Error sharing video: $e',
+          name: 'VideoSharingService', category: LogCategory.video);
       return ShareResult.failure('Error sharing video: $e');
     }
   }
@@ -149,17 +152,19 @@ class VideoSharingService extends ChangeNotifier {
   Future<List<ShareableUser>> getShareableUsers({int limit = 20}) async {
     try {
       final shareableUsers = <ShareableUser>[];
-      
+
       // Add recently shared with users first
       shareableUsers.addAll(_recentlySharedWith.take(5));
 
       // TODO: Add followers and following when social service integration is complete
       // For now, return recent users
-      
-      Log.info('Found ${shareableUsers.length} shareable users', name: 'VideoSharingService', category: LogCategory.video);
+
+      Log.info('Found ${shareableUsers.length} shareable users',
+          name: 'VideoSharingService', category: LogCategory.video);
       return shareableUsers.take(limit).toList();
     } catch (e) {
-      Log.error('Error getting shareable users: $e', name: 'VideoSharingService', category: LogCategory.video);
+      Log.error('Error getting shareable users: $e',
+          name: 'VideoSharingService', category: LogCategory.video);
       return [];
     }
   }
@@ -169,7 +174,7 @@ class VideoSharingService extends ChangeNotifier {
     try {
       // TODO: Implement user search when user directory service is available
       // For now, check if query looks like a pubkey and create a basic user
-      
+
       if (query.length == 64 && RegExp(r'^[0-9a-fA-F]+$').hasMatch(query)) {
         // Looks like a hex pubkey
         final profile = await _userProfileService.fetchProfile(query);
@@ -178,14 +183,16 @@ class VideoSharingService extends ChangeNotifier {
             pubkey: query,
             displayName: profile?.displayName,
             picture: profile?.picture,
-          )
+          ),
         ];
       }
 
-      Log.debug('User search not yet implemented for: $query', name: 'VideoSharingService', category: LogCategory.video);
+      Log.debug('User search not yet implemented for: $query',
+          name: 'VideoSharingService', category: LogCategory.video);
       return [];
     } catch (e) {
-      Log.error('Error searching users: $e', name: 'VideoSharingService', category: LogCategory.video);
+      Log.error('Error searching users: $e',
+          name: 'VideoSharingService', category: LogCategory.video);
       return [];
     }
   }
@@ -193,7 +200,7 @@ class VideoSharingService extends ChangeNotifier {
   /// Generate external share URL for the video
   String generateShareUrl(VideoEvent video) {
     // Create a shareable URL that opens the video in a web viewer
-    final baseUrl = 'https://openvine.co';
+    const baseUrl = 'https://openvine.co';
     return '$baseUrl/watch/${video.id}';
   }
 
@@ -201,14 +208,14 @@ class VideoSharingService extends ChangeNotifier {
   String generateShareText(VideoEvent video) {
     final title = video.title ?? 'Check out this vine!';
     final url = generateShareUrl(video);
-    
-    String shareText = title;
+
+    var shareText = title;
     if (video.hashtags.isNotEmpty) {
       final hashtags = video.hashtags.map((tag) => '#$tag').join(' ');
       shareText += '\n\n$hashtags';
     }
     shareText += '\n\nWatch on OpenVine: $url';
-    
+
     return shareText;
   }
 
@@ -216,7 +223,7 @@ class VideoSharingService extends ChangeNotifier {
   bool hasSharedWithRecently(String pubkey) {
     final lastShared = _shareHistory[pubkey];
     if (lastShared == null) return false;
-    
+
     final daysSinceShared = DateTime.now().difference(lastShared).inDays;
     return daysSinceShared < 7; // Consider "recent" as within 7 days
   }
@@ -239,31 +246,31 @@ class VideoSharingService extends ChangeNotifier {
   /// Create the message content for sharing a video
   String _createShareMessage(VideoEvent video, String? personalMessage) {
     final buffer = StringBuffer();
-    
+
     if (personalMessage != null && personalMessage.isNotEmpty) {
       buffer.writeln(personalMessage);
       buffer.writeln();
     }
-    
+
     buffer.writeln('🎬 Check out this vine:');
-    
+
     if (video.title != null && video.title!.isNotEmpty) {
       buffer.writeln('"${video.title}"');
     }
-    
+
     if (video.videoUrl != null) {
       buffer.writeln();
       buffer.writeln(video.videoUrl);
     }
-    
+
     if (video.hashtags.isNotEmpty) {
       buffer.writeln();
       buffer.writeln(video.hashtags.map((tag) => '#$tag').join(' '));
     }
-    
+
     buffer.writeln();
     buffer.writeln('Shared via OpenVine 🍇');
-    
+
     return buffer.toString();
   }
 
@@ -272,24 +279,27 @@ class VideoSharingService extends ChangeNotifier {
     try {
       // Remove if already in list
       _recentlySharedWith.removeWhere((user) => user.pubkey == pubkey);
-      
+
       // Fetch user profile for display
       final profile = await _userProfileService.fetchProfile(pubkey);
-      
+
       // Add to front of list
-      _recentlySharedWith.insert(0, ShareableUser(
-        pubkey: pubkey,
-        displayName: profile?.displayName,
-        picture: profile?.picture,
-      ));
-      
+      _recentlySharedWith.insert(
+        0,
+        ShareableUser(
+          pubkey: pubkey,
+          displayName: profile?.displayName,
+          picture: profile?.picture,
+        ),
+      );
+
       // Keep only recent 10 users
       if (_recentlySharedWith.length > 10) {
         _recentlySharedWith.removeRange(10, _recentlySharedWith.length);
       }
-      
     } catch (e) {
-      Log.error('Failed to update recently shared with: $e', name: 'VideoSharingService', category: LogCategory.video);
+      Log.error('Failed to update recently shared with: $e',
+          name: 'VideoSharingService', category: LogCategory.video);
     }
   }
 
@@ -298,6 +308,7 @@ class VideoSharingService extends ChangeNotifier {
     _shareHistory.clear();
     _recentlySharedWith.clear();
     notifyListeners();
-    Log.debug('🧹 Cleared sharing history', name: 'VideoSharingService', category: LogCategory.video);
+    Log.debug('🧹 Cleared sharing history',
+        name: 'VideoSharingService', category: LogCategory.video);
   }
 }

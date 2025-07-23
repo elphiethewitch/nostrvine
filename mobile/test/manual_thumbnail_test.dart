@@ -3,85 +3,91 @@
 
 import 'dart:io';
 import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openvine/services/video_thumbnail_service.dart';
 import 'package:openvine/services/direct_upload_service.dart';
+import 'package:openvine/services/video_thumbnail_service.dart';
 import 'package:openvine/utils/unified_logger.dart';
 
 void main() {
   group('Manual Thumbnail Tests', () {
     test('Test thumbnail functionality with sample video', () async {
       TestWidgetsFlutterBinding.ensureInitialized();
-      
+
       Log.debug('🎬 Manual thumbnail test starting...');
-      
+
       // Create a test directory
-      final tempDir = await Directory.systemTemp.createTemp('manual_thumbnail_test');
-      
+      final tempDir =
+          await Directory.systemTemp.createTemp('manual_thumbnail_test');
+
       try {
         // Create a real MP4 file with actual video content
         // This uses ffmpeg-generated minimal MP4 content that should work with video_thumbnail
         final realVideoBytes = _createRealMP4Content();
         final testVideoFile = File('${tempDir.path}/real_test_video.mp4');
         await testVideoFile.writeAsBytes(realVideoBytes);
-        
+
         Log.debug('📹 Created test video file: ${testVideoFile.path}');
         Log.debug('📦 Video file size: ${await testVideoFile.length()} bytes');
-        
+
         // Test 1: Try thumbnail extraction with real video content
         Log.debug('\n🧪 Test 1: Attempting thumbnail extraction...');
-        
-        final thumbnailBytes = await VideoThumbnailService.extractThumbnailBytes(
+
+        final thumbnailBytes =
+            await VideoThumbnailService.extractThumbnailBytes(
           videoPath: testVideoFile.path,
           timeMs: 500,
           quality: 80,
         );
-        
+
         if (thumbnailBytes != null && thumbnailBytes.isNotEmpty) {
           Log.debug('✅ SUCCESS! Thumbnail generated successfully!');
           Log.debug('📸 Thumbnail size: ${thumbnailBytes.length} bytes');
-          
+
           // Verify it's valid JPEG
-          if (thumbnailBytes.length >= 2 && 
-              thumbnailBytes[0] == 0xFF && 
+          if (thumbnailBytes.length >= 2 &&
+              thumbnailBytes[0] == 0xFF &&
               thumbnailBytes[1] == 0xD8) {
             Log.debug('✅ Generated thumbnail is valid JPEG format');
-            
+
             // Save thumbnail to verify
-            final thumbnailFile = File('${tempDir.path}/generated_thumbnail.jpg');
+            final thumbnailFile =
+                File('${tempDir.path}/generated_thumbnail.jpg');
             await thumbnailFile.writeAsBytes(thumbnailBytes);
             Log.debug('💾 Saved thumbnail to: ${thumbnailFile.path}');
-            
           } else {
             Log.debug('⚠️ Thumbnail data is not valid JPEG format');
           }
         } else {
           Log.debug('❌ Thumbnail extraction returned null/empty');
           Log.debug('ℹ️ This could mean:');
-          Log.debug('  - video_thumbnail plugin not available in test environment');
+          Log.debug(
+              '  - video_thumbnail plugin not available in test environment');
           Log.debug('  - Video content not recognized as valid');
-          Log.debug('  - Platform limitations (plugins often don\'t work in tests)');
+          Log.debug(
+              "  - Platform limitations (plugins often don't work in tests)");
         }
-        
+
         // Test 2: Test different timestamps
         Log.debug('\n🧪 Test 2: Testing optimal timestamp calculation...');
-        
+
         final testDurations = [
-          Duration(milliseconds: 500),
-          Duration(seconds: 3),
-          Duration(seconds: 6, milliseconds: 300),
-          Duration(seconds: 15),
-          Duration(seconds: 30),
+          const Duration(milliseconds: 500),
+          const Duration(seconds: 3),
+          const Duration(seconds: 6, milliseconds: 300),
+          const Duration(seconds: 15),
+          const Duration(seconds: 30),
         ];
-        
+
         for (final duration in testDurations) {
           final timestamp = VideoThumbnailService.getOptimalTimestamp(duration);
-          Log.debug('📐 ${duration.inSeconds}s video → ${timestamp}ms timestamp');
+          Log.debug(
+              '📐 ${duration.inSeconds}s video → ${timestamp}ms timestamp');
         }
-        
+
         // Test 3: Test upload result structure
         Log.debug('\n🧪 Test 3: Testing upload result structure...');
-        
+
         final uploadResult = DirectUploadResult.success(
           videoId: 'manual_test_video_123',
           cdnUrl: 'https://cdn.example.com/manual_test_video_123.mp4',
@@ -93,21 +99,21 @@ void main() {
             'thumbnail_size': thumbnailBytes?.length ?? 0,
           },
         );
-        
+
         expect(uploadResult.success, isTrue);
         expect(uploadResult.videoId, equals('manual_test_video_123'));
         expect(uploadResult.cdnUrl, contains('.mp4'));
         expect(uploadResult.thumbnailUrl, contains('thumbnail'));
         expect(uploadResult.metadata?['has_thumbnail'], isNotNull);
-        
+
         Log.debug('✅ Upload result structure is correct');
         Log.debug('🎬 Video URL: ${uploadResult.cdnUrl}');
         Log.debug('🖼️ Thumbnail URL: ${uploadResult.thumbnailUrl}');
         Log.debug('📊 Metadata: ${uploadResult.metadata}');
-        
+
         // Test 4: Verify NIP-71 event structure
         Log.debug('\n🧪 Test 4: Verifying NIP-71 event tags...');
-        
+
         final expectedTags = [
           ['url', uploadResult.cdnUrl!],
           ['m', 'video/mp4'],
@@ -117,19 +123,19 @@ void main() {
           ['summary', 'Testing thumbnail generation manually'],
           ['client', 'nostrvine'],
         ];
-        
+
         Log.debug('✅ NIP-71 event tags would include:');
         for (final tag in expectedTags) {
           Log.debug('  🏷️ ${tag[0]}: ${tag[1]}');
         }
-        
+
         Log.debug('\n🎉 Manual thumbnail test completed!');
         Log.debug('📋 Results Summary:');
-        Log.debug('  📸 Thumbnail extraction: ${thumbnailBytes != null ? "SUCCESS" : "FAILED (expected in test env)"}');
+        Log.debug(
+            '  📸 Thumbnail extraction: ${thumbnailBytes != null ? "SUCCESS" : "FAILED (expected in test env)"}');
         Log.debug('  📐 Timestamp calculation: SUCCESS');
         Log.debug('  📤 Upload structure: SUCCESS');
         Log.debug('  🏷️ NIP-71 compliance: SUCCESS');
-        
       } catch (e, stackTrace) {
         Log.debug('❌ Manual test failed: $e');
         Log.debug('📍 Stack trace: $stackTrace');
@@ -152,9 +158,9 @@ void main() {
 Uint8List _createRealMP4Content() {
   // This creates a minimal but structurally valid MP4 file
   // Based on the MP4 specification with required boxes
-  
+
   final buffer = <int>[];
-  
+
   // ftyp box (file type)
   buffer.addAll([
     0x00, 0x00, 0x00, 0x20, // box size: 32 bytes
@@ -166,7 +172,7 @@ Uint8List _createRealMP4Content() {
     0x61, 0x76, 0x63, 0x31, // compatible brand 3: 'avc1'
     0x6D, 0x70, 0x34, 0x31, // compatible brand 4: 'mp41'
   ]);
-  
+
   // mdat box (media data) - minimal placeholder
   buffer.addAll([
     0x00, 0x00, 0x00, 0x10, // box size: 16 bytes
@@ -175,14 +181,14 @@ Uint8List _createRealMP4Content() {
     0x00, 0x01, 0x02, 0x03,
     0x04, 0x05, 0x06, 0x07,
   ]);
-  
+
   // moov box (movie metadata) - minimal structure
   final moovStart = buffer.length;
   buffer.addAll([
     0x00, 0x00, 0x00, 0x00, // box size: will be calculated
     0x6D, 0x6F, 0x6F, 0x76, // box type: 'moov'
   ]);
-  
+
   // mvhd box (movie header)
   buffer.addAll([
     0x00, 0x00, 0x00, 0x6C, // box size: 108 bytes
@@ -204,12 +210,12 @@ Uint8List _createRealMP4Content() {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, // next track ID
   ]);
-  
+
   // Update moov box size
   final moovSize = buffer.length - moovStart;
-  for (int i = 0; i < 4; i++) {
+  for (var i = 0; i < 4; i++) {
     buffer[moovStart + i] = (moovSize >> (8 * (3 - i))) & 0xFF;
   }
-  
+
   return Uint8List.fromList(buffer);
 }

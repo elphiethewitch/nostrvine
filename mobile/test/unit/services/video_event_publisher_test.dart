@@ -4,16 +4,19 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:nostr_sdk/event.dart';
-import 'package:openvine/models/pending_upload.dart';
 import 'package:openvine/models/nip94_metadata.dart';
+import 'package:openvine/models/pending_upload.dart';
 import 'package:openvine/models/ready_event_data.dart';
-import 'package:openvine/services/video_event_publisher.dart';
 import 'package:openvine/services/nostr_service_interface.dart';
 import 'package:openvine/services/upload_manager.dart';
+import 'package:openvine/services/video_event_publisher.dart';
 
 class MockINostrService extends Mock implements INostrService {}
+
 class MockUploadManager extends Mock implements UploadManager {}
+
 class FakeNIP94Metadata extends Fake implements NIP94Metadata {}
+
 class FakeReadyEventData extends Fake implements ReadyEventData {}
 
 void main() {
@@ -54,25 +57,29 @@ void main() {
         );
 
         // Mock the publishDirectUpload
-        when(() => mockNostrService.publishVideoEvent(
-          videoUrl: any(named: 'videoUrl'),
-          content: any(named: 'content'),
-          title: any(named: 'title'),
-          thumbnailUrl: any(named: 'thumbnailUrl'),
-          duration: any(named: 'duration'),
-          dimensions: any(named: 'dimensions'),
-          mimeType: any(named: 'mimeType'),
-          sha256: any(named: 'sha256'),
-          fileSize: any(named: 'fileSize'),
-          hashtags: any(named: 'hashtags'),
-        )).thenAnswer((_) async => NostrBroadcastResult(
-          event: Event('pubkey123', 22, [], ''),
-          successCount: 1,
-          totalRelays: 1,
-          results: {'relay1': true},
-          errors: {},
-        ));
-        
+        when(
+          () => mockNostrService.publishVideoEvent(
+            videoUrl: any(named: 'videoUrl'),
+            content: any(named: 'content'),
+            title: any(named: 'title'),
+            thumbnailUrl: any(named: 'thumbnailUrl'),
+            duration: any(named: 'duration'),
+            dimensions: any(named: 'dimensions'),
+            mimeType: any(named: 'mimeType'),
+            sha256: any(named: 'sha256'),
+            fileSize: any(named: 'fileSize'),
+            hashtags: any(named: 'hashtags'),
+          ),
+        ).thenAnswer(
+          (_) async => NostrBroadcastResult(
+            event: Event('pubkey123', 22, [], ''),
+            successCount: 1,
+            totalRelays: 1,
+            results: {'relay1': true},
+            errors: {},
+          ),
+        );
+
         // Mock setup complete, ready to test
 
         // Act
@@ -84,18 +91,20 @@ void main() {
         );
 
         // Assert - verify the Nostr service was called
-        verify(() => mockNostrService.publishVideoEvent(
-          videoUrl: any(named: 'videoUrl'),
-          content: any(named: 'content'),
-          title: any(named: 'title'),
-          thumbnailUrl: any(named: 'thumbnailUrl'),
-          duration: any(named: 'duration'),
-          dimensions: any(named: 'dimensions'),
-          mimeType: any(named: 'mimeType'),
-          sha256: any(named: 'sha256'),
-          fileSize: any(named: 'fileSize'),
-          hashtags: any(named: 'hashtags'),
-        )).called(1);
+        verify(
+          () => mockNostrService.publishVideoEvent(
+            videoUrl: any(named: 'videoUrl'),
+            content: any(named: 'content'),
+            title: any(named: 'title'),
+            thumbnailUrl: any(named: 'thumbnailUrl'),
+            duration: any(named: 'duration'),
+            dimensions: any(named: 'dimensions'),
+            mimeType: any(named: 'mimeType'),
+            sha256: any(named: 'sha256'),
+            fileSize: any(named: 'fileSize'),
+            hashtags: any(named: 'hashtags'),
+          ),
+        ).called(1);
       });
 
       test('should use original values when custom metadata is null', () async {
@@ -104,7 +113,7 @@ void main() {
           localVideoPath: '/path/to/video.mp4',
           nostrPubkey: 'pubkey123',
           title: 'Original Title',
-          description: 'Original Description', 
+          description: 'Original Description',
           hashtags: ['original', 'tags'],
         ).copyWith(
           status: UploadStatus.readyToPublish,
@@ -112,24 +121,28 @@ void main() {
           videoId: 'video123',
         );
 
-        when(() => mockNostrService.publishVideoEvent(
-          videoUrl: any(named: 'videoUrl'),
-          content: any(named: 'content'),
-          title: any(named: 'title'),
-          thumbnailUrl: any(named: 'thumbnailUrl'),
-          duration: any(named: 'duration'),
-          dimensions: any(named: 'dimensions'),
-          mimeType: any(named: 'mimeType'),
-          sha256: any(named: 'sha256'),
-          fileSize: any(named: 'fileSize'),
-          hashtags: any(named: 'hashtags'),
-        )).thenAnswer((_) async => NostrBroadcastResult(
-          event: Event('pubkey123', 22, [], ''),
-          successCount: 1,
-          totalRelays: 1,
-          results: {'relay1': true},
-          errors: {},
-        ));
+        when(
+          () => mockNostrService.publishVideoEvent(
+            videoUrl: any(named: 'videoUrl'),
+            content: any(named: 'content'),
+            title: any(named: 'title'),
+            thumbnailUrl: any(named: 'thumbnailUrl'),
+            duration: any(named: 'duration'),
+            dimensions: any(named: 'dimensions'),
+            mimeType: any(named: 'mimeType'),
+            sha256: any(named: 'sha256'),
+            fileSize: any(named: 'fileSize'),
+            hashtags: any(named: 'hashtags'),
+          ),
+        ).thenAnswer(
+          (_) async => NostrBroadcastResult(
+            event: Event('pubkey123', 22, [], ''),
+            successCount: 1,
+            totalRelays: 1,
+            results: {'relay1': true},
+            errors: {},
+          ),
+        );
 
         // Act
         await videoEventPublisher.publishVideoEvent(
@@ -140,18 +153,20 @@ void main() {
         );
 
         // Assert
-        verify(() => mockNostrService.publishVideoEvent(
-          videoUrl: any(named: 'videoUrl'),
-          content: any(named: 'content'),
-          title: any(named: 'title'),
-          thumbnailUrl: any(named: 'thumbnailUrl'),
-          duration: any(named: 'duration'),
-          dimensions: any(named: 'dimensions'),
-          mimeType: any(named: 'mimeType'),
-          sha256: any(named: 'sha256'),
-          fileSize: any(named: 'fileSize'),
-          hashtags: any(named: 'hashtags'),
-        )).called(1);
+        verify(
+          () => mockNostrService.publishVideoEvent(
+            videoUrl: any(named: 'videoUrl'),
+            content: any(named: 'content'),
+            title: any(named: 'title'),
+            thumbnailUrl: any(named: 'thumbnailUrl'),
+            duration: any(named: 'duration'),
+            dimensions: any(named: 'dimensions'),
+            mimeType: any(named: 'mimeType'),
+            sha256: any(named: 'sha256'),
+            fileSize: any(named: 'fileSize'),
+            hashtags: any(named: 'hashtags'),
+          ),
+        ).called(1);
       });
 
       test('should handle partial metadata updates', () async {
@@ -168,24 +183,28 @@ void main() {
           videoId: 'video123',
         );
 
-        when(() => mockNostrService.publishVideoEvent(
-          videoUrl: any(named: 'videoUrl'),
-          content: any(named: 'content'),
-          title: any(named: 'title'),
-          thumbnailUrl: any(named: 'thumbnailUrl'),
-          duration: any(named: 'duration'),
-          dimensions: any(named: 'dimensions'),
-          mimeType: any(named: 'mimeType'),
-          sha256: any(named: 'sha256'),
-          fileSize: any(named: 'fileSize'),
-          hashtags: any(named: 'hashtags'),
-        )).thenAnswer((_) async => NostrBroadcastResult(
-          event: Event('pubkey123', 22, [], ''),
-          successCount: 1,
-          totalRelays: 1,
-          results: {'relay1': true},
-          errors: {},
-        ));
+        when(
+          () => mockNostrService.publishVideoEvent(
+            videoUrl: any(named: 'videoUrl'),
+            content: any(named: 'content'),
+            title: any(named: 'title'),
+            thumbnailUrl: any(named: 'thumbnailUrl'),
+            duration: any(named: 'duration'),
+            dimensions: any(named: 'dimensions'),
+            mimeType: any(named: 'mimeType'),
+            sha256: any(named: 'sha256'),
+            fileSize: any(named: 'fileSize'),
+            hashtags: any(named: 'hashtags'),
+          ),
+        ).thenAnswer(
+          (_) async => NostrBroadcastResult(
+            event: Event('pubkey123', 22, [], ''),
+            successCount: 1,
+            totalRelays: 1,
+            results: {'relay1': true},
+            errors: {},
+          ),
+        );
 
         // Act - only update title
         await videoEventPublisher.publishVideoEvent(
@@ -196,18 +215,20 @@ void main() {
         );
 
         // Assert
-        verify(() => mockNostrService.publishVideoEvent(
-          videoUrl: any(named: 'videoUrl'),
-          content: any(named: 'content'),
-          title: any(named: 'title'),
-          thumbnailUrl: any(named: 'thumbnailUrl'),
-          duration: any(named: 'duration'),
-          dimensions: any(named: 'dimensions'),
-          mimeType: any(named: 'mimeType'),
-          sha256: any(named: 'sha256'),
-          fileSize: any(named: 'fileSize'),
-          hashtags: any(named: 'hashtags'),
-        )).called(1);
+        verify(
+          () => mockNostrService.publishVideoEvent(
+            videoUrl: any(named: 'videoUrl'),
+            content: any(named: 'content'),
+            title: any(named: 'title'),
+            thumbnailUrl: any(named: 'thumbnailUrl'),
+            duration: any(named: 'duration'),
+            dimensions: any(named: 'dimensions'),
+            mimeType: any(named: 'mimeType'),
+            sha256: any(named: 'sha256'),
+            fileSize: any(named: 'fileSize'),
+            hashtags: any(named: 'hashtags'),
+          ),
+        ).called(1);
       });
 
       test('should handle empty strings in metadata', () async {
@@ -224,24 +245,28 @@ void main() {
           videoId: 'video123',
         );
 
-        when(() => mockNostrService.publishVideoEvent(
-          videoUrl: any(named: 'videoUrl'),
-          content: any(named: 'content'),
-          title: any(named: 'title'),
-          thumbnailUrl: any(named: 'thumbnailUrl'),
-          duration: any(named: 'duration'),
-          dimensions: any(named: 'dimensions'),
-          mimeType: any(named: 'mimeType'),
-          sha256: any(named: 'sha256'),
-          fileSize: any(named: 'fileSize'),
-          hashtags: any(named: 'hashtags'),
-        )).thenAnswer((_) async => NostrBroadcastResult(
-          event: Event('pubkey123', 22, [], ''),
-          successCount: 1,
-          totalRelays: 1,
-          results: {'relay1': true},
-          errors: {},
-        ));
+        when(
+          () => mockNostrService.publishVideoEvent(
+            videoUrl: any(named: 'videoUrl'),
+            content: any(named: 'content'),
+            title: any(named: 'title'),
+            thumbnailUrl: any(named: 'thumbnailUrl'),
+            duration: any(named: 'duration'),
+            dimensions: any(named: 'dimensions'),
+            mimeType: any(named: 'mimeType'),
+            sha256: any(named: 'sha256'),
+            fileSize: any(named: 'fileSize'),
+            hashtags: any(named: 'hashtags'),
+          ),
+        ).thenAnswer(
+          (_) async => NostrBroadcastResult(
+            event: Event('pubkey123', 22, [], ''),
+            successCount: 1,
+            totalRelays: 1,
+            results: {'relay1': true},
+            errors: {},
+          ),
+        );
 
         // Act
         await videoEventPublisher.publishVideoEvent(
@@ -252,18 +277,20 @@ void main() {
         );
 
         // Assert
-        verify(() => mockNostrService.publishVideoEvent(
-          videoUrl: any(named: 'videoUrl'),
-          content: any(named: 'content'),
-          title: any(named: 'title'),
-          thumbnailUrl: any(named: 'thumbnailUrl'),
-          duration: any(named: 'duration'),
-          dimensions: any(named: 'dimensions'),
-          mimeType: any(named: 'mimeType'),
-          sha256: any(named: 'sha256'),
-          fileSize: any(named: 'fileSize'),
-          hashtags: any(named: 'hashtags'),
-        )).called(1);
+        verify(
+          () => mockNostrService.publishVideoEvent(
+            videoUrl: any(named: 'videoUrl'),
+            content: any(named: 'content'),
+            title: any(named: 'title'),
+            thumbnailUrl: any(named: 'thumbnailUrl'),
+            duration: any(named: 'duration'),
+            dimensions: any(named: 'dimensions'),
+            mimeType: any(named: 'mimeType'),
+            sha256: any(named: 'sha256'),
+            fileSize: any(named: 'fileSize'),
+            hashtags: any(named: 'hashtags'),
+          ),
+        ).called(1);
       });
 
       test('should return true when publish succeeds', () async {
@@ -277,26 +304,30 @@ void main() {
           videoId: 'video123',
         );
 
-        when(() => mockNostrService.publishVideoEvent(
-          videoUrl: any(named: 'videoUrl'),
-          content: any(named: 'content'),
-          title: any(named: 'title'),
-          thumbnailUrl: any(named: 'thumbnailUrl'),
-          duration: any(named: 'duration'),
-          dimensions: any(named: 'dimensions'),
-          mimeType: any(named: 'mimeType'),
-          sha256: any(named: 'sha256'),
-          fileSize: any(named: 'fileSize'),
-          hashtags: any(named: 'hashtags'),
-        )).thenAnswer((_) async => NostrBroadcastResult(
-          event: Event('pubkey123', 22, [], ''),
-          successCount: 1,
-          totalRelays: 1,
-          results: {'relay1': true},
-          errors: {},
-        ));
-        when(() => mockUploadManager.updateUploadStatus(any(), any(), nostrEventId: any(named: 'nostrEventId')))
-            .thenAnswer((_) async {});
+        when(
+          () => mockNostrService.publishVideoEvent(
+            videoUrl: any(named: 'videoUrl'),
+            content: any(named: 'content'),
+            title: any(named: 'title'),
+            thumbnailUrl: any(named: 'thumbnailUrl'),
+            duration: any(named: 'duration'),
+            dimensions: any(named: 'dimensions'),
+            mimeType: any(named: 'mimeType'),
+            sha256: any(named: 'sha256'),
+            fileSize: any(named: 'fileSize'),
+            hashtags: any(named: 'hashtags'),
+          ),
+        ).thenAnswer(
+          (_) async => NostrBroadcastResult(
+            event: Event('pubkey123', 22, [], ''),
+            successCount: 1,
+            totalRelays: 1,
+            results: {'relay1': true},
+            errors: {},
+          ),
+        );
+        when(() => mockUploadManager.updateUploadStatus(any(), any(),
+            nostrEventId: any(named: 'nostrEventId'))).thenAnswer((_) async {});
 
         // Act
         final result = await videoEventPublisher.publishVideoEvent(
@@ -319,18 +350,20 @@ void main() {
           videoId: 'video123',
         );
 
-        when(() => mockNostrService.publishVideoEvent(
-          videoUrl: any(named: 'videoUrl'),
-          content: any(named: 'content'),
-          title: any(named: 'title'),
-          thumbnailUrl: any(named: 'thumbnailUrl'),
-          duration: any(named: 'duration'),
-          dimensions: any(named: 'dimensions'),
-          mimeType: any(named: 'mimeType'),
-          sha256: any(named: 'sha256'),
-          fileSize: any(named: 'fileSize'),
-          hashtags: any(named: 'hashtags'),
-        )).thenThrow(Exception('Publishing failed'));
+        when(
+          () => mockNostrService.publishVideoEvent(
+            videoUrl: any(named: 'videoUrl'),
+            content: any(named: 'content'),
+            title: any(named: 'title'),
+            thumbnailUrl: any(named: 'thumbnailUrl'),
+            duration: any(named: 'duration'),
+            dimensions: any(named: 'dimensions'),
+            mimeType: any(named: 'mimeType'),
+            sha256: any(named: 'sha256'),
+            fileSize: any(named: 'fileSize'),
+            hashtags: any(named: 'hashtags'),
+          ),
+        ).thenThrow(Exception('Publishing failed'));
 
         // Act
         final result = await videoEventPublisher.publishVideoEvent(
@@ -353,46 +386,52 @@ void main() {
           videoId: 'video123',
         );
 
-        when(() => mockNostrService.publishVideoEvent(
-          videoUrl: any(named: 'videoUrl'),
-          content: any(named: 'content'),
-          title: any(named: 'title'),
-          thumbnailUrl: any(named: 'thumbnailUrl'),
-          duration: any(named: 'duration'),
-          dimensions: any(named: 'dimensions'),
-          mimeType: any(named: 'mimeType'),
-          sha256: any(named: 'sha256'),
-          fileSize: any(named: 'fileSize'),
-          hashtags: any(named: 'hashtags'),
-        )).thenAnswer((_) async => NostrBroadcastResult(
-          event: Event('pubkey123', 22, [], ''),
-          successCount: 1,
-          totalRelays: 1,
-          results: {'relay1': true},
-          errors: {},
-        ));
+        when(
+          () => mockNostrService.publishVideoEvent(
+            videoUrl: any(named: 'videoUrl'),
+            content: any(named: 'content'),
+            title: any(named: 'title'),
+            thumbnailUrl: any(named: 'thumbnailUrl'),
+            duration: any(named: 'duration'),
+            dimensions: any(named: 'dimensions'),
+            mimeType: any(named: 'mimeType'),
+            sha256: any(named: 'sha256'),
+            fileSize: any(named: 'fileSize'),
+            hashtags: any(named: 'hashtags'),
+          ),
+        ).thenAnswer(
+          (_) async => NostrBroadcastResult(
+            event: Event('pubkey123', 22, [], ''),
+            successCount: 1,
+            totalRelays: 1,
+            results: {'relay1': true},
+            errors: {},
+          ),
+        );
 
         // Act
         await videoEventPublisher.publishVideoEvent(
           upload: upload,
-          title: 'Title with émojis 🎬 and symbols @#\$%',
+          title: r'Title with émojis 🎬 and symbols @#$%',
           description: 'Description with\nnewlines\tand\ttabs',
           hashtags: ['tag-with-dash', 'tag_with_underscore', '🏷️'],
         );
 
         // Assert
-        verify(() => mockNostrService.publishVideoEvent(
-          videoUrl: any(named: 'videoUrl'),
-          content: any(named: 'content'),
-          title: any(named: 'title'),
-          thumbnailUrl: any(named: 'thumbnailUrl'),
-          duration: any(named: 'duration'),
-          dimensions: any(named: 'dimensions'),
-          mimeType: any(named: 'mimeType'),
-          sha256: any(named: 'sha256'),
-          fileSize: any(named: 'fileSize'),
-          hashtags: any(named: 'hashtags'),
-        )).called(1);
+        verify(
+          () => mockNostrService.publishVideoEvent(
+            videoUrl: any(named: 'videoUrl'),
+            content: any(named: 'content'),
+            title: any(named: 'title'),
+            thumbnailUrl: any(named: 'thumbnailUrl'),
+            duration: any(named: 'duration'),
+            dimensions: any(named: 'dimensions'),
+            mimeType: any(named: 'mimeType'),
+            sha256: any(named: 'sha256'),
+            fileSize: any(named: 'fileSize'),
+            hashtags: any(named: 'hashtags'),
+          ),
+        ).called(1);
       });
 
       test('should handle very long metadata', () async {
@@ -410,24 +449,28 @@ void main() {
         final longDescription = 'B' * 2000; // 2000 character description
         final manyHashtags = List.generate(50, (i) => 'tag$i'); // 50 hashtags
 
-        when(() => mockNostrService.publishVideoEvent(
-          videoUrl: any(named: 'videoUrl'),
-          content: any(named: 'content'),
-          title: any(named: 'title'),
-          thumbnailUrl: any(named: 'thumbnailUrl'),
-          duration: any(named: 'duration'),
-          dimensions: any(named: 'dimensions'),
-          mimeType: any(named: 'mimeType'),
-          sha256: any(named: 'sha256'),
-          fileSize: any(named: 'fileSize'),
-          hashtags: any(named: 'hashtags'),
-        )).thenAnswer((_) async => NostrBroadcastResult(
-          event: Event('pubkey123', 22, [], ''),
-          successCount: 1,
-          totalRelays: 1,
-          results: {'relay1': true},
-          errors: {},
-        ));
+        when(
+          () => mockNostrService.publishVideoEvent(
+            videoUrl: any(named: 'videoUrl'),
+            content: any(named: 'content'),
+            title: any(named: 'title'),
+            thumbnailUrl: any(named: 'thumbnailUrl'),
+            duration: any(named: 'duration'),
+            dimensions: any(named: 'dimensions'),
+            mimeType: any(named: 'mimeType'),
+            sha256: any(named: 'sha256'),
+            fileSize: any(named: 'fileSize'),
+            hashtags: any(named: 'hashtags'),
+          ),
+        ).thenAnswer(
+          (_) async => NostrBroadcastResult(
+            event: Event('pubkey123', 22, [], ''),
+            successCount: 1,
+            totalRelays: 1,
+            results: {'relay1': true},
+            errors: {},
+          ),
+        );
 
         // Act
         await videoEventPublisher.publishVideoEvent(
@@ -438,18 +481,20 @@ void main() {
         );
 
         // Assert
-        verify(() => mockNostrService.publishVideoEvent(
-          videoUrl: any(named: 'videoUrl'),
-          content: any(named: 'content'),
-          title: any(named: 'title'),
-          thumbnailUrl: any(named: 'thumbnailUrl'),
-          duration: any(named: 'duration'),
-          dimensions: any(named: 'dimensions'),
-          mimeType: any(named: 'mimeType'),
-          sha256: any(named: 'sha256'),
-          fileSize: any(named: 'fileSize'),
-          hashtags: any(named: 'hashtags'),
-        )).called(1);
+        verify(
+          () => mockNostrService.publishVideoEvent(
+            videoUrl: any(named: 'videoUrl'),
+            content: any(named: 'content'),
+            title: any(named: 'title'),
+            thumbnailUrl: any(named: 'thumbnailUrl'),
+            duration: any(named: 'duration'),
+            dimensions: any(named: 'dimensions'),
+            mimeType: any(named: 'mimeType'),
+            sha256: any(named: 'sha256'),
+            fileSize: any(named: 'fileSize'),
+            hashtags: any(named: 'hashtags'),
+          ),
+        ).called(1);
       });
     });
   });
