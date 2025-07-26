@@ -26,6 +26,9 @@ import { VideoAnalyticsService } from './services/analytics';
 // Thumbnail service
 import { ThumbnailService } from './services/ThumbnailService';
 
+// URL import handler
+import { handleURLImport, handleURLImportOptions } from './handlers/url-import';
+
 // Feature flags
 import {
   handleListFeatureFlags,
@@ -439,6 +442,16 @@ export default {
 				}
 			}
 
+			// URL import endpoint
+			if (pathname === '/api/import-url') {
+				if (method === 'POST') {
+					return handleURLImport(request, env, ctx);
+				}
+				if (method === 'OPTIONS') {
+					return handleURLImportOptions();
+				}
+			}
+
 			// Upload job status endpoint
 			if (pathname.startsWith('/api/status/') && method === 'GET') {
 				const jobId = pathname.split('/api/status/')[1];
@@ -691,6 +704,7 @@ export default {
 					'/v1/media/cloudinary-upload (Legacy)',
 					'/v1/media/webhook (Legacy)',
 					'/api/upload (NIP-96)',
+					'/api/import-url (Import video from URL)',
 					'/api/status/{jobId}',
 					'/api/check-hash/{sha256} (Check if file exists by hash)',
 					'/api/set-vine-mapping (Set mapping from original Vine URL to fileId)',

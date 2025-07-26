@@ -89,7 +89,7 @@ class _VideoFullscreenOverlayState extends ConsumerState<VideoFullscreenOverlay>
   void dispose() {
     _fadeController.dispose();
     _disposeVideo();
-    
+    super.dispose();
   }
 
   Future<void> _initializeVideo() async {

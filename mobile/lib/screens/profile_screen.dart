@@ -220,9 +220,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       // Get profile for display name in app bar
       final authProfile = _isOwnProfile ? authService.currentProfile : null;
       
+      // Determine the pubkey to use for the profile provider
+      final pubkeyToWatch = _targetPubkey ?? widget.profilePubkey ?? authService.currentPublicKeyHex;
+      
       // Use reactive provider for profile data
-      final profileAsync = _targetPubkey != null 
-          ? ref.watch(userProfileProvider(_targetPubkey!))
+      final profileAsync = pubkeyToWatch != null 
+          ? ref.watch(userProfileProvider(pubkeyToWatch))
           : const AsyncValue<UserProfile?>.data(null);
       
       final cachedProfile = profileAsync.valueOrNull;
@@ -412,9 +415,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     // Get the profile data for the target user (could be current user or another user)
     final authProfile = _isOwnProfile ? authService.currentProfile : null;
     
+    // Determine the pubkey to use for the profile provider
+    final pubkeyToWatch = _targetPubkey ?? widget.profilePubkey ?? authService.currentPublicKeyHex;
+    
     // Use reactive provider for profile data
-    final profileAsync = _targetPubkey != null 
-        ? ref.watch(userProfileProvider(_targetPubkey!))
+    final profileAsync = pubkeyToWatch != null 
+        ? ref.watch(userProfileProvider(pubkeyToWatch))
         : const AsyncValue<UserProfile?>.data(null);
     
     final cachedProfile = profileAsync.valueOrNull;
