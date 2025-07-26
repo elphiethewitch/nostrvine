@@ -594,12 +594,22 @@ class MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
   /// Navigate to a user's profile
   /// Called from other screens to view a specific user's profile
   void navigateToProfile(String? profilePubkey) {
+    // Pause videos when navigating away from current tab
+    if (_currentIndex == 0) {
+      _pauseFeedVideos();
+    } else if (_currentIndex == 2) {
+      _pauseExploreVideos();
+    }
+    
+    // Also pause all videos globally to ensure nothing keeps playing
+    GlobalVideoRegistry().pauseAllControllers();
+    Log.info('⏸️ Paused all videos when navigating to profile',
+        name: 'Main', category: LogCategory.system);
+    
     setState(() {
       _viewingProfilePubkey = profilePubkey;
-      // Update the profile screen if it's already loaded
-      if (_screens[3] is! Container) {
-        _screens[3] = ProfileScreen(profilePubkey: _viewingProfilePubkey);
-      }
+      // Always create or update the profile screen
+      _screens[3] = ProfileScreen(profilePubkey: _viewingProfilePubkey);
       // Switch to profile tab
       _currentIndex = 3;
     });
