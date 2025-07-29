@@ -32,7 +32,7 @@ class _HashtagInputWidgetState extends State<HashtagInputWidget> {
   @override
   void dispose() {
     _controller.dispose();
-    
+    super.dispose();
   }
 
   void _parseHashtags(String text) {

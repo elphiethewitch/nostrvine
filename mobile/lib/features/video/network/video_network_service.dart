@@ -109,7 +109,6 @@ class VideoNetworkService {
       kinds: [22],
       authors: authors,
       t: hashtags,
-      h: ['vine'],
       until: until,
       limit: limit,
     );

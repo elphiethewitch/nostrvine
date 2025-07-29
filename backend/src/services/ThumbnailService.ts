@@ -50,12 +50,27 @@ export class ThumbnailService {
     const { size = 'medium', timestamp = 1, format = 'jpg' } = options;
 
     try {
+      // Check if this is a Nostr event ID (64 char hex) and resolve to fileId
+      let actualVideoId = videoId;
+      if (/^[a-f0-9]{64}$/i.test(videoId)) {
+        logger.info(`Resolving Nostr event ID ${videoId.substring(0, 8)}... to fileId`);
+        const eventMapping = await this.kvStore.get<{ fileId: string, videoUrl?: string }>(`event:${videoId}`, 'json');
+        
+        if (eventMapping?.fileId) {
+          actualVideoId = eventMapping.fileId;
+          logger.info(`Resolved to fileId: ${actualVideoId}`);
+        } else {
+          logger.warn(`No mapping found for event ID ${videoId.substring(0, 8)}...`);
+          // Continue with original ID - might be a direct fileId
+        }
+      }
+
       // Check if thumbnail already exists in KV cache
-      const cacheKey = this.getCacheKey(videoId, size, timestamp, format);
+      const cacheKey = this.getCacheKey(actualVideoId, size, timestamp, format);
       const cachedMetadata = await this.kvStore.get<ThumbnailMetadata>(cacheKey, 'json');
 
       if (cachedMetadata) {
-        logger.info(`Thumbnail cache hit for ${videoId}`);
+        logger.info(`Thumbnail cache hit for ${actualVideoId}`);
         
         // Get thumbnail from R2
         const thumbnailObject = await this.r2Bucket.get(cachedMetadata.r2Key);
@@ -73,8 +88,8 @@ export class ThumbnailService {
       }
 
       // Generate new thumbnail
-      logger.info(`Generating new thumbnail for ${videoId} at ${timestamp}s`);
-      const thumbnail = await this.generateThumbnail(videoId, size, timestamp, format);
+      logger.info(`Generating new thumbnail for ${actualVideoId} at ${timestamp}s`);
+      const thumbnail = await this.generateThumbnail(actualVideoId, size, timestamp, format);
 
       logger.info(`Generated new thumbnail in ${Date.now() - startTime}ms`);
 

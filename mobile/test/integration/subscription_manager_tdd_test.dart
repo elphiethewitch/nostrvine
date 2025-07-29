@@ -9,6 +9,7 @@ import 'package:nostr_sdk/filter.dart';
 import 'package:openvine/services/nostr_service.dart';
 import 'package:openvine/services/nostr_key_manager.dart';
 import 'package:openvine/services/subscription_manager.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 void main() {
   // Initialize Flutter bindings and mock platform dependencies for test environment
@@ -71,7 +72,7 @@ void main() {
     });
 
     test('SubscriptionManager should receive kind 22 events from vine.hol.is relay', () async {
-      print('🔍 TDD TEST: Testing SubscriptionManager with real vine.hol.is relay...');
+      Log.debug('🔍 TDD TEST: Testing SubscriptionManager with real vine.hol.is relay...', name: 'SubscriptionManagerTDDIntegrationTest', category: LogCategory.system);
       
       // This test will FAIL initially - that's the point of TDD!
       final receivedEvents = <Event>[];
@@ -82,39 +83,39 @@ void main() {
         name: 'tdd_test_video_feed',
         filters: [Filter(kinds: [22], limit: 3)],
         onEvent: (event) {
-          print('✅ TDD: SubscriptionManager received event: kind=${event.kind}, id=${event.id.substring(0, 8)}');
+          Log.info('✅ TDD: SubscriptionManager received event: kind=${event.kind}, id=${event.id.substring(0, 8)}', name: 'SubscriptionManagerTDDIntegrationTest', category: LogCategory.system);
           receivedEvents.add(event);
           if (receivedEvents.length >= 2) {
             completer.complete();
           }
         },
         onError: (error) {
-          print('❌ TDD: SubscriptionManager error: $error');
+          Log.error('❌ TDD: SubscriptionManager error: $error', name: 'SubscriptionManagerTDDIntegrationTest', category: LogCategory.system);
           if (!completer.isCompleted) {
             completer.completeError(error);
           }
         },
         onComplete: () {
-          print('🏁 TDD: SubscriptionManager subscription completed');
+          Log.debug('🏁 TDD: SubscriptionManager subscription completed', name: 'SubscriptionManagerTDDIntegrationTest', category: LogCategory.system);
           if (!completer.isCompleted) {
             completer.complete();
           }
         },
       );
 
-      print('📡 TDD: Created subscription $subscriptionId, waiting for events...');
+      Log.debug('📡 TDD: Created subscription $subscriptionId, waiting for events...', name: 'SubscriptionManagerTDDIntegrationTest', category: LogCategory.system);
       
       // Wait for events with reasonable timeout
       try {
         await completer.future.timeout(Duration(seconds: 15));
       } catch (e) {
-        print('⏰ TDD: Timeout waiting for events from SubscriptionManager');
+        Log.warning('⏰ TDD: Timeout waiting for events from SubscriptionManager', name: 'SubscriptionManagerTDDIntegrationTest', category: LogCategory.system);
       }
 
       // Clean up
       await subscriptionManager.cancelSubscription(subscriptionId);
       
-      print('📊 TDD: SubscriptionManager received ${receivedEvents.length} events');
+      Log.debug('📊 TDD: SubscriptionManager received ${receivedEvents.length} events', name: 'SubscriptionManagerTDDIntegrationTest', category: LogCategory.system);
       
       // This assertion will FAIL initially - proving SubscriptionManager is broken
       expect(receivedEvents.length, greaterThan(0), 
@@ -122,7 +123,7 @@ void main() {
     });
     
     test('Direct subscription should work for comparison (proves relay has events)', () async {
-      print('🔍 TDD: Testing direct subscription as control test...');
+      Log.debug('🔍 TDD: Testing direct subscription as control test...', name: 'SubscriptionManagerTDDIntegrationTest', category: LogCategory.system);
       
       final directEvents = <Event>[];
       final directCompleter = Completer<void>();
@@ -133,14 +134,14 @@ void main() {
       
       final directSub = directStream.listen(
         (event) {
-          print('✅ TDD: Direct subscription received event: kind=${event.kind}, id=${event.id.substring(0, 8)}');
+          Log.info('✅ TDD: Direct subscription received event: kind=${event.kind}, id=${event.id.substring(0, 8)}', name: 'SubscriptionManagerTDDIntegrationTest', category: LogCategory.system);
           directEvents.add(event);
           if (directEvents.length >= 2) {
             directCompleter.complete();
           }
         },
         onError: (error) {
-          print('❌ TDD: Direct subscription error: $error');
+          Log.error('❌ TDD: Direct subscription error: $error', name: 'SubscriptionManagerTDDIntegrationTest', category: LogCategory.system);
           if (!directCompleter.isCompleted) {
             directCompleter.completeError(error);
           }
@@ -150,12 +151,12 @@ void main() {
       try {
         await directCompleter.future.timeout(Duration(seconds: 15));
       } catch (e) {
-        print('⏰ TDD: Timeout waiting for direct events');
+        Log.warning('⏰ TDD: Timeout waiting for direct events', name: 'SubscriptionManagerTDDIntegrationTest', category: LogCategory.system);
       }
 
       directSub.cancel();
       
-      print('📊 TDD: Direct subscription received ${directEvents.length} events');
+      Log.debug('📊 TDD: Direct subscription received ${directEvents.length} events', name: 'SubscriptionManagerTDDIntegrationTest', category: LogCategory.system);
       
       // This should pass - proving the relay has events and our test setup works
       expect(directEvents.length, greaterThan(0), 

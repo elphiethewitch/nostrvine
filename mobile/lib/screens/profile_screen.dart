@@ -3,12 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:nostr_sdk/event.dart';
-import 'package:openvine/models/user_profile.dart';
 import 'package:openvine/models/video_event.dart';
 import 'package:openvine/providers/app_providers.dart';
 import 'package:openvine/providers/profile_stats_provider.dart';
 import 'package:openvine/providers/profile_videos_provider.dart';
-import 'package:openvine/providers/user_profile_providers.dart';
+import 'package:openvine/screens/video_feed_screen.dart';
 import 'package:openvine/screens/debug_video_test.dart';
 import 'package:openvine/screens/key_import_screen.dart';
 import 'package:openvine/screens/profile_setup_screen.dart';
@@ -40,7 +39,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
 
     // Determine if viewing own profile and set target pubkey
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -220,15 +219,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       // Get profile for display name in app bar
       final authProfile = _isOwnProfile ? authService.currentProfile : null;
       
-      // Determine the pubkey to use for the profile provider
-      final pubkeyToWatch = _targetPubkey ?? widget.profilePubkey ?? authService.currentPublicKeyHex;
+      // Use the UserProfileService directly for synchronous access
+      final userProfileService = ref.watch(userProfileServiceProvider);
+      final cachedProfile = _targetPubkey != null 
+          ? userProfileService.getCachedProfile(_targetPubkey!)
+          : null;
       
-      // Use reactive provider for profile data
-      final profileAsync = pubkeyToWatch != null 
-          ? ref.watch(userProfileProvider(pubkeyToWatch))
-          : const AsyncValue<UserProfile?>.data(null);
-      
-      final cachedProfile = profileAsync.valueOrNull;
       final userName = cachedProfile?.bestDisplayName ??
           authProfile?.displayName ??
           'Anonymous';
@@ -351,6 +347,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                             Tab(icon: Icon(Icons.grid_on, size: 20)),
                             Tab(icon: Icon(Icons.favorite_border, size: 20)),
                             Tab(icon: Icon(Icons.repeat, size: 20)),
+                            Tab(icon: Icon(Icons.playlist_play, size: 20)),
                           ],
                         ),
                       ),
@@ -369,6 +366,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
                         _buildVinesGrid(),
                         _buildLikedGrid(),
                         _buildRepostsGrid(),
+                        _buildListsTab(),
                       ],
                     ),
                   ),
@@ -422,15 +420,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     // Get the profile data for the target user (could be current user or another user)
     final authProfile = _isOwnProfile ? authService.currentProfile : null;
     
-    // Determine the pubkey to use for the profile provider
-    final pubkeyToWatch = _targetPubkey ?? widget.profilePubkey ?? authService.currentPublicKeyHex;
-    
-    // Use reactive provider for profile data
-    final profileAsync = pubkeyToWatch != null 
-        ? ref.watch(userProfileProvider(pubkeyToWatch))
-        : const AsyncValue<UserProfile?>.data(null);
-    
-    final cachedProfile = profileAsync.valueOrNull;
+    // Use the UserProfileService directly for synchronous access
+    final userProfileService = ref.watch(userProfileServiceProvider);
+    final cachedProfile = _targetPubkey != null 
+        ? userProfileService.getCachedProfile(_targetPubkey!)
+        : null;
 
     final profilePictureUrl =
         authProfile?.picture ?? cachedProfile?.picture;
@@ -1959,34 +1953,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   void _openVine(VideoEvent videoEvent) {
-    final profileVideosState = ref.read(profileVideosNotifierProvider);
-    final videoIndex = profileVideosState.videos.indexOf(videoEvent);
-    
-    if (videoIndex != -1) {
-      _showVideoPageView(videoIndex, profileVideosState.videos);
-    }
-  }
-  
-  void _showVideoPageView(int initialIndex, List<VideoEvent> videos) {
+    // Navigate to the video feed screen with userProfile context
+    // This ensures only videos from this specific user are shown
     Navigator.of(context).push(
-      PageRouteBuilder(
-        opaque: true,
-        pageBuilder: (context, animation, secondaryAnimation) => _ProfileVideoPageView(
-          videos: videos,
-          initialIndex: initialIndex,
-          profilePubkey: _targetPubkey!,
-          onVideoChanged: (videoId) {
-            setState(() {
-              _playingVideoId = videoId;
-            });
-          },
+      MaterialPageRoute(
+        builder: (context) => VideoFeedScreen(
+          startingVideo: videoEvent,
+          context: FeedContext.userProfile,
+          contextValue: _targetPubkey ?? widget.profilePubkey,
         ),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(
-            opacity: animation,
-            child: child,
-          );
-        },
       ),
     );
   }
@@ -2016,11 +1991,289 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   }
 
   void _openLikedVideo(VideoEvent videoEvent) {
-    // For liked videos, we'll show them individually since they might not be sequential
-    setState(() {
-      _playingVideoId = videoEvent.id;
-    });
+    // Navigate to the video feed screen - for now show just this video
+    // TODO: In the future, could create a "liked videos" feed context
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => VideoFeedScreen(
+          startingVideo: videoEvent,
+          context: FeedContext.general, // Show in general feed for now
+          contextValue: null,
+        ),
+      ),
+    );
   }
+
+  /// Build lists tab showing user's curated lists, bookmarks, and follow sets
+  Widget _buildListsTab() => Container(
+        margin: EdgeInsets.zero,
+        padding: const EdgeInsets.all(16),
+        child: DefaultTabController(
+          length: 3,
+          child: Column(
+            children: [
+              const TabBar(
+                indicatorColor: VineTheme.vineGreen,
+                labelColor: VineTheme.whiteText,
+                unselectedLabelColor: VineTheme.secondaryText,
+                tabs: [
+                  Tab(text: 'Lists'),
+                  Tab(text: 'Bookmarks'),
+                  Tab(text: 'Follow Sets'),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    _buildCuratedListSection(),
+                    _buildBookmarksSection(),
+                    _buildFollowSetsSection(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+  /// Build curated lists section
+  Widget _buildCuratedListSection() => Consumer(
+        builder: (context, ref, child) {
+          final listService = ref.watch(curatedListServiceProvider);
+          final userLists = _isOwnProfile 
+              ? listService.lists 
+              : listService.lists.where((list) => list.isPublic).toList();
+
+          if (userLists.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.playlist_play,
+                    color: Colors.grey,
+                    size: 64,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _isOwnProfile ? 'No Lists Yet' : 'No Public Lists',
+                    style: const TextStyle(
+                      color: VineTheme.whiteText,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _isOwnProfile 
+                        ? 'Create lists to organize your favorite videos'
+                        : 'This user hasn\'t shared any public lists',
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (_isOwnProfile) ...[
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        // TODO: Show create list dialog
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create List'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: VineTheme.vineGreen,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }
+
+          return ListView.builder(
+            itemCount: userLists.length,
+            itemBuilder: (context, index) {
+              final list = userLists[index];
+              return _buildListTile(
+                icon: Icons.playlist_play,
+                title: list.name,
+                subtitle: '${list.videoEventIds.length} videos${list.description != null ? ' • ${list.description}' : ''}',
+                trailing: list.tags.isNotEmpty 
+                    ? Wrap(
+                        spacing: 4,
+                        children: list.tags.take(2).map((tag) => 
+                          Chip(
+                            label: Text(tag, style: const TextStyle(fontSize: 10)),
+                            backgroundColor: VineTheme.vineGreen.withValues(alpha: 0.2),
+                            labelStyle: const TextStyle(color: VineTheme.whiteText),
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          )
+                        ).toList(),
+                      )
+                    : null,
+                onTap: () {
+                  // TODO: Navigate to list detail screen
+                },
+              );
+            },
+          );
+        },
+      );
+
+  /// Build bookmarks section  
+  Widget _buildBookmarksSection() => Consumer(
+        builder: (context, ref, child) {
+          // TODO: Add bookmarkServiceProvider to app_providers.dart
+          // For now, show placeholder
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.bookmark_outline,
+                  color: Colors.grey,
+                  size: 64,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Bookmarks Coming Soon',
+                  style: TextStyle(
+                    color: VineTheme.whiteText,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Save videos for later viewing',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      );
+
+  /// Build follow sets section
+  Widget _buildFollowSetsSection() => Consumer(
+        builder: (context, ref, child) {
+          final socialService = ref.watch(socialServiceProvider);
+          final followSets = socialService.followSets;
+
+          if (followSets.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.people_outline,
+                    color: Colors.grey,
+                    size: 64,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _isOwnProfile ? 'No Follow Sets Yet' : 'No Follow Sets',
+                    style: const TextStyle(
+                      color: VineTheme.whiteText,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _isOwnProfile 
+                        ? 'Create follow sets to organize your favorite creators'
+                        : 'This user hasn\'t created any follow sets',
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontSize: 14,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  if (_isOwnProfile) ...[
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        // TODO: Show create follow set dialog
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create Follow Set'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: VineTheme.vineGreen,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            );
+          }
+
+          return ListView.builder(
+            itemCount: followSets.length,
+            itemBuilder: (context, index) {
+              final set = followSets[index];
+              return _buildListTile(
+                icon: Icons.people,
+                title: set.name,
+                subtitle: '${set.pubkeys.length} users${set.description != null ? ' • ${set.description}' : ''}',
+                onTap: () {
+                  // TODO: Navigate to follow set detail screen
+                },
+              );
+            },
+          );
+        },
+      );
+
+  /// Helper method to build consistent list tiles
+  Widget _buildListTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    Widget? trailing,
+    VoidCallback? onTap,
+  }) => ListTile(
+        leading: Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: VineTheme.cardBackground,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            color: VineTheme.whiteText,
+            size: 24,
+          ),
+        ),
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: VineTheme.whiteText,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(
+            color: VineTheme.secondaryText,
+            fontSize: 12,
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: trailing,
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      );
 
   Widget _buildVideoOverlay() => Consumer(
         builder: (context, ref, child) {

@@ -6,7 +6,7 @@ part of 'social_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$socialNotifierHash() => r'f1def2b344b0fc7dc1b23a86ff3fece1e951c15d';
+String _$socialNotifierHash() => r'2a05c637b99382bf8ebef64164de06ce67c2a6c0';
 
 /// Social state notifier with reactive state management
 ///

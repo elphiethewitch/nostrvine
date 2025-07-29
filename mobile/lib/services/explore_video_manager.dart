@@ -47,12 +47,6 @@ class ExploreVideoManager  {
     await _syncAllCollections();
   }
 
-  /// Handle changes from curation service
-  void _onCurationChanged() {
-    Log.verbose('CurationService changed, syncing collections...',
-        name: 'ExploreVideoManager', category: LogCategory.system);
-    _syncAllCollections();
-  }
 
   /// Sync all curation collections to VideoManager
   Future<void> _syncAllCollections() async {

@@ -387,22 +387,6 @@ class VideoPlaybackController
     }
   }
 
-  void _onControllerUpdate() {
-    if (_controller == null) return;
-
-    final value = _controller!.value;
-
-    // Handle state changes
-    if (value.hasError) {
-      _handleError('Video player error', value.errorDescription);
-    } else if (value.isBuffering) {
-      _setState(VideoPlaybackState.buffering);
-    } else if (value.isPlaying) {
-      _setState(VideoPlaybackState.playing);
-    } else if (value.isInitialized) {
-      _setState(VideoPlaybackState.paused);
-    }
-  }
 
   void _startPositionTimer() {
     _positionTimer?.cancel();

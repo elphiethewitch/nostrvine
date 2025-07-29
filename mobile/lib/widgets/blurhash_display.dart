@@ -143,57 +143,67 @@ class BlurhashImage extends StatelessWidget {
   Widget build(BuildContext context) {
     // If no blurhash, just show the image with fade in
     if (blurhash == null || blurhash!.isEmpty) {
-      return Image.network(
-        imageUrl,
+      return SizedBox(
         width: width,
         height: height,
-        fit: fit,
-        errorBuilder: errorBuilder,
-        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-          if (wasSynchronouslyLoaded) {
-            return child;
-          }
-          return AnimatedOpacity(
-            opacity: frame == null ? 0 : 1,
-            duration: fadeInDuration,
-            curve: Curves.easeOut,
-            child: child,
-          );
-        },
-      );
-    }
-    
-    // Show blurhash while loading, then fade in the image
-    return Stack(
-      fit: StackFit.passthrough,
-      children: [
-        // Blurhash placeholder
-        BlurhashDisplay(
-          blurhash: blurhash!,
-          width: width,
-          height: height,
-          fit: fit,
-        ),
-        // Actual image with fade in
-        Image.network(
+        child: Image.network(
           imageUrl,
           width: width,
           height: height,
           fit: fit,
           errorBuilder: errorBuilder,
           frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-            if (wasSynchronouslyLoaded || frame == null) {
-              return const SizedBox.shrink();
+            if (wasSynchronouslyLoaded) {
+              return child;
             }
             return AnimatedOpacity(
-              opacity: 1,
+              opacity: frame == null ? 0 : 1,
               duration: fadeInDuration,
               curve: Curves.easeOut,
               child: child,
             );
           },
         ),
-      ],
+      );
+    }
+    
+    // Show blurhash while loading, then fade in the image
+    return SizedBox(
+      width: width,
+      height: height,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Blurhash placeholder
+          BlurhashDisplay(
+            blurhash: blurhash!,
+            width: width,
+            height: height,
+            fit: fit,
+          ),
+          // Actual image with fade in
+          Positioned.fill(
+            child: Image.network(
+              imageUrl,
+              width: double.infinity,
+              height: double.infinity,
+              fit: fit,
+              errorBuilder: errorBuilder,
+              frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                if (wasSynchronouslyLoaded || frame == null) {
+                  return const SizedBox.shrink();
+                }
+                return AnimatedOpacity(
+                  opacity: 1,
+                  duration: fadeInDuration,
+                  curve: Curves.easeOut,
+                  child: child,
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -10,7 +10,6 @@ void main() {
       // This test verifies the concept - actual AuthService requires secure storage
 
       // Verify that Kind 0 would get the vine tag
-      const kind = 0;
       final expectedTags = [
         ['h', 'vine']
       ];

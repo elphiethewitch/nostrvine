@@ -58,8 +58,6 @@ class VideoEventPublisher  {
   int _totalEventsFailed = 0;
   DateTime? _lastPublishTime;
 
-  // Synchronization for preventing duplicate publishing
-  final Set<String> _activePublishes = {};
 
   /// Initialize the publisher and start background polling
   Future<void> initialize() async {
@@ -498,66 +496,6 @@ class VideoEventPublisher  {
     await _checkForReadyEvents();
   }
 
-  /// Check for direct uploads that are ready to publish
-  Future<void> _checkForDirectUploads() async {
-    try {
-      // Get all uploads that are ready to publish
-      final readyUploads =
-          _uploadManager.getUploadsByStatus(UploadStatus.readyToPublish);
-
-      if (readyUploads.isEmpty) return;
-
-      Log.info('Found ${readyUploads.length} direct uploads ready to publish',
-          name: 'VideoEventPublisher', category: LogCategory.video);
-
-      // Process each ready upload
-      for (final upload in readyUploads) {
-        // Skip if missing required fields
-        if (upload.videoId == null || upload.cdnUrl == null) {
-          Log.warning(
-              'Skipping upload ${upload.id} - missing videoId or cdnUrl',
-              name: 'VideoEventPublisher',
-              category: LogCategory.video);
-          continue;
-        }
-
-        // Check if already being published (prevent duplicates)
-        if (_activePublishes.contains(upload.id)) {
-          Log.warning(
-              '⏭️ Skipping upload ${upload.id} - already being published',
-              name: 'VideoEventPublisher',
-              category: LogCategory.video);
-          continue;
-        }
-
-        // Mark as being published
-        _activePublishes.add(upload.id);
-
-        try {
-          // Publish directly without polling
-          final success = await publishDirectUpload(upload);
-
-          if (success) {
-            Log.info('Published direct upload: ${upload.id}',
-                name: 'VideoEventPublisher', category: LogCategory.video);
-          } else {
-            Log.error('Failed to publish direct upload: ${upload.id}',
-                name: 'VideoEventPublisher', category: LogCategory.video);
-            // Remove from active set so it can be retried
-            _activePublishes.remove(upload.id);
-          }
-        } catch (e) {
-          Log.error('Exception publishing direct upload ${upload.id}: $e',
-              name: 'VideoEventPublisher', category: LogCategory.video);
-          // Remove from active set so it can be retried
-          _activePublishes.remove(upload.id);
-        }
-      }
-    } catch (e) {
-      Log.error('Error checking direct uploads: $e',
-          name: 'VideoEventPublisher', category: LogCategory.video);
-    }
-  }
 
   /// Publish a video event with custom metadata
   Future<bool> publishVideoEvent({

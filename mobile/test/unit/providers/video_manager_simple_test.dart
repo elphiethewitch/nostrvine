@@ -7,6 +7,7 @@ import 'package:openvine/models/video_event.dart';
 import 'package:openvine/providers/video_manager_providers.dart';
 import '../../builders/test_video_event_builder.dart';
 import '../../helpers/mock_video_manager_notifier.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 void main() {
   group('VideoManager Simple Functionality', () {
@@ -52,9 +53,9 @@ void main() {
       final finalState = container.read(videoManagerProvider);
       
       // Debug output
-      print('Controllers count: ${finalState.controllers.length}');
-      print('Has controller for ${testVideo.id}: ${finalState.hasController(testVideo.id)}');
-      print('Error: ${finalState.error}');
+      Log.debug('Controllers count: ${finalState.controllers.length}', name: 'VideoManagerSimpleTest', category: LogCategory.system);
+      Log.debug('Has controller for ${testVideo.id}: ${finalState.hasController(testVideo.id)}', name: 'VideoManagerSimpleTest', category: LogCategory.system);
+      Log.debug('Error: ${finalState.error}', name: 'VideoManagerSimpleTest', category: LogCategory.system);
       
       // Should have one controller
       expect(finalState.controllers.length, equals(1));

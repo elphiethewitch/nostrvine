@@ -1,7 +1,6 @@
 // ABOUTME: Simple test to verify video_overlay_modal_compact compiles with Riverpod
 // ABOUTME: Minimal test that just confirms the widget can be instantiated
 
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openvine/models/video_event.dart';

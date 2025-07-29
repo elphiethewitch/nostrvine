@@ -271,7 +271,6 @@ void main() {
       // Track state changes
       final states = <AsyncValue<List<VideoEvent>>>[];
       final completer = Completer<void>();
-      var eventCount = 0;
 
       container.listen(
         videoEventsProvider,

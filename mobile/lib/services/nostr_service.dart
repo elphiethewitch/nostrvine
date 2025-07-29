@@ -1171,6 +1171,36 @@ class NostrService  implements INostrService, BackgroundAwareService {
     }
   }
 
+  /// NIP-50 Search videos by text query
+  @override
+  Stream<Event> searchVideos(String query, {
+    List<String>? authors,
+    DateTime? since,
+    DateTime? until,
+    int? limit,
+  }) {
+    if (query.trim().isEmpty) {
+      throw ArgumentError('Search query cannot be empty');
+    }
+
+    if (!_isInitialized) {
+      throw NostrServiceException('Nostr service not initialized');
+    }
+
+    // Create search filter with NIP-50 search field
+    final searchFilter = Filter(
+      kinds: [22], // Video events (Kind 22)
+      search: query.trim(),
+      authors: authors,
+      since: since != null ? since.millisecondsSinceEpoch ~/ 1000 : null,
+      until: until != null ? until.millisecondsSinceEpoch ~/ 1000 : null,
+      limit: limit ?? 50,
+    );
+
+    // Use existing subscribeToEvents method
+    return subscribeToEvents(filters: [searchFilter]);
+  }
+
   @override
   void dispose() {
     if (_isDisposed) return;

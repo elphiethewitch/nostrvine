@@ -101,9 +101,6 @@ void main() {
 
       for (final testCase in testCases) {
         // Arrange
-        const loggedSuccess = false;
-        const loggedError = false;
-        const loggedRateLimit = false;
 
         mockClient = MockClient((request) async =>
             http.Response(testCase['body'] as String, testCase['code'] as int));

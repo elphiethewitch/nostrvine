@@ -615,6 +615,13 @@ class MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     });
   }
 
+  /// Navigate to search functionality within explore
+  /// Called from other screens to open search functionality
+  void navigateToSearch() {
+    _onTabTapped(2); // Switch to explore tab (index 2)
+    // TODO: Implement search functionality once available in ExploreScreen
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
         body: IndexedStack(

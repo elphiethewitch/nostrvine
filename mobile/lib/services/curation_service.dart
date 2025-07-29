@@ -38,6 +38,10 @@ class CurationService  {
   bool _isLoading = false;
   String? _error;
   int _lastEditorVideoCount = -1; // Track video count to reduce duplicate logging
+  
+  // Analytics-based trending cache
+  List<VideoEvent> _analyticsTrendingVideos = [];
+  DateTime? _lastTrendingFetch;
 
   /// Current curation sets
   List<CurationSet> get curationSets => _curationSets.values.toList();
@@ -194,6 +198,9 @@ class CurationService  {
   }
 
 
+  /// Get cached trending videos from analytics (returns empty list if not fetched)
+  List<VideoEvent> get analyticsTrendingVideos => _analyticsTrendingVideos;
+  
   /// Refresh trending videos from analytics API (call this when user visits trending)
   Future<void> refreshTrendingFromAnalytics() async {
     await _fetchTrendingFromAnalytics();
@@ -350,8 +357,9 @@ class CurationService  {
               }
             }
 
-            // Update the trending cache with analytics data
-            // _setVideoCache[CurationSetType.trending.id] = orderedTrending; // Trending now handled by InfiniteFeedService
+            // Update the analytics trending cache
+            _analyticsTrendingVideos = orderedTrending;
+            _lastTrendingFetch = DateTime.now();
             Log.info(
                 '✅ Updated trending videos from analytics: ${orderedTrending.length} videos',
                 name: 'CurationService',
@@ -550,25 +558,6 @@ class CurationService  {
     }
   }
 
-  /// Handle video data changes
-  void _onVideoDataChanged() {
-    Log.debug(
-        '📊 CurationService: VideoEventService data changed, updating curation sets...',
-        name: 'CurationService',
-        category: LogCategory.system);
-    Log.debug('  Total videos now: ${_videoEventService.videoEvents.length}',
-        name: 'CurationService', category: LogCategory.system);
-
-    // Check for Classic Vines videos specifically
-    final classicVinesVideos = _videoEventService.videoEvents
-        .where((v) => v.pubkey == AppConstants.classicVinesPubkey)
-        .toList();
-    Log.debug('  Classic Vines videos: ${classicVinesVideos.length}',
-        name: 'CurationService', category: LogCategory.system);
-
-    _populateSampleSets();
-
-  }
 
   void dispose() {
     // Clean up any subscriptions

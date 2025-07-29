@@ -22,6 +22,7 @@ import { handleBatchVideoLookup, handleBatchVideoOptions } from './handlers/batc
 
 // Analytics service
 import { VideoAnalyticsService } from './services/analytics';
+import { VideoAnalyticsEngineService } from './services/analytics-engine';
 
 // Thumbnail service
 import { ThumbnailService } from './services/ThumbnailService';
@@ -66,6 +67,12 @@ import { handleAdminCleanupSimple, handleAdminCleanupSimpleOptions } from './han
 
 // File check API
 import { handleFileCheckBySha256, handleBatchFileCheck, handleFileCheckOptions } from './handlers/file-check';
+
+// Event mapping API
+import { handleEventMapping, handleEventMappingOptions } from './handlers/event-mapping';
+
+// Media lookup API
+import { handleMediaLookup, handleMediaLookupOptions } from './handlers/media-lookup';
 
 // Export Durable Object
 export { UploadJobManager } from './services/upload-job-manager';
@@ -189,12 +196,12 @@ export default {
 			// Analytics endpoints
 			if (pathname === '/api/analytics/popular' && method === 'GET') {
 				try {
-					const analytics = new VideoAnalyticsService(env, ctx);
+					const analyticsEngine = new VideoAnalyticsEngineService(env, ctx);
 					const url = new URL(request.url);
 					const timeframe = url.searchParams.get('window') as '1h' | '24h' | '7d' || '24h';
 					const limit = parseInt(url.searchParams.get('limit') || '10');
 					
-					const popularVideos = await analytics.getPopularVideos(timeframe, limit);
+					const popularVideos = await analyticsEngine.getPopularVideos(timeframe, limit);
 					
 					return new Response(JSON.stringify({
 						timeframe,
@@ -215,18 +222,193 @@ export default {
 				}
 			}
 
+			// Analytics view tracking endpoint
+			if (pathname === '/analytics/view' && method === 'POST') {
+				try {
+					const analyticsEngine = new VideoAnalyticsEngineService(env, ctx);
+					const data = await request.json() as any;
+					
+					// Extract video tracking data
+					const { 
+						eventId, 
+						source, 
+						creatorPubkey, 
+						hashtags, 
+						title,
+						eventType = 'view_start',
+						watchDuration,
+						totalDuration,
+						loopCount,
+						completedVideo
+					} = data;
+					
+					if (!eventId) {
+						return new Response(JSON.stringify({ error: 'eventId is required' }), {
+							status: 400,
+							headers: { 
+								'Content-Type': 'application/json',
+								'Access-Control-Allow-Origin': '*'
+							}
+						});
+					}
+					
+					// Calculate completion rate if durations are provided
+					let completionRate = undefined;
+					if (watchDuration && totalDuration) {
+						completionRate = Math.min(watchDuration / totalDuration, 1.0);
+					}
+					
+					// Track the video view using Analytics Engine
+					await analyticsEngine.trackVideoView({
+						videoId: eventId,
+						userId: undefined, // Not provided by mobile app yet
+						creatorPubkey,
+						source: source || 'mobile',
+						eventType,
+						hashtags,
+						title,
+						watchDuration,
+						totalDuration,
+						loopCount,
+						completionRate
+					}, request);
+					
+					return new Response(JSON.stringify({ 
+						success: true,
+						eventId,
+						timestamp: new Date().toISOString()
+					}), {
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*'
+						}
+					});
+				} catch (error) {
+					console.error('Analytics view tracking error:', error);
+					return new Response(JSON.stringify({ error: 'Failed to track view' }), {
+						status: 500,
+						headers: { 
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*'
+						}
+					});
+				}
+			}
+
+			// OPTIONS handler for analytics view endpoint
+			if (pathname === '/analytics/view' && method === 'OPTIONS') {
+				return new Response(null, {
+					status: 200,
+					headers: {
+						'Access-Control-Allow-Origin': '*',
+						'Access-Control-Allow-Methods': 'POST, OPTIONS',
+						'Access-Control-Allow-Headers': 'Content-Type, User-Agent',
+						'Access-Control-Max-Age': '86400'
+					}
+				});
+			}
+
+			// Video-specific analytics
+			if (pathname.startsWith('/api/analytics/video/') && method === 'GET') {
+				try {
+					const analyticsEngine = new VideoAnalyticsEngineService(env, ctx);
+					const videoId = pathname.split('/api/analytics/video/')[1];
+					const url = new URL(request.url);
+					const days = parseInt(url.searchParams.get('days') || '30');
+					
+					const videoAnalytics = await analyticsEngine.getVideoAnalytics(videoId, days);
+					
+					return new Response(JSON.stringify(videoAnalytics), {
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*',
+							'Cache-Control': 'public, max-age=300'
+						}
+					});
+				} catch (error) {
+					return new Response(JSON.stringify({ error: 'Failed to fetch video analytics' }), {
+						status: 500,
+						headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+					});
+				}
+			}
+
+			// Hashtag analytics
+			if (pathname === '/api/analytics/hashtag' && method === 'GET') {
+				try {
+					const analyticsEngine = new VideoAnalyticsEngineService(env, ctx);
+					const url = new URL(request.url);
+					const hashtag = url.searchParams.get('hashtag');
+					const days = parseInt(url.searchParams.get('days') || '7');
+					
+					if (!hashtag) {
+						return new Response(JSON.stringify({ error: 'hashtag parameter is required' }), {
+							status: 400,
+							headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+						});
+					}
+					
+					const hashtagAnalytics = await analyticsEngine.getHashtagAnalytics(hashtag, days);
+					
+					return new Response(JSON.stringify(hashtagAnalytics), {
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*',
+							'Cache-Control': 'public, max-age=300'
+						}
+					});
+				} catch (error) {
+					return new Response(JSON.stringify({ error: 'Failed to fetch hashtag analytics' }), {
+						status: 500,
+						headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+					});
+				}
+			}
+
+			// Creator analytics
+			if (pathname === '/api/analytics/creator' && method === 'GET') {
+				try {
+					const analyticsEngine = new VideoAnalyticsEngineService(env, ctx);
+					const url = new URL(request.url);
+					const creatorPubkey = url.searchParams.get('pubkey');
+					const days = parseInt(url.searchParams.get('days') || '30');
+					
+					if (!creatorPubkey) {
+						return new Response(JSON.stringify({ error: 'pubkey parameter is required' }), {
+							status: 400,
+							headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+						});
+					}
+					
+					const creatorAnalytics = await analyticsEngine.getCreatorAnalytics(creatorPubkey, days);
+					
+					return new Response(JSON.stringify(creatorAnalytics), {
+						headers: {
+							'Content-Type': 'application/json',
+							'Access-Control-Allow-Origin': '*',
+							'Cache-Control': 'public, max-age=300'
+						}
+					});
+				} catch (error) {
+					return new Response(JSON.stringify({ error: 'Failed to fetch creator analytics' }), {
+						status: 500,
+						headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+					});
+				}
+			}
+
 			if (pathname === '/api/analytics/dashboard' && method === 'GET') {
 				try {
-					const analytics = new VideoAnalyticsService(env, ctx);
-					const [healthStatus, currentMetrics, popular24h] = await Promise.all([
-						analytics.getHealthStatus(),
-						analytics.getCurrentMetrics(),
-						analytics.getPopularVideos('24h', 5)
+					const analyticsEngine = new VideoAnalyticsEngineService(env, ctx);
+					const [healthStatus, realtimeMetrics, popular24h] = await Promise.all([
+						analyticsEngine.getHealthStatus(),
+						analyticsEngine.getRealtimeMetrics(),
+						analyticsEngine.getPopularVideos('24h', 5)
 					]);
 					
 					return new Response(JSON.stringify({
 						health: healthStatus,
-						metrics: currentMetrics,
+						metrics: realtimeMetrics,
 						popularVideos: popular24h,
 						timestamp: new Date().toISOString()
 					}), {
@@ -256,6 +438,24 @@ export default {
 
 			if ((pathname === '/api/check' || pathname.startsWith('/api/check/')) && method === 'OPTIONS') {
 				return wrapResponse(Promise.resolve(handleFileCheckOptions()));
+			}
+
+			// Event mapping endpoint
+			if (pathname === '/api/event-mapping' && method === 'POST') {
+				return wrapResponse(handleEventMapping(request, env));
+			}
+
+			if (pathname === '/api/event-mapping' && method === 'OPTIONS') {
+				return wrapResponse(Promise.resolve(handleEventMappingOptions()));
+			}
+
+			// Media lookup endpoint
+			if (pathname === '/api/media/lookup' && method === 'GET') {
+				return wrapResponse(handleMediaLookup(request, env, ctx));
+			}
+
+			if (pathname === '/api/media/lookup' && method === 'OPTIONS') {
+				return wrapResponse(Promise.resolve(handleMediaLookupOptions()));
 			}
 
 			// Feature flag endpoints
@@ -622,10 +822,442 @@ export default {
 				return wrapResponse(Promise.resolve(handleAdminCleanupSimpleOptions()));
 			}
 
+			// Analytics Dashboard (root path)
+			if (pathname === '/' && method === 'GET') {
+				const dashboardHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenVine Analytics Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #00ff87, #60efff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .header p {
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .stat-card h3 {
+            font-size: 2rem;
+            color: #00ff87;
+            margin-bottom: 10px;
+        }
+        
+        .stat-card p {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .status.healthy {
+            background: rgba(0, 255, 135, 0.2);
+            color: #00ff87;
+        }
+        
+        .status.unknown {
+            background: rgba(255, 193, 7, 0.2);
+            color: #ffc107;
+        }
+        
+        .popular-videos {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 30px;
+        }
+        
+        .popular-videos h2 {
+            margin-bottom: 20px;
+            color: #00ff87;
+        }
+        
+        .video-list {
+            display: grid;
+            gap: 15px;
+        }
+        
+        .video-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .video-info h4 {
+            margin-bottom: 5px;
+        }
+        
+        .video-info p {
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+        
+        .video-stats {
+            text-align: right;
+        }
+        
+        .video-stats .views {
+            color: #00ff87;
+            font-weight: bold;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(45deg, #00ff87, #60efff);
+            color: #1e3c72;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 20px auto;
+            display: block;
+            transition: transform 0.2s;
+        }
+        
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .endpoint-info {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-top: 30px;
+        }
+        
+        .endpoint-info h3 {
+            color: #00ff87;
+            margin-bottom: 15px;
+        }
+        
+        .endpoint-list {
+            display: grid;
+            gap: 10px;
+        }
+        
+        .endpoint {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .loading {
+            text-align: center;
+            opacity: 0.7;
+            font-style: italic;
+        }
+        
+        .error {
+            background: rgba(255, 0, 0, 0.2);
+            color: #ff6b6b;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .video-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .video-stats {
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍇 OpenVine Analytics</h1>
+            <p>Real-time insights from your decentralized video platform</p>
+        </div>
+        
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <h3 id="totalEvents">-</h3>
+                <p>Total Events (5min)</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="activeVideos">-</h3>
+                <p>Active Videos</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="activeUsers">-</h3>
+                <p>Active Users</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="avgWatchTime">-</h3>
+                <p>Avg Watch Time (ms)</p>
+            </div>
+        </div>
+        
+        <div id="systemStatus" class="stats-grid">
+            <div class="stat-card">
+                <h3>System Status</h3>
+                <p>Analytics Engine: <span id="analyticsStatus" class="status">-</span></p>
+                <p>R2 Storage: <span id="r2Status" class="status">-</span></p>
+                <p>KV Storage: <span id="kvStatus" class="status">-</span></p>
+            </div>
+        </div>
+        
+        <div class="popular-videos">
+            <h2>🔥 Popular Videos (24h)</h2>
+            <div id="popularVideosList" class="video-list">
+                <div class="loading">Loading popular videos...</div>
+            </div>
+        </div>
+        
+        <button class="refresh-btn" onclick="refreshDashboard()" id="refreshBtn">
+            🔄 Refresh Data
+        </button>
+        
+        <div class="endpoint-info">
+            <h3>📡 Available Analytics Endpoints</h3>
+            <div class="endpoint-list">
+                <div class="endpoint">GET /api/analytics/dashboard - This dashboard data</div>
+                <div class="endpoint">POST /analytics/view - Track video views</div>
+                <div class="endpoint">GET /api/analytics/popular?window=24h&limit=10 - Popular videos</div>
+                <div class="endpoint">GET /api/analytics/video/{videoId}?days=30 - Video-specific analytics</div>
+                <div class="endpoint">GET /api/analytics/creator?pubkey={pubkey} - Creator analytics</div>
+                <div class="endpoint">GET /api/analytics/hashtag?hashtag={tag} - Hashtag analytics</div>
+            </div>
+        </div>
+        
+        <div id="lastUpdate" style="text-align: center; margin-top: 20px; opacity: 0.6; font-size: 0.9rem;">
+            Last updated: <span id="timestamp">-</span>
+        </div>
+    </div>
+    
+    <script>
+        let refreshInterval;
+        
+        async function fetchDashboardData() {
+            try {
+                const response = await fetch('/api/analytics/dashboard');
+                if (!response.ok) {
+                    throw new Error(\`HTTP \${response.status}: \${response.statusText}\`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Failed to fetch dashboard data:', error);
+                throw error;
+            }
+        }
+        
+        async function fetchPopularVideos() {
+            try {
+                const response = await fetch('/api/analytics/popular?window=24h&limit=10');
+                if (!response.ok) {
+                    throw new Error(\`HTTP \${response.status}: \${response.statusText}\`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Failed to fetch popular videos:', error);
+                throw error;
+            }
+        }
+        
+        function updateStats(data) {
+            const metrics = data.metrics || {};
+            
+            document.getElementById('totalEvents').textContent = metrics.totalEvents || 0;
+            document.getElementById('activeVideos').textContent = metrics.activeVideos || 0;
+            document.getElementById('activeUsers').textContent = metrics.activeUsers || 0;
+            document.getElementById('avgWatchTime').textContent = Math.round(metrics.averageWatchTime || 0);
+            
+            // Update system status
+            const health = data.health || {};
+            const deps = health.dependencies || {};
+            
+            updateStatusBadge('analyticsStatus', deps.analyticsEngine || 'unknown');
+            updateStatusBadge('r2Status', deps.r2 || 'unknown');
+            updateStatusBadge('kvStatus', deps.kv || 'unknown');
+            
+            // Update timestamp
+            document.getElementById('timestamp').textContent = new Date(data.timestamp).toLocaleString();
+        }
+        
+        function updateStatusBadge(elementId, status) {
+            const element = document.getElementById(elementId);
+            element.textContent = status;
+            element.className = \`status \${status}\`;
+        }
+        
+        function updatePopularVideos(data) {
+            const container = document.getElementById('popularVideosList');
+            const videos = data.videos || [];
+            
+            if (videos.length === 0) {
+                container.innerHTML = \`
+                    <div class="loading">
+                        No popular videos yet. Videos will appear here once analytics data is available.
+                        <br><br>
+                        Note: SQL queries are pending Cloudflare Analytics Engine API availability.
+                    </div>
+                \`;
+                return;
+            }
+            
+            container.innerHTML = videos.map(video => \`
+                <div class="video-item">
+                    <div class="video-info">
+                        <h4>\${video.videoId?.substring(0, 12) || 'Unknown Video'}...</h4>
+                        <p>Views: \${video.views || 0} • Unique: \${video.uniqueViewers || 0}</p>
+                    </div>
+                    <div class="video-stats">
+                        <div class="views">\${video.views || 0} views</div>
+                        <p>Avg: \${Math.round(video.avgWatchTime || 0)}ms</p>
+                    </div>
+                </div>
+            \`).join('');
+        }
+        
+        function showError(message) {
+            const container = document.getElementById('popularVideosList');
+            container.innerHTML = \`
+                <div class="error">
+                    ❌ Error: \${message}
+                    <br><br>
+                    Analytics Engine is deployed but SQL queries may not be available yet.
+                </div>
+            \`;
+        }
+        
+        async function refreshDashboard() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = '🔄 Refreshing...';
+            
+            try {
+                // Fetch dashboard data and popular videos in parallel
+                const [dashboardData, popularData] = await Promise.all([
+                    fetchDashboardData(),
+                    fetchPopularVideos()
+                ]);
+                
+                updateStats(dashboardData);
+                updatePopularVideos(popularData);
+                
+            } catch (error) {
+                console.error('Dashboard refresh failed:', error);
+                showError(error.message);
+            } finally {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = '🔄 Refresh Data';
+            }
+        }
+        
+        // Initial load
+        refreshDashboard();
+        
+        // Auto-refresh every 30 seconds
+        refreshInterval = setInterval(refreshDashboard, 30000);
+        
+        // Clean up interval when page is hidden
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                clearInterval(refreshInterval);
+            } else {
+                refreshInterval = setInterval(refreshDashboard, 30000);
+                refreshDashboard(); // Refresh immediately when page becomes visible
+            }
+        });
+    </script>
+</body>
+</html>`;
+
+				return new Response(dashboardHtml, {
+					headers: {
+						'Content-Type': 'text/html',
+						'Cache-Control': 'public, max-age=60'
+					}
+				});
+			}
+
 			// Health check endpoint with analytics
 			if (pathname === '/health' && method === 'GET') {
-				const analytics = new VideoAnalyticsService(env, ctx);
-				const healthStatus = await analytics.getHealthStatus();
+				const analyticsEngine = new VideoAnalyticsEngineService(env, ctx);
+				const healthStatus = await analyticsEngine.getHealthStatus();
 				
 				return wrapResponse(Promise.resolve(new Response(JSON.stringify({
 					...healthStatus,
@@ -709,8 +1341,13 @@ export default {
 					'/v1/media/metadata/{publicId}',
 					'/api/video/{videoId} (Video Cache API)',
 					'/api/videos/batch (Batch Video Lookup)',
+					'/analytics/view (Track Video Views)',
 					'/api/analytics/popular (Popular Videos)',
 					'/api/analytics/dashboard (Analytics Dashboard)',
+					'/api/analytics/video/{videoId} (Video Analytics)',
+					'/api/analytics/hashtag?hashtag={tag} (Hashtag Analytics)',
+					'/api/analytics/creator?pubkey={pubkey} (Creator Analytics)',
+					'/api/media/lookup (Media Lookup by vine_id or filename)',
 					'/api/feature-flags (Feature Flag Management)',
 					'/api/feature-flags/{flagName}/check (Check Feature Flag)',
 					'/api/moderation/report (Report content)',

@@ -22,6 +22,7 @@ import {
   createAuthErrorResponse
 } from '../utils/nip98-auth';
 import { MetadataStore } from '../services/metadata-store';
+import { extractVineIdFromFilename } from '../utils/vine-id-extractor';
 import { ThumbnailService } from '../services/ThumbnailService';
 
 interface URLImportRequest {
@@ -232,6 +233,27 @@ export async function handleURLImport(
         if (env.METADATA_CACHE) {
           const metadataStore = new MetadataStore(env.METADATA_CACHE);
           await metadataStore.setFileIdBySha256(sha256Hash, fileId);
+          
+          // Store vine ID and filename mappings for lookup API
+          const vineId = extractVineIdFromFilename(filename);
+          
+          if (vineId) {
+            try {
+              await metadataStore.setVineIdMapping(vineId, fileId, filename);
+              console.log(`✅ Vine ID mapping stored: ${vineId} -> ${fileId}`);
+            } catch (vineError) {
+              console.error('Failed to store vine ID mapping:', vineError);
+            }
+          }
+          
+          if (filename) {
+            try {
+              await metadataStore.setFilenameMapping(filename, fileId, vineId);
+              console.log(`✅ Filename mapping stored: ${filename} -> ${fileId}`);
+            } catch (filenameError) {
+              console.error('Failed to store filename mapping:', filenameError);
+            }
+          }
         }
 
         mediaUrl = cloudinaryResponse.url;
@@ -358,6 +380,27 @@ async function storeInR2(
   if (env.METADATA_CACHE) {
     const metadataStore = new MetadataStore(env.METADATA_CACHE);
     await metadataStore.setFileIdBySha256(sha256Hash, fileId);
+    
+    // Store vine ID and filename mappings for lookup API
+    const vineId = extractVineIdFromFilename(filename);
+    
+    if (vineId) {
+      try {
+        await metadataStore.setVineIdMapping(vineId, fileId, filename);
+        console.log(`✅ Vine ID mapping stored: ${vineId} -> ${fileId}`);
+      } catch (vineError) {
+        console.error('Failed to store vine ID mapping:', vineError);
+      }
+    }
+    
+    if (filename) {
+      try {
+        await metadataStore.setFilenameMapping(filename, fileId, vineId);
+        console.log(`✅ Filename mapping stored: ${filename} -> ${fileId}`);
+      } catch (filenameError) {
+        console.error('Failed to store filename mapping:', filenameError);
+      }
+    }
   }
 
   return `${new URL(request.url).origin}/media/${fileId}`;

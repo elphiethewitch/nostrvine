@@ -1,7 +1,6 @@
 // ABOUTME: Helper utilities for real integration tests without over-mocking
 // ABOUTME: Provides real Nostr relay connections and minimal platform channel mocking
 
-import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openvine/config/app_config.dart';

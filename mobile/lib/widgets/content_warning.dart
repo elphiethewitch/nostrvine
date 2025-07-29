@@ -41,7 +41,7 @@ class _ContentWarningState extends State<ContentWarning>
   @override
   void dispose() {
     _animationController.dispose();
-    
+    super.dispose();
   }
 
   @override
@@ -268,10 +268,6 @@ class _ContentWarningState extends State<ContentWarning>
     }
   }
   
-  @override
-  void dispose() {
-    super.dispose();
-  }
 }
 
 /// Quick content warning for less severe content

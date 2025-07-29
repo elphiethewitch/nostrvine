@@ -22,6 +22,9 @@ enum FeedMode {
 
   /// Specific user profile
   profile,
+
+  /// Search results
+  search,
 }
 
 /// State model for the video feed provider
@@ -75,5 +78,6 @@ class VideoFeedState with _$VideoFeedState {
         FeedMode.discovery => 'Discover',
         FeedMode.hashtag => '#${feedContext ?? 'hashtag'}',
         FeedMode.profile => '@${feedContext ?? 'profile'}',
+        FeedMode.search => 'Search Results',
       };
 }

@@ -43,8 +43,7 @@ class SocialNotifier extends _$SocialNotifier {
 
       // Initialize current user's social data if authenticated
       if (authService.isAuthenticated) {
-        await _loadUserLikedEvents();
-        await _loadUserRepostedEvents();
+        // Only load follow list - reactions will be checked per-video
         await fetchCurrentUserFollowList();
       }
 
@@ -366,7 +365,6 @@ class SocialNotifier extends _$SocialNotifier {
         kinds: const [3],
         authors: [authService.currentPublicKeyHex!],
         limit: 1,
-        h: ['vine'], // Required for vine.hol.is relay
       );
 
       // Use stream subscription to get events
@@ -609,171 +607,162 @@ class SocialNotifier extends _$SocialNotifier {
     );
   }
 
-  Future<void> _loadUserLikedEvents() async {
+
+  /// Check if current user has liked/reposted a specific video
+  /// This replaces the bulk loading approach with per-video queries
+  Future<void> checkVideoReactions(String videoId) async {
     final authService = ref.read(authServiceProvider);
     final nostrService = ref.read(nostrServiceProvider);
 
-    if (!authService.isAuthenticated ||
-        authService.currentPublicKeyHex == null) {
+    if (!authService.isAuthenticated || authService.currentPublicKeyHex == null) {
+      return;
+    }
+
+    // Skip if we already have this video's reaction state
+    if (state.likedEventIds.contains(videoId) || 
+        state.repostedEventIds.contains(videoId)) {
       return;
     }
 
     try {
-      Log.debug('Loading user liked events...',
+      Log.debug('🔍 Checking reactions for video: ${videoId.substring(0, 8)}...',
           name: 'SocialNotifier', category: LogCategory.system);
 
-      // Query for reaction events (Kind 7) from current user
-      final filter = Filter(
-        kinds: const [7],
+      // Query for user's reactions to this specific video
+      final reactionFilter = Filter(
+        kinds: const [7], // reactions
         authors: [authService.currentPublicKeyHex!],
-        limit: 500,
-        h: ['vine'], // Required for vine.hol.is relay
+        e: [videoId], // reactions to this specific video
+        limit: 1,
       );
 
-      // Use stream subscription to get events
-      final completer = Completer<List<Event>>();
-      final events = <Event>[];
-
-      final stream = nostrService.subscribeToEvents(filters: [filter]);
-      StreamSubscription<Event>? subscription;
-
-      final timer = Timer(const Duration(seconds: 5), () {
-        subscription?.cancel();
-        if (!completer.isCompleted) {
-          completer.complete(events);
-        }
-      });
-
-      subscription = stream.listen(
-        events.add,
-        onDone: () {
-          timer.cancel();
-          if (!completer.isCompleted) {
-            completer.complete(events);
-          }
-        },
-        onError: (error) {
-          timer.cancel();
-          if (!completer.isCompleted) {
-            completer.completeError(error);
-          }
-        },
+      // Query for user's reposts of this specific video
+      final repostFilter = Filter(
+        kinds: const [6], // reposts
+        authors: [authService.currentPublicKeyHex!],
+        e: [videoId], // reposts of this specific video
+        limit: 1,
       );
 
-      final fetchedEvents = await completer.future;
-      subscription.cancel();
+      // Check both reactions and reposts in parallel
+      final futures = [
+        _queryForSingleReaction(nostrService, reactionFilter, videoId),
+        _queryForSingleRepost(nostrService, repostFilter, videoId),
+      ];
 
-      final likedEventIds = <String>{};
-      final likeEventIdToReactionId = <String, String>{};
+      await Future.wait(futures);
 
-      for (final event in fetchedEvents) {
-        if (event.content == '+') {
-          // Standard like reaction
-          // Find the 'e' tag (event being liked)
-          for (final tag in event.tags) {
-            if (tag.length >= 2 && tag[0] == 'e') {
-              final likedEventId = tag[1];
-              likedEventIds.add(likedEventId);
-              likeEventIdToReactionId[likedEventId] = event.id;
-              break;
-            }
-          }
-        }
-      }
-
-      // Update state
-      state = state.copyWith(
-        likedEventIds: likedEventIds,
-        likeEventIdToReactionId: likeEventIdToReactionId,
-      );
-
-      Log.info('Loaded ${likedEventIds.length} liked events',
+      Log.debug('✅ Completed reaction check for video: ${videoId.substring(0, 8)}...',
           name: 'SocialNotifier', category: LogCategory.system);
     } catch (e) {
-      Log.error('Error loading user liked events: $e',
+      Log.error('Error checking video reactions: $e',
           name: 'SocialNotifier', category: LogCategory.system);
     }
   }
 
-  Future<void> _loadUserRepostedEvents() async {
-    final authService = ref.read(authServiceProvider);
-    final nostrService = ref.read(nostrServiceProvider);
+  Future<void> _queryForSingleReaction(
+    dynamic nostrService, 
+    Filter filter, 
+    String videoId
+  ) async {
+    final completer = Completer<void>();
+    final events = <Event>[];
 
-    if (!authService.isAuthenticated ||
-        authService.currentPublicKeyHex == null) {
-      return;
-    }
+    final stream = nostrService.subscribeToEvents(filters: [filter]);
+    late final StreamSubscription<Event> subscription;
 
-    try {
-      Log.debug('Loading user reposted events...',
-          name: 'SocialNotifier', category: LogCategory.system);
-
-      // Query for repost events (Kind 6) from current user
-      final filter = Filter(
-        kinds: const [6],
-        authors: [authService.currentPublicKeyHex!],
-        limit: 500,
-        h: ['vine'], // Required for vine.hol.is relay
-      );
-
-      // Use stream subscription to get events
-      final completer = Completer<List<Event>>();
-      final events = <Event>[];
-
-      final stream = nostrService.subscribeToEvents(filters: [filter]);
-      StreamSubscription<Event>? subscription;
-
-      final timer = Timer(const Duration(seconds: 5), () {
-        subscription?.cancel();
-        if (!completer.isCompleted) {
-          completer.complete(events);
-        }
-      });
-
-      subscription = stream.listen(
-        events.add,
-        onDone: () {
-          timer.cancel();
-          if (!completer.isCompleted) {
-            completer.complete(events);
-          }
-        },
-        onError: (error) {
-          timer.cancel();
-          if (!completer.isCompleted) {
-            completer.completeError(error);
-          }
-        },
-      );
-
-      final fetchedEvents = await completer.future;
+    final timer = Timer(const Duration(seconds: 3), () {
       subscription.cancel();
-
-      final repostedEventIds = <String>{};
-      final repostEventIdToRepostId = <String, String>{};
-
-      for (final event in fetchedEvents) {
-        // Find the 'e' tag (event being reposted)
-        for (final tag in event.tags) {
-          if (tag.length >= 2 && tag[0] == 'e') {
-            final repostedEventId = tag[1];
-            repostedEventIds.add(repostedEventId);
-            repostEventIdToRepostId[repostedEventId] = event.id;
-            break;
-          }
-        }
+      if (!completer.isCompleted) {
+        completer.complete();
       }
+    });
 
-      // Update state
+    subscription = stream.listen(
+      events.add,
+      onDone: () {
+        timer.cancel();
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
+      },
+      onError: (error) {
+        timer.cancel();
+        if (!completer.isCompleted) {
+          completer.completeError(error);
+        }
+      },
+    );
+
+    await completer.future;
+    subscription.cancel();
+
+    // Process any found reactions
+    for (final event in events) {
+      if (event.content == '+') {
+        // Found a like for this video
+        state = state.copyWith(
+          likedEventIds: {...state.likedEventIds, videoId},
+          likeEventIdToReactionId: {
+            ...state.likeEventIdToReactionId,
+            videoId: event.id
+          },
+        );
+        Log.debug('Found existing like for video: ${videoId.substring(0, 8)}...',
+            name: 'SocialNotifier', category: LogCategory.system);
+        break; // Only need one
+      }
+    }
+  }
+
+  Future<void> _queryForSingleRepost(
+    dynamic nostrService, 
+    Filter filter, 
+    String videoId
+  ) async {
+    final completer = Completer<void>();
+    final events = <Event>[];
+
+    final stream = nostrService.subscribeToEvents(filters: [filter]);
+    late final StreamSubscription<Event> subscription;
+
+    final timer = Timer(const Duration(seconds: 3), () {
+      subscription.cancel();
+      if (!completer.isCompleted) {
+        completer.complete();
+      }
+    });
+
+    subscription = stream.listen(
+      events.add,
+      onDone: () {
+        timer.cancel();
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
+      },
+      onError: (error) {
+        timer.cancel();
+        if (!completer.isCompleted) {
+          completer.completeError(error);
+        }
+      },
+    );
+
+    await completer.future;
+    subscription.cancel();
+
+    // Process any found reposts
+    if (events.isNotEmpty) {
+      final repostEvent = events.first;
       state = state.copyWith(
-        repostedEventIds: repostedEventIds,
-        repostEventIdToRepostId: repostEventIdToRepostId,
+        repostedEventIds: {...state.repostedEventIds, videoId},
+        repostEventIdToRepostId: {
+          ...state.repostEventIdToRepostId,
+          videoId: repostEvent.id
+        },
       );
-
-      Log.info('Loaded ${repostedEventIds.length} reposted events',
-          name: 'SocialNotifier', category: LogCategory.system);
-    } catch (e) {
-      Log.error('Error loading user reposted events: $e',
+      Log.debug('Found existing repost for video: ${videoId.substring(0, 8)}...',
           name: 'SocialNotifier', category: LogCategory.system);
     }
   }

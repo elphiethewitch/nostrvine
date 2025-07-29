@@ -127,8 +127,8 @@ void main() {
       );
       
       return MaterialApp(
-        home: ProviderScope(
-          parent: container,
+        home: UncontrolledProviderScope(
+          container: container,
           child: ProfileScreen(profilePubkey: profilePubkey),
         ),
       );

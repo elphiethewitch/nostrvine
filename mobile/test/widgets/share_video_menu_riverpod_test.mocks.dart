@@ -377,6 +377,28 @@ class MockINostrService extends _i1.Mock implements _i3.INostrService {
       ) as _i7.Future<void>);
 
   @override
+  _i7.Stream<_i9.Event> searchVideos(
+    String? query, {
+    List<String>? authors,
+    DateTime? since,
+    DateTime? until,
+    int? limit,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #searchVideos,
+          [query],
+          {
+            #authors: authors,
+            #since: since,
+            #until: until,
+            #limit: limit,
+          },
+        ),
+        returnValue: _i7.Stream<_i9.Event>.empty(),
+      ) as _i7.Stream<_i9.Event>);
+
+  @override
   void dispose() => super.noSuchMethod(
         Invocation.method(
           #dispose,
@@ -753,6 +775,11 @@ class MockCuratedListService extends _i1.Mock
     String? description,
     String? imageUrl,
     bool? isPublic = true,
+    List<String>? tags = const [],
+    bool? isCollaborative = false,
+    List<String>? allowedCollaborators = const [],
+    String? thumbnailEventId,
+    _i14.PlayOrder? playOrder = _i14.PlayOrder.chronological,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -763,6 +790,11 @@ class MockCuratedListService extends _i1.Mock
             #description: description,
             #imageUrl: imageUrl,
             #isPublic: isPublic,
+            #tags: tags,
+            #isCollaborative: isCollaborative,
+            #allowedCollaborators: allowedCollaborators,
+            #thumbnailEventId: thumbnailEventId,
+            #playOrder: playOrder,
           },
         ),
         returnValue: _i7.Future<_i14.CuratedList?>.value(),
@@ -839,6 +871,11 @@ class MockCuratedListService extends _i1.Mock
     String? description,
     String? imageUrl,
     bool? isPublic,
+    List<String>? tags,
+    bool? isCollaborative,
+    List<String>? allowedCollaborators,
+    String? thumbnailEventId,
+    _i14.PlayOrder? playOrder,
   }) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -850,6 +887,11 @@ class MockCuratedListService extends _i1.Mock
             #description: description,
             #imageUrl: imageUrl,
             #isPublic: isPublic,
+            #tags: tags,
+            #isCollaborative: isCollaborative,
+            #allowedCollaborators: allowedCollaborators,
+            #thumbnailEventId: thumbnailEventId,
+            #playOrder: playOrder,
           },
         ),
         returnValue: _i7.Future<bool>.value(false),
@@ -863,6 +905,131 @@ class MockCuratedListService extends _i1.Mock
         ),
         returnValue: _i7.Future<bool>.value(false),
       ) as _i7.Future<bool>);
+
+  @override
+  _i7.Future<bool> reorderVideos(
+    String? listId,
+    List<String>? newOrder,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #reorderVideos,
+          [
+            listId,
+            newOrder,
+          ],
+        ),
+        returnValue: _i7.Future<bool>.value(false),
+      ) as _i7.Future<bool>);
+
+  @override
+  List<String> getOrderedVideoIds(String? listId) => (super.noSuchMethod(
+        Invocation.method(
+          #getOrderedVideoIds,
+          [listId],
+        ),
+        returnValue: <String>[],
+      ) as List<String>);
+
+  @override
+  _i7.Future<bool> addCollaborator(
+    String? listId,
+    String? pubkey,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #addCollaborator,
+          [
+            listId,
+            pubkey,
+          ],
+        ),
+        returnValue: _i7.Future<bool>.value(false),
+      ) as _i7.Future<bool>);
+
+  @override
+  _i7.Future<bool> removeCollaborator(
+    String? listId,
+    String? pubkey,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #removeCollaborator,
+          [
+            listId,
+            pubkey,
+          ],
+        ),
+        returnValue: _i7.Future<bool>.value(false),
+      ) as _i7.Future<bool>);
+
+  @override
+  bool canCollaborate(
+    String? listId,
+    String? pubkey,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #canCollaborate,
+          [
+            listId,
+            pubkey,
+          ],
+        ),
+        returnValue: false,
+      ) as bool);
+
+  @override
+  List<_i14.CuratedList> getListsByTag(String? tag) => (super.noSuchMethod(
+        Invocation.method(
+          #getListsByTag,
+          [tag],
+        ),
+        returnValue: <_i14.CuratedList>[],
+      ) as List<_i14.CuratedList>);
+
+  @override
+  List<String> getAllTags() => (super.noSuchMethod(
+        Invocation.method(
+          #getAllTags,
+          [],
+        ),
+        returnValue: <String>[],
+      ) as List<String>);
+
+  @override
+  List<_i14.CuratedList> searchLists(String? query) => (super.noSuchMethod(
+        Invocation.method(
+          #searchLists,
+          [query],
+        ),
+        returnValue: <_i14.CuratedList>[],
+      ) as List<_i14.CuratedList>);
+
+  @override
+  List<_i14.CuratedList> getListsContainingVideo(String? videoEventId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getListsContainingVideo,
+          [videoEventId],
+        ),
+        returnValue: <_i14.CuratedList>[],
+      ) as List<_i14.CuratedList>);
+
+  @override
+  String getVideoListSummary(String? videoEventId) => (super.noSuchMethod(
+        Invocation.method(
+          #getVideoListSummary,
+          [videoEventId],
+        ),
+        returnValue: _i8.dummyValue<String>(
+          this,
+          Invocation.method(
+            #getVideoListSummary,
+            [videoEventId],
+          ),
+        ),
+      ) as String);
 }
 
 /// A class which mocks [SocialService].
@@ -884,6 +1051,12 @@ class MockSocialService extends _i1.Mock implements _i15.SocialService {
         Invocation.getter(#followingPubkeys),
         returnValue: <String>[],
       ) as List<String>);
+
+  @override
+  List<_i15.FollowSet> get followSets => (super.noSuchMethod(
+        Invocation.getter(#followSets),
+        returnValue: <_i15.FollowSet>[],
+      ) as List<_i15.FollowSet>);
 
   @override
   bool isLiked(String? eventId) => (super.noSuchMethod(
@@ -925,6 +1098,29 @@ class MockSocialService extends _i1.Mock implements _i15.SocialService {
         #getCachedFollowerStats,
         [pubkey],
       )) as Map<String, int>?);
+
+  @override
+  _i15.FollowSet? getFollowSetById(String? setId) =>
+      (super.noSuchMethod(Invocation.method(
+        #getFollowSetById,
+        [setId],
+      )) as _i15.FollowSet?);
+
+  @override
+  bool isInFollowSet(
+    String? setId,
+    String? pubkey,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #isInFollowSet,
+          [
+            setId,
+            pubkey,
+          ],
+        ),
+        returnValue: false,
+      ) as bool);
 
   @override
   _i7.Future<void> toggleLike(
@@ -1004,6 +1200,89 @@ class MockSocialService extends _i1.Mock implements _i15.SocialService {
         ),
         returnValue: _i7.Future<Map<String, int>>.value(<String, int>{}),
       ) as _i7.Future<Map<String, int>>);
+
+  @override
+  _i7.Future<_i15.FollowSet?> createFollowSet({
+    required String? name,
+    String? description,
+    String? imageUrl,
+    List<String>? initialPubkeys = const [],
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #createFollowSet,
+          [],
+          {
+            #name: name,
+            #description: description,
+            #imageUrl: imageUrl,
+            #initialPubkeys: initialPubkeys,
+          },
+        ),
+        returnValue: _i7.Future<_i15.FollowSet?>.value(),
+      ) as _i7.Future<_i15.FollowSet?>);
+
+  @override
+  _i7.Future<bool> addToFollowSet(
+    String? setId,
+    String? pubkey,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #addToFollowSet,
+          [
+            setId,
+            pubkey,
+          ],
+        ),
+        returnValue: _i7.Future<bool>.value(false),
+      ) as _i7.Future<bool>);
+
+  @override
+  _i7.Future<bool> removeFromFollowSet(
+    String? setId,
+    String? pubkey,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #removeFromFollowSet,
+          [
+            setId,
+            pubkey,
+          ],
+        ),
+        returnValue: _i7.Future<bool>.value(false),
+      ) as _i7.Future<bool>);
+
+  @override
+  _i7.Future<bool> updateFollowSet({
+    required String? setId,
+    String? name,
+    String? description,
+    String? imageUrl,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateFollowSet,
+          [],
+          {
+            #setId: setId,
+            #name: name,
+            #description: description,
+            #imageUrl: imageUrl,
+          },
+        ),
+        returnValue: _i7.Future<bool>.value(false),
+      ) as _i7.Future<bool>);
+
+  @override
+  _i7.Future<bool> deleteFollowSet(String? setId) => (super.noSuchMethod(
+        Invocation.method(
+          #deleteFollowSet,
+          [setId],
+        ),
+        returnValue: _i7.Future<bool>.value(false),
+      ) as _i7.Future<bool>);
 
   @override
   _i7.Future<int> getUserVideoCount(String? pubkey) => (super.noSuchMethod(

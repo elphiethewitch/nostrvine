@@ -3,11 +3,11 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i4;
+import 'dart:async' as _i5;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:openvine/models/curation_set.dart' as _i3;
-import 'package:openvine/models/video_event.dart' as _i5;
+import 'package:openvine/models/video_event.dart' as _i4;
 import 'package:openvine/models/video_state.dart' as _i7;
 import 'package:openvine/services/curation_service.dart' as _i2;
 import 'package:openvine/services/video_manager_interface.dart' as _i6;
@@ -48,33 +48,39 @@ class MockCurationService extends _i1.Mock implements _i2.CurationService {
       ) as bool);
 
   @override
-  _i4.Future<void> refreshTrendingFromAnalytics() => (super.noSuchMethod(
+  List<_i4.VideoEvent> get analyticsTrendingVideos => (super.noSuchMethod(
+        Invocation.getter(#analyticsTrendingVideos),
+        returnValue: <_i4.VideoEvent>[],
+      ) as List<_i4.VideoEvent>);
+
+  @override
+  _i5.Future<void> refreshTrendingFromAnalytics() => (super.noSuchMethod(
         Invocation.method(
           #refreshTrendingFromAnalytics,
           [],
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
 
   @override
-  List<_i5.VideoEvent> getVideosForSet(String? setId) => (super.noSuchMethod(
+  List<_i4.VideoEvent> getVideosForSet(String? setId) => (super.noSuchMethod(
         Invocation.method(
           #getVideosForSet,
           [setId],
         ),
-        returnValue: <_i5.VideoEvent>[],
-      ) as List<_i5.VideoEvent>);
+        returnValue: <_i4.VideoEvent>[],
+      ) as List<_i4.VideoEvent>);
 
   @override
-  List<_i5.VideoEvent> getVideosForSetType(_i3.CurationSetType? setType) =>
+  List<_i4.VideoEvent> getVideosForSetType(_i3.CurationSetType? setType) =>
       (super.noSuchMethod(
         Invocation.method(
           #getVideosForSetType,
           [setType],
         ),
-        returnValue: <_i5.VideoEvent>[],
-      ) as List<_i5.VideoEvent>);
+        returnValue: <_i4.VideoEvent>[],
+      ) as List<_i4.VideoEvent>);
 
   @override
   _i3.CurationSet? getCurationSet(String? setId) =>
@@ -91,31 +97,31 @@ class MockCurationService extends _i1.Mock implements _i2.CurationService {
       )) as _i3.CurationSet?);
 
   @override
-  _i4.Future<void> refreshCurationSets({List<String>? curatorPubkeys}) =>
+  _i5.Future<void> refreshCurationSets({List<String>? curatorPubkeys}) =>
       (super.noSuchMethod(
         Invocation.method(
           #refreshCurationSets,
           [],
           {#curatorPubkeys: curatorPubkeys},
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
 
   @override
-  _i4.Future<void> subscribeToCurationSets({List<String>? curatorPubkeys}) =>
+  _i5.Future<void> subscribeToCurationSets({List<String>? curatorPubkeys}) =>
       (super.noSuchMethod(
         Invocation.method(
           #subscribeToCurationSets,
           [],
           {#curatorPubkeys: curatorPubkeys},
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
 
   @override
-  _i4.Future<bool> createCurationSet({
+  _i5.Future<bool> createCurationSet({
     required String? id,
     required String? title,
     required List<String>? videoIds,
@@ -134,8 +140,8 @@ class MockCurationService extends _i1.Mock implements _i2.CurationService {
             #imageUrl: imageUrl,
           },
         ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+        returnValue: _i5.Future<bool>.value(false),
+      ) as _i5.Future<bool>);
 
   @override
   void refreshIfNeeded() => super.noSuchMethod(
@@ -165,16 +171,16 @@ class MockIVideoManager extends _i1.Mock implements _i6.IVideoManager {
   }
 
   @override
-  List<_i5.VideoEvent> get videos => (super.noSuchMethod(
+  List<_i4.VideoEvent> get videos => (super.noSuchMethod(
         Invocation.getter(#videos),
-        returnValue: <_i5.VideoEvent>[],
-      ) as List<_i5.VideoEvent>);
+        returnValue: <_i4.VideoEvent>[],
+      ) as List<_i4.VideoEvent>);
 
   @override
-  List<_i5.VideoEvent> get readyVideos => (super.noSuchMethod(
+  List<_i4.VideoEvent> get readyVideos => (super.noSuchMethod(
         Invocation.getter(#readyVideos),
-        returnValue: <_i5.VideoEvent>[],
-      ) as List<_i5.VideoEvent>);
+        returnValue: <_i4.VideoEvent>[],
+      ) as List<_i4.VideoEvent>);
 
   @override
   int get primaryVideoCount => (super.noSuchMethod(
@@ -189,10 +195,10 @@ class MockIVideoManager extends _i1.Mock implements _i6.IVideoManager {
       ) as int);
 
   @override
-  _i4.Stream<void> get stateChanges => (super.noSuchMethod(
+  _i5.Stream<void> get stateChanges => (super.noSuchMethod(
         Invocation.getter(#stateChanges),
-        returnValue: _i4.Stream<void>.empty(),
-      ) as _i4.Stream<void>);
+        returnValue: _i5.Stream<void>.empty(),
+      ) as _i5.Stream<void>);
 
   @override
   _i7.VideoState? getVideoState(String? videoId) =>
@@ -209,24 +215,24 @@ class MockIVideoManager extends _i1.Mock implements _i6.IVideoManager {
       )) as _i8.VideoPlayerController?);
 
   @override
-  _i4.Future<void> addVideoEvent(_i5.VideoEvent? event) => (super.noSuchMethod(
+  _i5.Future<void> addVideoEvent(_i4.VideoEvent? event) => (super.noSuchMethod(
         Invocation.method(
           #addVideoEvent,
           [event],
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
 
   @override
-  _i4.Future<void> preloadVideo(String? videoId) => (super.noSuchMethod(
+  _i5.Future<void> preloadVideo(String? videoId) => (super.noSuchMethod(
         Invocation.method(
           #preloadVideo,
           [videoId],
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
 
   @override
   void preloadAroundIndex(
@@ -288,14 +294,14 @@ class MockIVideoManager extends _i1.Mock implements _i6.IVideoManager {
       );
 
   @override
-  _i4.Future<void> handleMemoryPressure() => (super.noSuchMethod(
+  _i5.Future<void> handleMemoryPressure() => (super.noSuchMethod(
         Invocation.method(
           #handleMemoryPressure,
           [],
         ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
 
   @override
   Map<String, dynamic> getDebugInfo() => (super.noSuchMethod(

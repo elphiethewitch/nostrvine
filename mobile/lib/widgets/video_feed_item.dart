@@ -11,11 +11,13 @@ import 'package:openvine/main.dart';
 import 'package:openvine/models/video_event.dart';
 import 'package:openvine/models/video_state.dart';
 import 'package:openvine/providers/app_providers.dart';
+import 'package:openvine/services/curated_list_service.dart';
+import 'package:openvine/providers/social_providers.dart' as social_providers;
 import 'package:openvine/providers/video_manager_providers.dart';
 import 'package:openvine/screens/comments_screen.dart';
 import 'package:openvine/screens/hashtag_feed_screen.dart';
-import 'package:openvine/screens/profile_screen.dart';
 import 'package:openvine/services/social_service.dart';
+import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/utils/unified_logger.dart';
 import 'package:openvine/widgets/clickable_hashtag_text.dart';
 import 'package:openvine/widgets/share_video_menu.dart';
@@ -70,10 +72,12 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
     );
     _initializeVideoManager();
     _loadUserProfile();
+    _checkVideoReactions();
 
     // Handle initial activation state
     if (widget.isActive) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         _handleActivationChange();
       });
     }
@@ -91,6 +95,8 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
           category: LogCategory.ui);
       _hasLoadedComments = false;
       _commentCount = null;
+      // Check reactions for the new video
+      _checkVideoReactions();
     }
 
     // Handle activation state changes OR video changes
@@ -110,7 +116,7 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
     _readinessCheckTimer?.cancel();
 
     // Don't dispose controller here - VideoManager handles lifecycle
-    
+    super.dispose();
   }
 
   void _initializeVideoManager() {
@@ -118,6 +124,7 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
     // Delay to avoid modifying provider during widget build phase
     if (widget.isActive) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         try {
           ref.read(videoManagerProvider.notifier).preloadVideo(widget.video.id);
         } catch (e) {
@@ -131,6 +138,7 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
 
     // Schedule controller update after current frame to ensure proper initialization
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       _updateController();
     });
   }
@@ -159,6 +167,7 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
       // Preload video - Consumer<IVideoManager> will trigger _updateController via stream when ready
       // Delay to avoid modifying provider during widget build phase
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return; // Prevent operations on disposed widgets
         try {
           Log.info(
               '📥 Starting preload for ${widget.video.id.substring(0, 8)}...',
@@ -351,6 +360,17 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
     setState(() {});
 
     ref.read(videoManagerProvider.notifier).preloadVideo(widget.video.id);
+  }
+
+  /// Check if the current user has reacted to this video
+  void _checkVideoReactions() {
+    // Use post-frame callback to ensure the widget is fully built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(social_providers.socialNotifierProvider.notifier)
+            .checkVideoReactions(widget.video.id);
+      }
+    });
   }
 
   void _playVideo() {
@@ -559,68 +579,204 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
     return _buildVideoContent(videoState);
   }
 
+  /// Estimate the height needed for text content below video
+  double _estimateTextHeight() {
+    double height = 0;
+    
+    // Creator info: ~40px
+    height += 40;
+    
+    // Repost attribution if present: ~30px
+    if (widget.video.isRepost) {
+      height += 30;
+    }
+    
+    // Title if present (max 2 lines): ~50px
+    if (widget.video.title?.isNotEmpty == true) {
+      height += 50;
+    }
+    
+    // Content/description (max 3 lines): ~70px
+    if (widget.video.content.isNotEmpty) {
+      height += 70;
+    }
+    
+    // Hashtags if present: ~30px
+    if (widget.video.hashtags.isNotEmpty) {
+      height += 30;
+    }
+    
+    // Action buttons: ~60px
+    height += 60;
+    
+    return height;
+  }
+
+  /// Build video info content without overlay styling
+  Widget _buildVideoInfo() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Username/Creator info
+        _buildCreatorInfo(),
+        const SizedBox(height: 8),
+
+        // Repost attribution (if this is a repost)
+        if (widget.video.isRepost) ...[
+          _buildRepostAttribution(),
+          const SizedBox(height: 8),
+        ],
+
+        // Video title
+        if (widget.video.title?.isNotEmpty == true) ...[
+          SelectableText(
+            widget.video.title!,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+            maxLines: 2,
+          ),
+          const SizedBox(height: 8),
+        ],
+
+        // Video content/description
+        if (widget.video.content.isNotEmpty) ...[
+          ClickableHashtagText(
+            text: widget.video.content,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+            maxLines: 3,
+            onVideoStateChange: _pauseVideo,
+          ),
+          const SizedBox(height: 8),
+        ],
+
+        // Hashtags
+        if (widget.video.hashtags.isNotEmpty) ...[
+          Wrap(
+            spacing: 8,
+            children: widget.video.hashtags
+                .take(3)
+                .map(
+                  (hashtag) => GestureDetector(
+                    onTap: () => _navigateToHashtagFeed(hashtag),
+                    child: Text(
+                      '#$hashtag',
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 16),
+        ],
+
+        // Social action buttons
+        _buildSocialActions(),
+      ],
+    );
+  }
+
   Widget _buildVideoContent(VideoState videoState) {
     // All videos are now forced to be square (1:1 aspect ratio) for classic vine style
-    // Always use column layout for better square video presentation
     final isVideoReady = _controller != null &&
         _controller!.value.isInitialized &&
         videoState.loadingState == VideoLoadingState.ready;
 
-    // For all videos when ready, use column layout optimized for square videos
-    if (isVideoReady) {
-      return Container(
-        width: double.infinity,
-        height: double.infinity,
-        color: Colors.black,
-        child: Column(
-          children: [
-            // Video player at top
-            Flexible(
-              child: Stack(
-                children: [
-                  _buildMainContent(videoState),
-                  // Loading indicator (when loading but not showing loading state)
-                  if (videoState.isLoading &&
-                      videoState.loadingState != VideoLoadingState.loading)
-                    _buildLoadingOverlay(),
-                  // Play/Pause icon overlay (when tapped and video is ready)
-                  if (_showPlayPauseIcon && !videoState.isLoading)
-                    _buildPlayPauseIconOverlay(),
-                ],
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableHeight = constraints.maxHeight;
+        final availableWidth = constraints.maxWidth;
+        
+        // For portrait-like aspect ratios (height > width), prefer column layout when video is ready
+        final isPortraitLayout = availableHeight > availableWidth * 1.2;
+        final estimatedTextHeight = _estimateTextHeight();
+        final videoHeight = availableWidth; // Square video
+        final requiredHeight = videoHeight + estimatedTextHeight + 48; // 48px padding
+        final hasEnoughSpace = requiredHeight <= availableHeight;
+        
+        // Use column layout for portrait screens with enough space when video is ready
+        final useColumnLayout = isVideoReady && isPortraitLayout && hasEnoughSpace;
+        
+        Log.debug('Layout: availableH=$availableHeight, availableW=$availableWidth, '
+            'isPortrait=$isPortraitLayout, hasSpace=$hasEnoughSpace, useColumn=$useColumnLayout',
+            name: 'VideoFeedItem', category: LogCategory.ui);
+        
+        if (useColumnLayout) {
+          // Use column layout with text below video
+          return Container(
+            width: double.infinity,
+            height: double.infinity,
+            color: Colors.black,
+            child: Column(
+              children: [
+                // Video takes square space
+                SizedBox(
+                  width: availableWidth,
+                  height: availableWidth, // Use actual container width for square aspect
+                  child: Stack(
+                    children: [
+                      _buildMainContent(videoState),
+                      // Play/Pause icon overlay (when tapped and video is ready)
+                      if (_showPlayPauseIcon && !videoState.isLoading)
+                        _buildPlayPauseIconOverlay(),
+                      // Loading indicator
+                      if (videoState.isLoading &&
+                          videoState.loadingState != VideoLoadingState.loading)
+                        _buildLoadingOverlay(),
+                    ],
+                  ),
+                ),
+                // Text content below video
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    child: _buildVideoInfo(),
+                  ),
+                ),
+              ],
             ),
-            // Info below video
-            _buildVideoInfoBelow(),
-          ],
-        ),
-      );
-    }
+          );
+        } else {
+          // Fall back to overlay layout when no space below
+          return Container(
+            width: double.infinity,
+            height: double.infinity,
+            color: Colors.black,
+            child: Stack(
+              children: [
+                // Main video content
+                _buildMainContent(videoState),
 
-    // For non-square videos, use overlay layout
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: Colors.black,
-      child: Stack(
-        children: [
-          // Main video content
-          _buildMainContent(videoState),
+                // Video overlay information
+                _buildVideoOverlay(),
 
-          // Video overlay information
-          _buildVideoOverlay(),
+                // Loading indicator (when loading but not showing loading state)
+                if (videoState.isLoading &&
+                    videoState.loadingState != VideoLoadingState.loading)
+                  _buildLoadingOverlay(),
 
-          // Loading indicator (when loading but not showing loading state)
-          if (videoState.isLoading &&
-              videoState.loadingState != VideoLoadingState.loading)
-            _buildLoadingOverlay(),
-
-          // Play/Pause icon overlay (when tapped and video is ready)
-          if (_showPlayPauseIcon &&
-              !videoState.isLoading &&
-              videoState.loadingState == VideoLoadingState.ready)
-            _buildPlayPauseIconOverlay(),
-        ],
-      ),
+                // Play/Pause icon overlay (when tapped and video is ready)
+                if (_showPlayPauseIcon &&
+                    !videoState.isLoading &&
+                    videoState.loadingState == VideoLoadingState.ready)
+                  _buildPlayPauseIconOverlay(),
+              ],
+            ),
+          );
+        }
+      },
     );
   }
 
@@ -649,6 +805,7 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
         // Auto-retry disposed videos when they come into view
         if (widget.isActive) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
             ref.read(videoManagerProvider.notifier).preloadVideo(widget.video.id);
           });
         }
@@ -802,22 +959,23 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
               children: [
                 // Show thumbnail as background to prevent flash
                 if (widget.video.thumbnailUrl != null && widget.video.thumbnailUrl!.isNotEmpty)
-                  Image.network(
-                    widget.video.thumbnailUrl!,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    height: double.infinity,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: Colors.grey[900],
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: Image.network(
+                      widget.video.thumbnailUrl!,
+                      fit: BoxFit.fitWidth,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.grey[900],
+                      ),
                     ),
                   ),
-                // Video fills entire screen, cropped to fit (show when ready)
+                // Video fills width and is top-aligned
                 if (_controller!.value.isInitialized)
-                  FittedBox(
-                    fit: BoxFit.cover,
-                    child: SizedBox(
-                      width: _controller!.value.size.width,
-                      height: _controller!.value.size.height,
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: AspectRatio(
+                      aspectRatio: _controller!.value.aspectRatio,
                       child: VideoPlayer(_controller!),
                     ),
                   ),
@@ -862,22 +1020,23 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
           children: [
             // Show thumbnail as background to prevent flash
             if (widget.video.thumbnailUrl != null && widget.video.thumbnailUrl!.isNotEmpty)
-              Image.network(
-                widget.video.thumbnailUrl!,
-                fit: BoxFit.cover,
-                width: double.infinity,
-                height: double.infinity,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: Colors.grey[900],
+              Align(
+                alignment: Alignment.topCenter,
+                child: Image.network(
+                  widget.video.thumbnailUrl!,
+                  fit: BoxFit.fitWidth,
+                  width: double.infinity,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    color: Colors.grey[900],
+                  ),
                 ),
               ),
-            // Video fills entire screen, cropped to fit (show when ready)
+            // Video fills width and is top-aligned
             if (_controller!.value.isInitialized)
-              FittedBox(
-                fit: BoxFit.cover, // Cover the entire screen, cropping if necessary
-                child: SizedBox(
-                  width: _controller!.value.size.width,
-                  height: _controller!.value.size.height,
+              Align(
+                alignment: Alignment.topCenter,
+                child: AspectRatio(
+                  aspectRatio: _controller!.value.aspectRatio,
                   child: VideoPlayer(_controller!),
                 ),
               ),
@@ -1376,10 +1535,9 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
             // Like button with functionality
             Consumer(
               builder: (context, ref, child) {
-                final socialService = ref.watch(socialServiceProvider);
-                final isLiked = socialService.isLiked(widget.video.id);
-                final likeCount =
-                    socialService.getCachedLikeCount(widget.video.id) ?? 0;
+                final socialState = ref.watch(social_providers.socialNotifierProvider);
+                final isLiked = socialState.isLiked(widget.video.id);
+                final likeCount = socialState.likeCounts[widget.video.id] ?? 0;
 
                 return Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1387,7 +1545,7 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
                     _buildActionButton(
                       icon: isLiked ? Icons.favorite : Icons.favorite_border,
                       color: isLiked ? Colors.red : Colors.white,
-                      onPressed: () => _handleLike(context, socialService),
+                      onPressed: () => _handleLike(context),
                     ),
                     if (likeCount > 0) ...[
                       const SizedBox(height: 4),
@@ -1432,12 +1590,12 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
             // Repost button
             Consumer(
               builder: (context, ref, child) {
-                final socialService = ref.watch(socialServiceProvider);
-                final hasReposted = socialService.hasReposted(widget.video.id);
+                final socialState = ref.watch(social_providers.socialNotifierProvider);
+                final hasReposted = socialState.hasReposted(widget.video.id);
                 return _buildActionButton(
                   icon: Icons.repeat,
                   color: hasReposted ? Colors.green : Colors.white,
-                  onPressed: () => _handleRepost(context, socialService),
+                  onPressed: () => _handleRepost(context),
                 );
               },
             ),
@@ -1470,142 +1628,61 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
         ),
       );
 
-  Future<void> _handleRepost(
-      BuildContext context, SocialService socialService) async {
-    // Store context reference to avoid async gap warnings
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-    try {
-      // Check if user is authenticated
-      final authService = ref.read(authServiceProvider);
-      if (!authService.isAuthenticated) {
-        scaffoldMessenger.showSnackBar(
-          const SnackBar(
-            content: Text('Please log in to repost videos'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-        return;
-      }
-
-      // Show loading indicator
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(width: 12),
-              Text('Reposting video...'),
-            ],
-          ),
-          backgroundColor: Colors.blue,
-          duration: Duration(seconds: 2),
-        ),
-      );
-
-      // Create a simple Event object for reposting
-      // Since the nostr library might expect positional arguments, we use a different approach
-      await _performRepost(socialService);
-
-      // Show success message
-      scaffoldMessenger.showSnackBar(
-        const SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 12),
-              Text('Video reposted successfully!'),
-            ],
-          ),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } catch (e) {
-      // Show error message
-      scaffoldMessenger.showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.error, color: Colors.white),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text('Failed to repost: $e'),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _performRepost(SocialService socialService) async {
-    // Create a proper Event using the original video data for reposting
-    final eventWithCorrectData = Event(
-      widget.video.pubkey,
-      22, // kind
-      _buildEventTags(),
-      widget.video.content,
-      createdAt: widget.video.createdAt,
-    );
-
-    await socialService.repostEvent(eventWithCorrectData);
-  }
-
+  /// Build event tags from the original video event for reposting
   List<List<String>> _buildEventTags() {
     final tags = <List<String>>[];
-
-    // Add URL tag if video URL exists
-    if (widget.video.videoUrl != null) {
-      tags.add(['url', widget.video.videoUrl!]);
-    }
-
-    // Add title tag if title exists
-    if (widget.video.title != null) {
-      tags.add(['title', widget.video.title!]);
-    }
-
-    // Add duration tag if duration exists
-    if (widget.video.duration != null) {
-      tags.add(['duration', widget.video.duration!.toString()]);
-    }
-
-    // Add thumbnail tag if thumbnail URL exists
-    if (widget.video.thumbnailUrl != null) {
-      tags.add(['thumb', widget.video.thumbnailUrl!]);
-    }
-
-    // Add dimensions tag if dimensions exist
-    if (widget.video.dimensions != null) {
-      tags.add(['dim', widget.video.dimensions!]);
-    }
-
-    // Add mime type tag if it exists
-    if (widget.video.mimeType != null) {
-      tags.add(['m', widget.video.mimeType!]);
-    }
-
-    // Add hashtag tags
-    for (final hashtag in widget.video.hashtags) {
-      tags.add(['t', hashtag]);
-    }
-
-    // Add any additional raw tags that were stored
+    
+    // Add all raw tags from the original video event
     widget.video.rawTags.forEach((key, value) {
-      if (!tags.any((tag) => tag.isNotEmpty && tag[0] == key)) {
+      if (value.isNotEmpty) {
         tags.add([key, value]);
       }
     });
-
+    
+    // Add hashtags as 't' tags
+    for (final hashtag in widget.video.hashtags) {
+      if (hashtag.isNotEmpty) {
+        tags.add(['t', hashtag]);
+      }
+    }
+    
+    // Ensure required tags are present
+    if (widget.video.videoUrl != null && widget.video.videoUrl!.isNotEmpty) {
+      // Check if url tag already exists
+      final hasUrlTag = tags.any((tag) => tag[0] == 'url');
+      if (!hasUrlTag) {
+        tags.add(['url', widget.video.videoUrl!]);
+      }
+    }
+    
+    // Add title if present
+    if (widget.video.title != null && widget.video.title!.isNotEmpty) {
+      final hasTitleTag = tags.any((tag) => tag[0] == 'title');
+      if (!hasTitleTag) {
+        tags.add(['title', widget.video.title!]);
+      }
+    }
+    
+    
     return tags;
   }
+
+  Future<void> _handleRepost(BuildContext context) async {
+    // Show repost options dialog
+    _showRepostOptionsDialog(context);
+  }
+
+  void _showRepostOptionsDialog(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: VineTheme.backgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => _RevineOptionsSheet(video: widget.video),
+    );
+  }
+
 
   void _openComments(BuildContext context) {
     // Pause the video when opening comments
@@ -1666,13 +1743,13 @@ class _VideoFeedItemState extends ConsumerState<VideoFeedItem>
     _openComments(context);
   }
 
-  Future<void> _handleLike(
-      BuildContext context, SocialService socialService) async {
+  Future<void> _handleLike(BuildContext context) async {
     // Store context reference to avoid async gap warnings
     final scaffoldMessenger = ScaffoldMessenger.of(context);
 
     try {
-      await socialService.toggleLike(widget.video.id, widget.video.pubkey);
+      await ref.read(social_providers.socialNotifierProvider.notifier)
+          .toggleLike(widget.video.id, widget.video.pubkey);
     } catch (e) {
       scaffoldMessenger.showSnackBar(
         SnackBar(
@@ -1838,6 +1915,900 @@ class VideoAccessibilityInfo extends StatelessWidget {
     return Semantics(
       label: semanticLabel,
       child: const SizedBox.shrink(),
+    );
+  }
+}
+
+/// Bottom sheet for choosing repost destination
+class _RevineOptionsSheet extends ConsumerStatefulWidget {
+  const _RevineOptionsSheet({required this.video});
+  
+  final VideoEvent video;
+
+  @override
+  ConsumerState<_RevineOptionsSheet> createState() => _RevineOptionsSheetState();
+}
+
+class _RevineOptionsSheetState extends ConsumerState<_RevineOptionsSheet> {
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.8,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                const Icon(Icons.repeat, color: VineTheme.vineGreen, size: 24),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'Revine',
+                    style: TextStyle(
+                      color: VineTheme.whiteText,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close, color: VineTheme.secondaryText),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            
+            // Video info preview
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: VineTheme.cardBackground,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade800),
+              ),
+              child: Row(
+                children: [
+                  // Thumbnail placeholder
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade800,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.play_arrow, color: Colors.white),
+                  ),
+                  const SizedBox(width: 12),
+                  // Video details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (widget.video.title?.isNotEmpty == true)
+                          Text(
+                            widget.video.title!,
+                            style: const TextStyle(
+                              color: VineTheme.whiteText,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        Text(
+                          widget.video.content.isNotEmpty 
+                              ? widget.video.content 
+                              : 'Video content',
+                          style: const TextStyle(
+                            color: VineTheme.lightText,
+                            fontSize: 12,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Main Revine Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _repostToHomeFeed(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: VineTheme.vineGreen,
+                  foregroundColor: VineTheme.whiteText,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 2,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.repeat, size: 20),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Revine',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // List options section
+            const Text(
+              'Or add this vine to a list',
+              style: TextStyle(
+                color: VineTheme.lightText,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // List options
+            Consumer(
+              builder: (context, ref, child) {
+                final curatedListService = ref.watch(curatedListServiceProvider);
+                final defaultList = curatedListService.getDefaultList();
+                
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Default "My List" option
+                    if (defaultList != null) ...[
+                      _buildRepostOption(
+                        icon: Icons.playlist_play,
+                        title: 'Add to "${defaultList.name}"',
+                        subtitle: 'Your main curated list (${defaultList.videoEventIds.length} videos)',
+                        onTap: () => _addToDefaultList(),
+                        isHighlighted: true,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    
+                    // Bookmarks option
+                    _buildRepostOption(
+                      icon: Icons.bookmark_outline,
+                      title: 'Add to Bookmarks',
+                      subtitle: 'Save for later viewing',
+                      onTap: () => _addToBookmarks(),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // More lists option
+                    _buildRepostOption(
+                      icon: Icons.playlist_add,
+                      title: 'Choose List',
+                      subtitle: curatedListService.lists.isEmpty 
+                          ? 'Create or select curated lists'
+                          : 'Choose from ${curatedListService.lists.length} lists or create new',
+                      onTap: () => _showListSelectionDialog(),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Create new list option (bottom)
+                    _buildRepostOption(
+                      icon: Icons.add,
+                      title: 'Create New List',
+                      subtitle: 'Make a new curated list for this vine',
+                      onTap: () => _showCreateNewListDialog(),
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRepostOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isHighlighted = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: isHighlighted ? VineTheme.vineGreen : Colors.grey.shade800,
+            width: isHighlighted ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          color: isHighlighted ? VineTheme.vineGreen.withValues(alpha: 0.05) : null,
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: VineTheme.vineGreen.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: VineTheme.vineGreen, size: 20),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: VineTheme.whiteText,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      color: VineTheme.lightText,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, color: VineTheme.lightText, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _repostToHomeFeed() async {
+    Navigator.of(context).pop(); // Close the dialog first
+    
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    try {
+      // Create Event object for reposting
+      final eventToRepost = Event(
+        widget.video.pubkey,
+        22, // kind
+        _buildEventTags(),
+        widget.video.content,
+        createdAt: widget.video.createdAt,
+      );
+
+      await ref.read(social_providers.socialNotifierProvider.notifier)
+          .repostEvent(eventToRepost);
+
+      // Show success message
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Text('Video reposted to your home feed!'),
+            ],
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      // Show error message
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Failed to repost: $e'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _addToDefaultList() async {
+    Navigator.of(context).pop(); // Close dialog
+    
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    try {
+      final curatedListService = ref.read(curatedListServiceProvider);
+      final defaultList = curatedListService.getDefaultList();
+      
+      if (defaultList == null) {
+        throw Exception('Default list not found');
+      }
+      
+      // Check if already in list
+      if (defaultList.videoEventIds.contains(widget.video.id)) {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text('Video is already in "${defaultList.name}"'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+      
+      final success = await curatedListService.addVideoToList(defaultList.id, widget.video.id);
+      
+      if (!success) {
+        throw Exception('Failed to add video to list');
+      }
+
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Video added to "${defaultList.name}"!'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Failed to add to list: $e'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _addToBookmarks() async {
+    Navigator.of(context).pop(); // Close dialog
+    
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    try {
+      final bookmarkService = ref.read(bookmarkServiceProvider);
+      
+      // Check if already bookmarked
+      if (bookmarkService.isVideoBookmarkedGlobally(widget.video.id)) {
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Video is already bookmarked'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+      
+      final success = await bookmarkService.addVideoToGlobalBookmarks(widget.video.id);
+      
+      if (!success) {
+        throw Exception('Failed to add bookmark');
+      }
+
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Text('Video bookmarked!'),
+            ],
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Failed to bookmark: $e'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showListSelectionDialog() {
+    Navigator.of(context).pop(); // Close repost dialog
+    
+    showDialog(
+      context: context,
+      builder: (context) => _ListSelectionDialog(video: widget.video),
+    );
+  }
+
+  void _showCreateNewListDialog() {
+    Navigator.of(context).pop(); // Close repost dialog
+    
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        backgroundColor: VineTheme.cardBackground,
+        title: const Text(
+          'Create New List',
+          style: TextStyle(color: VineTheme.whiteText, fontWeight: FontWeight.w600),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'List Name',
+              style: TextStyle(color: VineTheme.whiteText, fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: nameController,
+              style: const TextStyle(color: VineTheme.whiteText),
+              decoration: InputDecoration(
+                hintText: 'Enter list name...',
+                hintStyle: const TextStyle(color: VineTheme.lightText),
+                filled: true,
+                fillColor: VineTheme.backgroundColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Description (Optional)',
+              style: TextStyle(color: VineTheme.whiteText, fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: descriptionController,
+              style: const TextStyle(color: VineTheme.whiteText),
+              decoration: InputDecoration(
+                hintText: 'Enter description...',
+                hintStyle: const TextStyle(color: VineTheme.lightText),
+                filled: true,
+                fillColor: VineTheme.backgroundColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel', style: TextStyle(color: VineTheme.lightText)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              if (name.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a list name'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              Navigator.of(dialogContext).pop(); // Close create dialog
+
+              final curatedListService = ref.read(curatedListServiceProvider);
+              final newList = await curatedListService.createList(
+                name: name,
+                description: descriptionController.text.trim().isEmpty 
+                    ? null 
+                    : descriptionController.text.trim(),
+                isPublic: true,
+              );
+
+              if (newList != null && mounted) {
+                // Add video to the newly created list
+                final success = await curatedListService.addVideoToList(newList.id, widget.video.id);
+                
+                if (success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.white),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text('Created "${newList.name}" and added vine!'),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } else if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(Icons.error, color: Colors.white),
+                        SizedBox(width: 12),
+                        Expanded(child: Text('Failed to create list')),
+                      ],
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: VineTheme.vineGreen,
+              foregroundColor: VineTheme.whiteText,
+            ),
+            child: const Text('Create & Add Vine'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<List<String>> _buildEventTags() {
+    // Build tags for the event - simplified version
+    final tags = <List<String>>[];
+    
+    // Add basic event info tags if available
+    if (widget.video.title?.isNotEmpty == true) {
+      tags.add(['title', widget.video.title!]);
+    }
+    
+    // Add hashtags
+    for (final hashtag in widget.video.hashtags) {
+      tags.add(['t', hashtag]);
+    }
+    
+    return tags;
+  }
+}
+
+/// Dialog for selecting which list to add the video to
+class _ListSelectionDialog extends ConsumerWidget {
+  const _ListSelectionDialog({required this.video});
+  
+  final VideoEvent video;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final curatedListService = ref.watch(curatedListServiceProvider);
+    final lists = curatedListService.lists;
+
+    return AlertDialog(
+      backgroundColor: VineTheme.backgroundColor,
+      title: const Text(
+        'Add to List',
+        style: TextStyle(color: VineTheme.whiteText),
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Create new list option
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: VineTheme.vineGreen.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Icon(Icons.add, color: VineTheme.vineGreen, size: 18),
+              ),
+              title: const Text(
+                'Create New List',
+                style: TextStyle(color: VineTheme.whiteText, fontWeight: FontWeight.w600),
+              ),
+              subtitle: const Text(
+                'Make a new curated list for this video',
+                style: TextStyle(color: VineTheme.lightText, fontSize: 12),
+              ),
+              onTap: () => _showCreateListDialog(context, ref),
+            ),
+            if (lists.isNotEmpty) ...[
+              const Divider(color: VineTheme.lightText),
+              const SizedBox(height: 8),
+              // Existing lists
+              ...lists.asMap().entries.map((entry) {
+                final list = entry.value;
+                final isAlreadyInList = list.videoEventIds.contains(video.id);
+                
+                return ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isAlreadyInList 
+                          ? Colors.green.withValues(alpha: 0.2)
+                          : VineTheme.vineGreen.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(
+                      isAlreadyInList ? Icons.check : Icons.playlist_add,
+                      color: isAlreadyInList ? Colors.green : VineTheme.vineGreen,
+                      size: 18,
+                    ),
+                  ),
+                  title: Text(
+                    list.name,
+                    style: const TextStyle(color: VineTheme.whiteText),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (list.description?.isNotEmpty == true)
+                        Text(
+                          list.description!,
+                          style: const TextStyle(color: VineTheme.lightText),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      Text(
+                        '${list.videoEventIds.length} videos',
+                        style: const TextStyle(color: VineTheme.lightText, fontSize: 12),
+                      ),
+                      if (isAlreadyInList)
+                        const Text(
+                          'Already in this list',
+                          style: TextStyle(color: Colors.green, fontSize: 12),
+                        ),
+                    ],
+                  ),
+                  enabled: !isAlreadyInList,
+                  onTap: isAlreadyInList ? null : () => _addToListAndRepost(context, ref, list),
+                );
+              }).toList(),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(
+            'Cancel',
+            style: TextStyle(color: VineTheme.vineGreen),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _addToListAndRepost(BuildContext context, WidgetRef ref, CuratedList list) async {
+    Navigator.of(context).pop(); // Close dialog
+    
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    try {
+      // Add video to the selected list
+      final curatedListService = ref.read(curatedListServiceProvider);
+      final success = await curatedListService.addVideoToList(list.id, video.id);
+      
+      if (!success) {
+        throw Exception('Failed to add video to list');
+      }
+
+      // Show success message
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Video added to "${list.name}"!'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      // Show error message
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Failed to add to list: $e'),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  /// Show dialog to create a new curated list
+  void _showCreateListDialog(BuildContext context, WidgetRef ref) {
+    final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        backgroundColor: VineTheme.cardBackground,
+        title: const Text(
+          'Create New List',
+          style: TextStyle(color: VineTheme.whiteText, fontWeight: FontWeight.w600),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'List Name',
+              style: TextStyle(color: VineTheme.whiteText, fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: nameController,
+              style: const TextStyle(color: VineTheme.whiteText),
+              decoration: InputDecoration(
+                hintText: 'Enter list name...',
+                hintStyle: const TextStyle(color: VineTheme.lightText),
+                filled: true,
+                fillColor: VineTheme.backgroundColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              autofocus: true,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Description (Optional)',
+              style: TextStyle(color: VineTheme.whiteText, fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: descriptionController,
+              style: const TextStyle(color: VineTheme.whiteText),
+              decoration: InputDecoration(
+                hintText: 'Enter description...',
+                hintStyle: const TextStyle(color: VineTheme.lightText),
+                filled: true,
+                fillColor: VineTheme.backgroundColor,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Cancel', style: TextStyle(color: VineTheme.lightText)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = nameController.text.trim();
+              if (name.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Please enter a list name'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+                return;
+              }
+
+              Navigator.of(dialogContext).pop(); // Close create dialog
+              Navigator.of(context).pop(); // Close list selection dialog
+
+              final curatedListService = ref.read(curatedListServiceProvider);
+              final newList = await curatedListService.createList(
+                name: name,
+                description: descriptionController.text.trim().isEmpty 
+                    ? null 
+                    : descriptionController.text.trim(),
+                isPublic: true,
+              );
+
+              if (newList != null) {
+                // Add video to the newly created list
+                final success = await curatedListService.addVideoToList(newList.id, video.id);
+                
+                if (success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: Colors.white),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text('Created "${newList.name}" and added video!'),
+                          ),
+                        ],
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } else if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(Icons.error, color: Colors.white),
+                        SizedBox(width: 12),
+                        Expanded(child: Text('Failed to create list')),
+                      ],
+                    ),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: VineTheme.vineGreen,
+              foregroundColor: VineTheme.whiteText,
+            ),
+            child: const Text('Create & Add Video'),
+          ),
+        ],
+      ),
     );
   }
 }

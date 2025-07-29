@@ -37,6 +37,8 @@ class VideoEvent {
     this.repostedAt,
     this.isFlaggedContent = false,
     this.moderationStatus,
+    this.originalLoops,
+    this.originalLikes,
   });
 
   /// Create VideoEvent from Nostr event
@@ -69,6 +71,8 @@ class VideoEvent {
     String? group;
     String? altText;
     String? blurhash;
+    int? originalLoops;
+    int? originalLikes;
 
     // Parse event tags according to NIP-71
     // Handle both List<String> and List<dynamic> from different nostr implementations
@@ -182,6 +186,12 @@ class VideoEvent {
         case 'blurhash':
           // Blurhash for progressive image loading
           blurhash = tagValue as String?;
+        case 'loops':
+          // Original loop count from classic Vine
+          originalLoops = int.tryParse(tagValue);
+        case 'likes':
+          // Original like count from classic Vine
+          originalLikes = int.tryParse(tagValue);
         case 't':
           if (tagValue.isNotEmpty) {
             hashtags.add(tagValue);
@@ -323,6 +333,8 @@ class VideoEvent {
       reposterId: null,
       reposterPubkey: null,
       repostedAt: null,
+      originalLoops: originalLoops,
+      originalLikes: originalLikes,
     );
   }
   final String id;
@@ -358,6 +370,10 @@ class VideoEvent {
   final bool
       isFlaggedContent; // Content flagged as potentially adult/inappropriate
   final String? moderationStatus;
+  
+  // Original Vine metrics (from imported data)
+  final int? originalLoops; // Original loop count from classic Vine
+  final int? originalLikes; // Original like count from classic Vine
 
   /// Parse imeta tag which contains key-value pairs as separate elements
   static void _parseImetaTag(

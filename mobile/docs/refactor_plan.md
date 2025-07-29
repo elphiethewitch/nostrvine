@@ -274,7 +274,7 @@ class ServiceWithStreams extends ChangeNotifier {
 class AppConfig {
   static String get nostrRelayUrl => 
     const String.fromEnvironment('NOSTR_RELAY_URL', 
-      defaultValue: 'wss://vine.hol.is');
+      defaultValue: 'wss://relay.damus.io');
   
   static int get apiRateLimit =>
     const int.fromEnvironment('API_RATE_LIMIT',

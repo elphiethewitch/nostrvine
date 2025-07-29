@@ -76,8 +76,8 @@ void main() {
         ],
       );
       
-      return ProviderScope(
-        parent: container,
+      return UncontrolledProviderScope(
+        container: container,
         child: MaterialApp(
           home: Scaffold(
             body: VideoFeedItem(

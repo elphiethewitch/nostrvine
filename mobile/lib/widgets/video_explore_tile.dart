@@ -22,38 +22,46 @@ class VideoExploreTile extends ConsumerWidget {
     this.onTap,
     this.onClose,
     this.showTextOverlay = true,
+    this.borderRadius = 8.0,
   });
   final VideoEvent video;
   final bool isActive; // Not used anymore but kept for API compatibility
   final VoidCallback? onTap;
   final VoidCallback? onClose;
   final bool showTextOverlay;
+  final double borderRadius;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) => GestureDetector(
+  Widget build(BuildContext context, WidgetRef ref) {
+    debugPrint('🔍 VideoExploreTile build for ${video.id.substring(0, 8)}, borderRadius: $borderRadius');
+    return GestureDetector(
         onTap: () {
           debugPrint('🎯 VideoExploreTile tapped for video ${video.id.substring(0, 8)}...');
           onTap?.call();
         },
-        child: AspectRatio(
-          aspectRatio: 1.0, // Ensure square aspect ratio matching videos
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: Colors.black,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Smart thumbnail with automatic API generation
-                  VideoThumbnailWidget(
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(borderRadius),
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Use LayoutBuilder to get actual dimensions and pass to thumbnail
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  debugPrint('📐 VideoExploreTile constraints: ${constraints.maxWidth} x ${constraints.maxHeight}');
+                  return VideoThumbnailWidget(
                     video: video,
+                    width: constraints.maxWidth,
+                    height: constraints.maxHeight,
                     fit: BoxFit.cover,
                     showPlayIcon: false,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                    borderRadius: BorderRadius.circular(borderRadius),
+                  );
+                },
+              ),
 
                 // Video info overlay - conditionally shown
                 if (showTextOverlay)
@@ -64,9 +72,9 @@ class VideoExploreTile extends ConsumerWidget {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(8),
-                          bottomRight: Radius.circular(8),
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(borderRadius),
+                          bottomRight: Radius.circular(borderRadius),
                         ),
                         gradient: LinearGradient(
                           begin: Alignment.bottomCenter,
@@ -114,9 +122,8 @@ class VideoExploreTile extends ConsumerWidget {
               ],
             ),
           ),
-        ),
-      ),
-    );
+        );
+  }
 
   Widget _buildCreatorInfo(WidgetRef ref) {
     final profileService = ref.watch(userProfileServiceProvider);

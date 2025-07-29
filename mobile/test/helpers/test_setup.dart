@@ -16,10 +16,6 @@ class TestSetup {
     List<Override>? overrides,
     VideoControllerFactory? videoControllerFactory,
   }) {
-    // Default test video controller factory
-    final defaultFactory = videoControllerFactory ?? 
-        (String url) => TestVideoPlayerController(url);
-
     return ProviderContainer(
       overrides: [
         // Add video controller factory override if needed

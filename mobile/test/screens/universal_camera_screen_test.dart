@@ -69,21 +69,18 @@ void main() {
           .thenReturn(publishedUpload);
 
       // Build our app and trigger a frame
-      await tester.pumpWidget(
-        final container = ProviderContainer(
+      final container = ProviderContainer(
         overrides: [
           uploadManagerProvider.overrideWithValue(mockUploadManager),
         ],
       );
       
-      return ProviderScope(
-        parent: container,
-        child: MaterialApp(
-          home: MaterialApp(
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
             navigatorObservers: [mockNavigator],
-            home: const UniversalCameraScreen(
-        ),
-      ),
+            home: const UniversalCameraScreen(),
             routes: {
               '/main': (context) => const MainNavigationScreen(),
             },
@@ -106,20 +103,17 @@ void main() {
     });
 
     testWidgets('should clean up listeners on dispose', (tester) async {
-      await tester.pumpWidget(
-        final container = ProviderContainer(
+      final container = ProviderContainer(
         overrides: [
           uploadManagerProvider.overrideWithValue(mockUploadManager),
         ],
       );
       
-      return ProviderScope(
-        parent: container,
-        child: MaterialApp(
-          home: const MaterialApp(
-            home: UniversalCameraScreen(
-        ),
-      ),
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: const UniversalCameraScreen(),
           ),
         ),
       );

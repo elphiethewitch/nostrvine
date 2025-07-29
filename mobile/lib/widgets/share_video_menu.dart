@@ -9,6 +9,7 @@ import 'package:openvine/providers/app_providers.dart';
 import 'package:openvine/services/content_deletion_service.dart';
 import 'package:openvine/services/content_moderation_service.dart';
 import 'package:openvine/services/curated_list_service.dart';
+import 'package:openvine/services/social_service.dart';
 import 'package:openvine/services/video_sharing_service.dart';
 import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/utils/unified_logger.dart';
@@ -48,9 +49,15 @@ class _ShareVideoMenuState extends ConsumerState<ShareVideoMenu> {
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     children: [
+                      _buildVideoStatusSection(),
+                      const SizedBox(height: 24),
                       _buildShareSection(),
                       const SizedBox(height: 24),
                       _buildListSection(),
+                      const SizedBox(height: 24),
+                      _buildBookmarkSection(),
+                      const SizedBox(height: 24),
+                      _buildFollowSetSection(),
                       if (_isUserOwnContent()) ...[
                         const SizedBox(height: 24),
                         _buildDeleteSection(),
@@ -109,6 +116,103 @@ class _ShareVideoMenuState extends ConsumerState<ShareVideoMenu> {
             ),
           ],
         ),
+      );
+
+  /// Build video status section showing what lists the video is in
+  Widget _buildVideoStatusSection() => Consumer(
+        builder: (context, ref, child) {
+          final curatedListService = ref.watch(curatedListServiceProvider);
+          final bookmarkService = ref.watch(bookmarkServiceProvider);
+          
+          final listsContaining = curatedListService.getListsContainingVideo(widget.video.id);
+          final bookmarkStatus = bookmarkService.getVideoBookmarkSummary(widget.video.id);
+          
+          final statusParts = <String>[];
+          
+          // Add curated lists status
+          if (listsContaining.isNotEmpty) {
+            if (listsContaining.length == 1) {
+              statusParts.add('In "${listsContaining.first.name}"');
+            } else if (listsContaining.length <= 3) {
+              final names = listsContaining.map((list) => '"${list.name}"').join(', ');
+              statusParts.add('In $names');
+            } else {
+              statusParts.add('In ${listsContaining.length} lists');
+            }
+          }
+          
+          // Add bookmark status
+          if (bookmarkStatus != 'Not bookmarked') {
+            statusParts.add(bookmarkStatus);
+          }
+          
+          if (statusParts.isEmpty) {
+            return const SizedBox.shrink(); // Hide if no status to show
+          }
+          
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade900,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade700),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.info_outline, color: VineTheme.vineGreen, size: 18),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Video Status',
+                      style: TextStyle(
+                        color: VineTheme.whiteText,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                ...statusParts.map((status) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 26), // Align with icon
+                      Expanded(
+                        child: Text(
+                          '• $status',
+                          style: const TextStyle(
+                            color: VineTheme.lightText,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+                if (listsContaining.length > 3) ...[
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () => _showAllListsDialog(listsContaining),
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 26),
+                      child: Text(
+                        'View all lists →',
+                        style: TextStyle(
+                          color: VineTheme.vineGreen,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
       );
 
   Widget _buildShareSection() => Column(
@@ -210,6 +314,86 @@ class _ShareVideoMenuState extends ConsumerState<ShareVideoMenu> {
         },
       );
 
+  /// Build bookmark section for quick bookmarking
+  Widget _buildBookmarkSection() => Consumer(
+        builder: (context, ref, child) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Bookmarks',
+                style: TextStyle(
+                  color: VineTheme.whiteText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Add to global bookmarks
+              _buildActionTile(
+                icon: Icons.bookmark_outline,
+                title: 'Add to Bookmarks',
+                subtitle: 'Save for later viewing',
+                onTap: _addToGlobalBookmarks,
+              ),
+
+              const SizedBox(height: 8),
+
+              // Add to bookmark set
+              _buildActionTile(
+                icon: Icons.bookmark_add,
+                title: 'Add to Bookmark Set',
+                subtitle: 'Organize in collections',
+                onTap: _showBookmarkSetsDialog,
+              ),
+            ],
+          );
+        },
+      );
+
+  /// Build follow set section for adding authors to follow sets
+  Widget _buildFollowSetSection() => Consumer(
+        builder: (context, ref, child) {
+          final socialService = ref.watch(socialServiceProvider);
+          final followSets = socialService.followSets;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Follow Sets',
+                style: TextStyle(
+                  color: VineTheme.whiteText,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Create new follow set with this author
+              _buildActionTile(
+                icon: Icons.group_add,
+                title: 'Create Follow Set',
+                subtitle: 'Start new collection with this creator',
+                onTap: _showCreateFollowSetDialog,
+              ),
+
+              // Show existing follow sets if any
+              if (followSets.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                _buildActionTile(
+                  icon: Icons.people,
+                  title: 'Add to Follow Set',
+                  subtitle: '${followSets.length} follow sets available',
+                  onTap: _showSelectFollowSetDialog,
+                ),
+              ],
+            ],
+          );
+        },
+      );
+
   Widget _buildReportSection() => Consumer(
         builder: (context, ref, child) {
           final reportService = ref.watch(contentReportingServiceProvider);
@@ -280,6 +464,66 @@ class _ShareVideoMenuState extends ConsumerState<ShareVideoMenu> {
         enabled: onTap != null,
         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       );
+
+  // === BOOKMARK ACTIONS ===
+
+  Future<void> _addToGlobalBookmarks() async {
+    try {
+      final bookmarkService = ref.read(bookmarkServiceProvider);
+      final success = await bookmarkService.addVideoToGlobalBookmarks(
+        widget.video.id,
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success ? 'Added to bookmarks!' : 'Failed to add bookmark'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      Log.error('Failed to add bookmark: $e',
+          name: 'ShareVideoMenu', category: LogCategory.ui);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to add bookmark'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showBookmarkSetsDialog() {
+    // TODO: Implement bookmark sets dialog
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Bookmark sets feature coming soon!'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+    Navigator.of(context).pop();
+  }
+
+  // === FOLLOW SET ACTIONS ===
+
+  void _showCreateFollowSetDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => _CreateFollowSetDialog(authorPubkey: widget.video.pubkey),
+    );
+  }
+
+  void _showSelectFollowSetDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => _SelectFollowSetDialog(authorPubkey: widget.video.pubkey),
+    );
+  }
 
   void _showSendToUserDialog() {
     showDialog(
@@ -423,6 +667,61 @@ class _ShareVideoMenuState extends ConsumerState<ShareVideoMenu> {
     showDialog(
       context: context,
       builder: (context) => _buildDeleteDialog(),
+    );
+  }
+
+  void _showAllListsDialog(List<CuratedList> lists) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: VineTheme.backgroundColor,
+        title: const Text(
+          'Video is in these lists:',
+          style: TextStyle(color: VineTheme.whiteText),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: lists.length,
+            itemBuilder: (context, index) {
+              final list = lists[index];
+              return ListTile(
+                leading: Icon(
+                  list.isPublic ? Icons.public : Icons.lock,
+                  color: VineTheme.vineGreen,
+                  size: 20,
+                ),
+                title: Text(
+                  list.name,
+                  style: const TextStyle(color: VineTheme.whiteText),
+                ),
+                subtitle: list.description != null
+                    ? Text(
+                        list.description!,
+                        style: const TextStyle(color: VineTheme.lightText),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    : null,
+                trailing: Text(
+                  '${list.videoEventIds.length} videos',
+                  style: const TextStyle(color: VineTheme.lightText, fontSize: 12),
+                ),
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Close',
+              style: TextStyle(color: VineTheme.vineGreen),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1211,5 +1510,183 @@ class _ReportContentDialogState extends ConsumerState<_ReportContentDialog> {
   void dispose() {
     _detailsController.dispose();
     super.dispose();
+  }
+}
+
+/// Dialog for creating new follow set with this video's author
+class _CreateFollowSetDialog extends ConsumerStatefulWidget {
+  const _CreateFollowSetDialog({required this.authorPubkey});
+  final String authorPubkey;
+
+  @override
+  ConsumerState<_CreateFollowSetDialog> createState() => _CreateFollowSetDialogState();
+}
+
+class _CreateFollowSetDialogState extends ConsumerState<_CreateFollowSetDialog> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        backgroundColor: VineTheme.cardBackground,
+        title: const Text('Create Follow Set',
+            style: TextStyle(color: VineTheme.whiteText)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _nameController,
+              enableInteractiveSelection: true,
+              style: const TextStyle(color: VineTheme.whiteText),
+              decoration: const InputDecoration(
+                labelText: 'Follow Set Name',
+                labelStyle: TextStyle(color: VineTheme.secondaryText),
+                hintText: 'e.g., Content Creators, Musicians, etc.',
+                hintStyle: TextStyle(color: VineTheme.secondaryText),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _descriptionController,
+              enableInteractiveSelection: true,
+              style: const TextStyle(color: VineTheme.whiteText),
+              decoration: const InputDecoration(
+                labelText: 'Description (optional)',
+                labelStyle: TextStyle(color: VineTheme.secondaryText),
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: _createFollowSet,
+            child: const Text('Create'),
+          ),
+        ],
+      );
+
+  Future<void> _createFollowSet() async {
+    final name = _nameController.text.trim();
+    if (name.isEmpty) return;
+
+    try {
+      final socialService = ref.read(socialServiceProvider);
+      final newSet = await socialService.createFollowSet(
+        name: name,
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
+        initialPubkeys: [widget.authorPubkey],
+      );
+
+      if (newSet != null && mounted) {
+        Navigator.of(context).pop(); // Close dialog
+        Navigator.of(context).pop(); // Close share menu
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Created follow set "$name" and added creator')),
+        );
+      }
+    } catch (e) {
+      Log.error('Failed to create follow set: $e',
+          name: 'ShareVideoMenu', category: LogCategory.ui);
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+}
+
+/// Dialog for selecting existing follow set to add author to
+class _SelectFollowSetDialog extends StatelessWidget {
+  const _SelectFollowSetDialog({required this.authorPubkey});
+  final String authorPubkey;
+
+  @override
+  Widget build(BuildContext context) => Consumer(
+        builder: (context, ref, child) {
+          final socialService = ref.watch(socialServiceProvider);
+          final followSets = socialService.followSets;
+
+          return AlertDialog(
+            backgroundColor: VineTheme.cardBackground,
+            title: const Text('Add to Follow Set',
+                style: TextStyle(color: VineTheme.whiteText)),
+            content: SizedBox(
+              width: double.maxFinite,
+              height: 300,
+              child: ListView.builder(
+                itemCount: followSets.length,
+                itemBuilder: (context, index) {
+                  final set = followSets[index];
+                  final isInSet = socialService.isInFollowSet(set.id, authorPubkey);
+
+                  return ListTile(
+                    leading: Icon(
+                      isInSet ? Icons.check_circle : Icons.people,
+                      color: isInSet ? VineTheme.vineGreen : VineTheme.whiteText,
+                    ),
+                    title: Text(
+                      set.name,
+                      style: const TextStyle(color: VineTheme.whiteText),
+                    ),
+                    subtitle: Text(
+                      '${set.pubkeys.length} users${set.description != null ? ' • ${set.description}' : ''}',
+                      style: const TextStyle(color: VineTheme.secondaryText),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onTap: () => _toggleAuthorInFollowSet(
+                        context, socialService, set, isInSet),
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Done'),
+              ),
+            ],
+          );
+        },
+      );
+
+  Future<void> _toggleAuthorInFollowSet(
+    BuildContext context,
+    SocialService socialService,
+    FollowSet set,
+    bool isCurrentlyInSet,
+  ) async {
+    try {
+      bool success;
+      if (isCurrentlyInSet) {
+        success = await socialService.removeFromFollowSet(set.id, authorPubkey);
+      } else {
+        success = await socialService.addToFollowSet(set.id, authorPubkey);
+      }
+
+      if (success) {
+        final message = isCurrentlyInSet
+            ? 'Removed from ${set.name}'
+            : 'Added to ${set.name}';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text(message), duration: const Duration(seconds: 1)),
+        );
+      }
+    } catch (e) {
+      Log.error('Failed to toggle user in follow set: $e',
+          name: 'ShareVideoMenu', category: LogCategory.ui);
+    }
   }
 }

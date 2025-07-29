@@ -46,7 +46,7 @@ class _CameraWithZoomState extends State<CameraWithZoom> {
   @override
   void dispose() {
     _cameraService.dispose();
-    
+    super.dispose();
   }
 
   Future<void> _initializeCamera() async {
@@ -131,11 +131,6 @@ class _CameraWithZoomState extends State<CameraWithZoom> {
       onZoomChanged: _onZoomChanged,
       child: _cameraService.cameraPreview,
     );
-  }
-  
-  @override
-  void dispose() {
-    super.dispose();
   }
 }
 

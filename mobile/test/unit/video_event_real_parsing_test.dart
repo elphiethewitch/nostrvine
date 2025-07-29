@@ -4,11 +4,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nostr_sdk/event.dart';
 import 'package:openvine/models/video_event.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 void main() {
   group('VideoEvent Parsing - Real Relay Data', () {
     test('should parse kind 22 event with url tag correctly', () {
-      print('🔍 Testing VideoEvent parsing with real vine.hol.is data...');
+      Log.debug('🔍 Testing VideoEvent parsing with real vine.hol.is data...', name: 'VideoEventRealParsingTest', category: LogCategory.system);
       
       // Real event from vine.hol.is relay with url tag
       final event = Event(
@@ -29,7 +30,7 @@ void main() {
       // Parse the event
       final videoEvent = VideoEvent.fromNostrEvent(event);
       
-      print('✅ Parsed VideoEvent: hasVideo=${videoEvent.hasVideo}, videoUrl=${videoEvent.videoUrl}');
+      Log.info('✅ Parsed VideoEvent: hasVideo=${videoEvent.hasVideo}, videoUrl=${videoEvent.videoUrl}', name: 'VideoEventRealParsingTest', category: LogCategory.system);
       
       // Verify parsing results
       expect(videoEvent.hasVideo, true, reason: 'Event should have video URL');
@@ -41,7 +42,7 @@ void main() {
     });
     
     test('should parse kind 22 event with r tag correctly', () {
-      print('🔍 Testing VideoEvent parsing with r tag...');
+      Log.debug('🔍 Testing VideoEvent parsing with r tag...', name: 'VideoEventRealParsingTest', category: LogCategory.system);
       
       // Real event from vine.hol.is relay with r tag
       final event = Event(
@@ -62,8 +63,8 @@ void main() {
       // Parse the event
       final videoEvent = VideoEvent.fromNostrEvent(event);
       
-      print('✅ Parsed VideoEvent: hasVideo=${videoEvent.hasVideo}, videoUrl=${videoEvent.videoUrl}');
-      print('✅ Thumbnail URL: ${videoEvent.thumbnailUrl}');
+      Log.info('✅ Parsed VideoEvent: hasVideo=${videoEvent.hasVideo}, videoUrl=${videoEvent.videoUrl}', name: 'VideoEventRealParsingTest', category: LogCategory.system);
+      Log.info('✅ Thumbnail URL: ${videoEvent.thumbnailUrl}', name: 'VideoEventRealParsingTest', category: LogCategory.system);
       
       // Verify parsing results
       expect(videoEvent.hasVideo, true, reason: 'Event should have video URL from r tag');

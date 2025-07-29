@@ -35,6 +35,11 @@ class VideoEventService  {
   List<String>? _activeHashtagFilter;
   String? _activeGroupFilter;
 
+  // NIP-50 Search state
+  final List<VideoEvent> _searchResults = [];
+  bool _isSearching = false;
+  String? _currentSearchQuery;
+
   // Track active subscription parameters to properly detect duplicates
   final Map<String, dynamic> _currentSubscriptionParams = {};
 
@@ -74,55 +79,15 @@ class VideoEventService  {
   int get eventCount => _videoEvents.length;
   String get classicVinesPubkey => AppConstants.classicVinesPubkey;
 
+  // NIP-50 Search getters
+  List<VideoEvent> get searchResults => List.unmodifiable(_searchResults);
+  bool get isSearching => _isSearching;
+  String? get searchQuery => _currentSearchQuery;
+
   /// Get videos by a specific author from the existing cache
   List<VideoEvent> getVideosByAuthor(String pubkey) =>
       _videoEvents.where((video) => video.pubkey == pubkey).toList();
 
-  /// Retry subscription with current parameters
-  Future<void> _retrySubscriptionWithCurrentParams() async {
-    if (_currentSubscriptionParams.isEmpty) {
-      Log.warning('No stored subscription parameters for retry',
-          name: 'VideoEventService', category: LogCategory.video);
-      return;
-    }
-
-    try {
-      // Extract stored parameters
-      final authors = _currentSubscriptionParams['authors'] as List<String>?;
-      final hashtags = _currentSubscriptionParams['hashtags'] as List<String>?;
-      final group = _currentSubscriptionParams['group'] as String?;
-      final since = _currentSubscriptionParams['since'] as int?;
-      final until = _currentSubscriptionParams['until'] as int?;
-      final limit = _currentSubscriptionParams['limit'] as int? ?? 50;
-
-      Log.info('🔄 Retrying subscription with AUTH-completed relay',
-          name: 'VideoEventService', category: LogCategory.video);
-
-      // Cancel existing subscriptions first
-      await _cancelExistingSubscriptions();
-
-      // Small delay to ensure cleanup is complete
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // Recreate subscription with same parameters
-      await subscribeToVideoFeed(
-        authors: authors,
-        hashtags: hashtags,
-        group: group,
-        since: since,
-        until: until,
-        limit: limit,
-        replace: false, // Don't replace since we already canceled
-        includeReposts: _includeReposts,
-      );
-
-      Log.info('✅ Subscription retry completed successfully',
-          name: 'VideoEventService', category: LogCategory.video);
-    } catch (e) {
-      Log.error('Failed to retry subscription after AUTH: $e',
-          name: 'VideoEventService', category: LogCategory.video);
-    }
-  }
 
   /// Subscribe to kind 22 video events from all connected relays
   Future<void> subscribeToVideoFeed({
@@ -1428,11 +1393,12 @@ class VideoEventService  {
 
     // Check if this is from someone the user follows
     // TODO: Get following list from SocialService
-    final isFollowed = false; // Placeholder - will be implemented
+    // final isFollowed = false; // Placeholder - will be implemented
     final isClassicVine = videoEvent.pubkey == AppConstants.classicVinesPubkey;
 
     // Priority order: 1) Follows, 2) Classic Vines, 3) Everything else by timestamp
-    if (isFollowed) {
+    // TODO: Implement follow detection
+    /* if (isFollowed) {
       // Content from followed users - highest priority, sorted by timestamp (newest first)
       var insertIndex = 0;
       
@@ -1451,7 +1417,7 @@ class VideoEventService  {
           'Added FOLLOWED USER video at position $insertIndex: ${videoEvent.title ?? videoEvent.id.substring(0, 8)}',
           name: 'VideoEventService',
           category: LogCategory.video);
-    } else if (isClassicVine) {
+    } else */ if (isClassicVine) {
       // Classic vine - secondary priority after follows
       var insertIndex = 0;
       // Skip past followed content first
@@ -1584,6 +1550,165 @@ class VideoEventService  {
   void addVideoEvent(VideoEvent videoEvent) {
     _addVideoWithPriority(videoEvent);
 
+  }
+
+  // NIP-50 Search Methods
+
+  /// Search for videos using NIP-50 search capability
+  Future<void> searchVideos(String query, {
+    List<String>? authors,
+    DateTime? since,
+    DateTime? until,
+    int? limit,
+  }) async {
+    if (query.trim().isEmpty) {
+      throw ArgumentError('Search query cannot be empty');
+    }
+
+    _isSearching = true;
+    _currentSearchQuery = query.trim();
+    _searchResults.clear();
+
+    try {
+      Log.info('🔍 Starting video search for: "$query"',
+          name: 'VideoEventService', category: LogCategory.video);
+
+      // Use the NostrService searchVideos method
+      final searchStream = _nostrService.searchVideos(
+        query,
+        authors: authors,
+        since: since,
+        until: until,
+        limit: limit ?? 50,
+      );
+
+      // Subscribe to search results
+      final subscription = searchStream.listen(
+        (event) {
+          Log.debug('🔍 Received search event: ${event.id} kind=${event.kind}',
+              name: 'VideoEventService', category: LogCategory.video);
+          final videoEvent = VideoEvent.fromNostrEvent(event);
+          if (_hasValidVideoUrl(videoEvent)) {
+            _searchResults.add(videoEvent);
+            Log.debug('✅ Added valid search result: ${videoEvent.id}',
+                name: 'VideoEventService', category: LogCategory.video);
+          } else {
+            Log.debug('❌ Rejected search result (invalid URL): ${videoEvent.id} url=${videoEvent.videoUrl}',
+                name: 'VideoEventService', category: LogCategory.video);
+          }
+        },
+        onError: (error) {
+          Log.error('Search error: $error',
+              name: 'VideoEventService', category: LogCategory.video);
+          _isSearching = false;
+        },
+        onDone: () {
+          _isSearching = false;
+          Log.info('Search completed. Found ${_searchResults.length} results',
+              name: 'VideoEventService', category: LogCategory.video);
+        },
+      );
+
+      // Store subscription for cleanup
+      _subscriptions['search'] = subscription;
+    } catch (e) {
+      _isSearching = false;
+      Log.error('Failed to start search: $e',
+          name: 'VideoEventService', category: LogCategory.video);
+      rethrow;
+    }
+  }
+
+  /// Search for videos by hashtag
+  Future<void> searchVideosByHashtag(String hashtag) async {
+    final cleanHashtag = hashtag.startsWith('#') ? hashtag.substring(1) : hashtag;
+    return searchVideos('#$cleanHashtag');
+  }
+
+  /// Search for videos with additional filters
+  Future<void> searchVideosWithFilters({
+    required String query,
+    List<String>? authors,
+    DateTime? since,
+    DateTime? until,
+    int? limit,
+  }) async {
+    return searchVideos(
+      query,
+      authors: authors,
+      since: since,
+      until: until,
+      limit: limit,
+    );
+  }
+
+  /// Clear search results and reset search state
+  void clearSearchResults() {
+    _searchResults.clear();
+    _currentSearchQuery = null;
+    _isSearching = false;
+    
+    // Cancel search subscription if active
+    _subscriptions['search']?.cancel();
+    _subscriptions.remove('search');
+    
+    Log.debug('Search results cleared',
+        name: 'VideoEventService', category: LogCategory.video);
+  }
+
+  /// Process search results from events
+  List<VideoEvent> processSearchResults(List<Event> events) {
+    final results = <VideoEvent>[];
+    
+    for (final event in events) {
+      final videoEvent = VideoEvent.fromNostrEvent(event);
+      if (_hasValidVideoUrl(videoEvent)) {
+        results.add(videoEvent);
+      }
+    }
+    
+    return deduplicateSearchResults(results);
+  }
+
+  /// Remove duplicate search results based on video URL and event ID
+  List<VideoEvent> deduplicateSearchResults(List<VideoEvent> results) {
+    final seen = <String>{};
+    final deduplicated = <VideoEvent>[];
+    
+    for (final result in results) {
+      final key = '${result.videoUrl}:${result.id}';
+      if (!seen.contains(key)) {
+        seen.add(key);
+        deduplicated.add(result);
+      }
+    }
+    
+    Log.debug('Deduplicated ${results.length} results to ${deduplicated.length}',
+        name: 'VideoEventService', category: LogCategory.video);
+    
+    return deduplicated;
+  }
+
+  /// Search videos within a specific time range
+  Future<void> searchVideosWithTimeRange({
+    required String query,
+    required DateTime since,
+    required DateTime until,
+    List<String>? authors,
+    int? limit,
+  }) async {
+    return searchVideos(
+      query,
+      authors: authors,
+      since: since,
+      until: until,
+      limit: limit,
+    );
+  }
+
+  /// Search videos with NIP-50 extensions support
+  Future<void> searchVideosWithExtensions(String queryWithExtensions) async {
+    return searchVideos(queryWithExtensions);
   }
 
   /// Validate that a video event has a valid, accessible URL

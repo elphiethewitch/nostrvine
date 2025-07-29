@@ -373,26 +373,6 @@ class AuthService {
     }
   }
 
-  /// Determine if an event kind should have the vine tag for relay storage
-  bool _shouldAddVineTag(int kind) {
-    // Only add vine tag for content events we want stored on OpenVine relays
-    // NOT for temporary auth events like NIP-98 (kind 27235)
-    switch (kind) {
-      case 0: // User profiles (NIP-01)
-      case 1: // Text notes (NIP-01) 
-      case 3: // Contact lists (NIP-02)
-      case 6: // Reposts (NIP-18)
-      case 7: // Reactions (NIP-25)
-      case 22: // Short videos (NIP-71)
-        return true;
-      case 27235: // NIP-98 HTTP Auth - temporary, don't store
-        return false;
-      default:
-        // For unknown kinds, default to false to be safe
-        // Can be made more permissive later if needed
-        return false;
-    }
-  }
 
   /// Create and sign a Nostr event
   Future<Event?> createAndSignEvent({
@@ -425,10 +405,6 @@ class AuthService {
             eventTags.add(['expiration', expirationTimestamp.toString()]);
           }
 
-          // Only add vine tag for content events, not temporary auth events
-          if (_shouldAddVineTag(kind)) {
-            eventTags.add(['h', 'vine']); // Required by OpenVine relays
-          }
 
           final event = Event(
             _currentKeyContainer!.publicKeyHex,

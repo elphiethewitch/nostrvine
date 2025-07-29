@@ -78,6 +78,10 @@
 		{
 			"binding": "UPLOAD_ANALYTICS",
 			"dataset": "nostrvine_uploads"
+		},
+		{
+			"binding": "VIDEO_ANALYTICS",
+			"dataset": "nostrvine_video_views"
 		}
 	],
 
@@ -132,6 +136,10 @@
 				{
 					"binding": "UPLOAD_ANALYTICS",
 					"dataset": "nostrvine_uploads"
+				},
+				{
+					"binding": "VIDEO_ANALYTICS",
+					"dataset": "nostrvine_video_views"
 				}
 			]
 		}

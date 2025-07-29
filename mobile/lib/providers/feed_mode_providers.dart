@@ -36,6 +36,12 @@ class FeedModeNotifier extends _$FeedModeNotifier {
     ref.read(feedContextProvider.notifier).setContext(pubkey);
   }
 
+  /// Switch to search mode with specific query
+  void setSearchMode(String query) {
+    state = FeedMode.search;
+    ref.read(feedContextProvider.notifier).setContext(query);
+  }
+
   /// Switch to following feed
   void showFollowing() => setMode(FeedMode.following);
 
@@ -47,7 +53,7 @@ class FeedModeNotifier extends _$FeedModeNotifier {
 
   /// Check if current mode requires context
   bool get requiresContext =>
-      state == FeedMode.hashtag || state == FeedMode.profile;
+      state == FeedMode.hashtag || state == FeedMode.profile || state == FeedMode.search;
 }
 
 /// Provider for managing feed context (hashtag or pubkey)

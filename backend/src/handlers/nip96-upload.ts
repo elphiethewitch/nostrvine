@@ -28,6 +28,7 @@ import {
   ContentSafetyResult 
 } from './csam-detection';
 import { MetadataStore } from '../services/metadata-store';
+import { extractVineIdFromFilename } from '../utils/vine-id-extractor';
 
 /**
  * Handle NIP-96 file upload requests
@@ -462,6 +463,28 @@ async function processDirectUpload(
       try {
         await metadataStore.setFileIdBySha256(sha256Hash, fileId);
         console.log(`✅ SHA256 mapping stored for deduplication: ${sha256Hash} -> ${fileId}`);
+        
+        // Store vine ID and filename mappings for lookup API
+        const originalFilename = file.name;
+        const vineId = extractVineIdFromFilename(originalFilename);
+        
+        if (vineId) {
+          try {
+            await metadataStore.setVineIdMapping(vineId, fileId, originalFilename);
+            console.log(`✅ Vine ID mapping stored: ${vineId} -> ${fileId}`);
+          } catch (vineError) {
+            console.error('Failed to store vine ID mapping:', vineError);
+          }
+        }
+        
+        if (originalFilename) {
+          try {
+            await metadataStore.setFilenameMapping(originalFilename, fileId, vineId);
+            console.log(`✅ Filename mapping stored: ${originalFilename} -> ${fileId}`);
+          } catch (filenameError) {
+            console.error('Failed to store filename mapping:', filenameError);
+          }
+        }
       } catch (error) {
         console.error('Failed to store SHA256 mapping:', error);
         // Continue even if mapping fails - upload was successful

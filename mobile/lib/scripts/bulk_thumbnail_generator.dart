@@ -1,11 +1,8 @@
 // ABOUTME: Bulk thumbnail generation script for videos without thumbnails
 // ABOUTME: Fetches Kind 22 events from relay1.openvine.co and generates thumbnails via API service
 
-import 'dart:convert';
 import 'dart:io';
-import 'package:http/http.dart' as http;
 import 'package:nostr_sdk/filter.dart';
-import 'package:nostr_sdk/event.dart';
 import 'package:openvine/models/video_event.dart';
 import 'package:openvine/services/nostr_service.dart';
 import 'package:openvine/services/nostr_key_manager.dart';

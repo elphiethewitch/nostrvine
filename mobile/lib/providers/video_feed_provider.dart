@@ -8,6 +8,7 @@ import 'package:openvine/models/video_event.dart';
 import 'package:openvine/providers/app_providers.dart';
 import 'package:openvine/providers/curation_providers.dart';
 import 'package:openvine/providers/feed_mode_providers.dart';
+import 'package:openvine/providers/search_provider.dart';
 import 'package:openvine/providers/social_providers.dart' as social;
 import 'package:openvine/providers/user_profile_providers.dart';
 import 'package:openvine/providers/video_events_providers.dart';
@@ -43,6 +44,15 @@ class VideoFeed extends _$VideoFeed {
       sourceVideos = curationState.editorsPicks;
       Log.info(
         'VideoFeed: Using curated videos (${sourceVideos.length} editor picks)',
+        name: 'VideoFeedProvider',
+        category: LogCategory.video,
+      );
+    } else if (feedMode == FeedMode.search) {
+      // For search mode, get videos from search provider
+      final searchResults = ref.watch(searchResultsProvider);
+      sourceVideos = searchResults;
+      Log.info(
+        'VideoFeed: Using search results (${sourceVideos.length} videos)',
         name: 'VideoFeedProvider',
         category: LogCategory.video,
       );
@@ -91,7 +101,7 @@ class VideoFeed extends _$VideoFeed {
         FeedMode.following => followingList.toSet(),
         FeedMode.curated => {AppConstants.classicVinesPubkey},
         FeedMode.profile => context != null ? {context} : {},
-        _ => {}, // Discovery and hashtag modes have no primary pubkeys
+        _ => {}, // Discovery, hashtag, and search modes have no primary pubkeys
       };
 
   List<VideoEvent> _filterVideos(
@@ -123,6 +133,10 @@ class VideoFeed extends _$VideoFeed {
 
       case FeedMode.discovery:
         // Include all videos
+        return videos;
+
+      case FeedMode.search:
+        // Search results are already filtered, just return them
         return videos;
     }
   }

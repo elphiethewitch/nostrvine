@@ -78,9 +78,7 @@ void main() {
           .thenAnswer((_) => const Stream.empty());
 
       // Build the widget
-      await tester.pumpWidget(
-        MaterialApp(
-          home: final container = ProviderContainer(
+      final container = ProviderContainer(
         overrides: [
           socialServiceProvider.overrideWithValue(mockSocialService),
           userProfileServiceProvider.overrideWithValue(mockUserProfileService),
@@ -88,16 +86,15 @@ void main() {
         ],
       );
       
-      return ProviderScope(
-        parent: container,
-        child: MaterialApp(
-          home: Scaffold(
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
               body: VideoFeedItem(
                 video: testVideo,
                 isActive: true,
-              
-        ),
-      ),
+              ),
             ),
           ),
         ),

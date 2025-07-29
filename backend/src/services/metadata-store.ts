@@ -249,6 +249,106 @@ export class MetadataStore {
   }
 
   /**
+   * Set vine ID to fileId mapping for lookup
+   */
+  async setVineIdMapping(vineId: string, fileId: string, originalFilename?: string): Promise<void> {
+    try {
+      const vineKey = `vine_id:${vineId}`;
+      const mappingData = {
+        fileId,
+        originalFilename,
+        uploadedAt: Date.now()
+      };
+      
+      await this.kv.put(vineKey, JSON.stringify(mappingData), {
+        expirationTtl: 60 * 60 * 24 * 365 // 1 year
+      });
+    } catch (error) {
+      console.error(`Failed to set vine ID mapping for ${vineId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get fileId from vine ID
+   */
+  async getFileIdByVineId(vineId: string): Promise<{ fileId: string; originalFilename?: string; uploadedAt: number } | null> {
+    try {
+      const vineKey = `vine_id:${vineId}`;
+      const mappingData = await this.kv.get(vineKey, 'json');
+      return mappingData as { fileId: string; originalFilename?: string; uploadedAt: number } | null;
+    } catch (error) {
+      console.error(`Failed to get fileId for vine ID ${vineId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Set filename to fileId mapping for lookup
+   */
+  async setFilenameMapping(originalFilename: string, fileId: string, vineId?: string): Promise<void> {
+    try {
+      const filenameKey = `filename:${originalFilename}`;
+      const mappingData = {
+        fileId,
+        vineId,
+        uploadedAt: Date.now()
+      };
+      
+      await this.kv.put(filenameKey, JSON.stringify(mappingData), {
+        expirationTtl: 60 * 60 * 24 * 365 // 1 year
+      });
+    } catch (error) {
+      console.error(`Failed to set filename mapping for ${originalFilename}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get fileId from original filename
+   */
+  async getFileIdByFilename(originalFilename: string): Promise<{ fileId: string; vineId?: string; uploadedAt: number } | null> {
+    try {
+      const filenameKey = `filename:${originalFilename}`;
+      const mappingData = await this.kv.get(filenameKey, 'json');
+      return mappingData as { fileId: string; vineId?: string; uploadedAt: number } | null;
+    } catch (error) {
+      console.error(`Failed to get fileId for filename ${originalFilename}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Get file metadata from R2 (for size and content type info)
+   */
+  async getFileMetadataFromR2(fileId: string, mediaBucket: R2Bucket): Promise<{ size: number; contentType: string } | null> {
+    try {
+      const objectKey = `uploads/${fileId}.mp4`; // Most uploads are MP4
+      const object = await mediaBucket.head(objectKey);
+      
+      if (!object) {
+        // Try without .mp4 extension
+        const altKey = `uploads/${fileId}`;
+        const altObject = await mediaBucket.head(altKey);
+        if (!altObject) return null;
+        
+        return {
+          size: altObject.size,
+          contentType: altObject.httpMetadata?.contentType || 'application/octet-stream'
+        };
+      }
+      
+      return {
+        size: object.size,
+        contentType: object.httpMetadata?.contentType || 'video/mp4'
+      };
+    } catch (error) {
+      console.error(`Failed to get R2 metadata for fileId ${fileId}:`, error);
+      return null;
+    }
+  }
+
+  /**
    * Clear request cache (call at end of request)
    */
   static clearRequestCache(): void {

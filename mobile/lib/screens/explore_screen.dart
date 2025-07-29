@@ -5,13 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:openvine/models/curation_set.dart';
 import 'package:openvine/models/video_event.dart';
 import 'package:openvine/screens/hashtag_feed_screen.dart';
-import 'package:openvine/screens/search_screen.dart';
 import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/utils/unified_logger.dart';
 import 'package:openvine/widgets/video_explore_tile.dart';
 import 'package:openvine/widgets/video_feed_item.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:openvine/providers/app_providers.dart';
+import 'package:openvine/providers/curation_providers.dart' as curation_providers;
 import 'package:openvine/providers/video_events_providers.dart';
 import 'package:openvine/providers/video_manager_providers.dart';
 import 'package:openvine/providers/user_profile_providers.dart';
@@ -89,7 +89,13 @@ class ExploreScreenState extends ConsumerState<ExploreScreen>
         _currentVideoIndex = 0;
       });
 
-      // No special fetching needed - Popular Now and Trending use videoEventService directly
+      // Trigger refresh when switching to Trending tab (index 2)
+      if (_tabController.index == 2) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final trendingProvider = ref.read(curation_providers.analyticsTrendingProvider.notifier);
+          trendingProvider.refresh();
+        });
+      }
     }
   }
   
@@ -148,7 +154,22 @@ class ExploreScreenState extends ConsumerState<ExploreScreen>
     Log.debug('🎬 Entering feed mode for video ${videos[startIndex].id} at index $startIndex', 
         name: 'ExploreScreen', category: LogCategory.ui);
     
-    // Preload the current video and surrounding videos in VideoManager before entering feed mode
+    // For videos from analytics API or other sources, we need to add them to VideoManager first
+    // This includes: Editor's Picks (index 0), Trending (index 2), and hashtag filtered videos
+    final videoManager = ref.read(videoManagerProvider.notifier);
+    
+    // Add all videos to VideoManager first (synchronously before entering feed mode)
+    for (final video in videos) {
+      try {
+        videoManager.addVideoEvent(video);
+      } catch (e) {
+        // Video might already exist, that's ok
+        Log.verbose('Video already in manager: ${video.id}', 
+            name: 'ExploreScreen', category: LogCategory.ui);
+      }
+    }
+    
+    // Now preload the current video and surrounding videos in VideoManager
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final videoManager = ref.read(videoManagerProvider.notifier);
       
@@ -424,11 +445,9 @@ class ExploreScreenState extends ConsumerState<ExploreScreen>
                   IconButton(
                     icon: const Icon(Icons.search, color: VineTheme.whiteText),
                     onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const SearchScreen(),
-                        ),
-                      );
+                      // TODO: Implement search functionality
+                      Log.debug('Search button pressed', 
+                          name: 'ExploreScreen', category: LogCategory.ui);
                     },
                   ),
                 ],
@@ -444,7 +463,7 @@ class ExploreScreenState extends ConsumerState<ExploreScreen>
                   onTap: _handleTabTap,
                   tabs: const [
                     Tab(text: "EDITOR'S PICKS"),
-                    Tab(text: 'POPULAR NOW'),
+                    Tab(text: 'NEW VINES'),
                     Tab(text: 'TRENDING'),
                   ],
                 ),
@@ -464,11 +483,9 @@ class ExploreScreenState extends ConsumerState<ExploreScreen>
                   IconButton(
                     icon: const Icon(Icons.search, color: VineTheme.whiteText),
                     onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const SearchScreen(),
-                        ),
-                      );
+                      // TODO: Implement search functionality
+                      Log.debug('Search button pressed', 
+                          name: 'ExploreScreen', category: LogCategory.ui);
                     },
                   ),
                 ],
@@ -484,7 +501,7 @@ class ExploreScreenState extends ConsumerState<ExploreScreen>
                   onTap: _handleTabTap,
                   tabs: const [
                     Tab(text: "EDITOR'S PICKS"),
-                    Tab(text: 'POPULAR NOW'),
+                    Tab(text: 'NEW VINES'),
                     Tab(text: 'TRENDING'),
                   ],
                 ),
@@ -660,33 +677,42 @@ class ExploreScreenState extends ConsumerState<ExploreScreen>
                           );
                         },
                       )
-                    : GridView.builder(
-                        padding: const EdgeInsets.all(1),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount:
-                              MediaQuery.of(context).size.width < 600
-                                  ? 3
-                                  : MediaQuery.of(context).size.width < 900
-                                      ? 4
-                                      : MediaQuery.of(context).size.width < 1200
-                                          ? 5
-                                          : 6,
-                          crossAxisSpacing: 1,
-                          mainAxisSpacing: 1,
-                          childAspectRatio: 1,
-                        ),
-                        itemCount: editorsPicks.length,
-                        itemBuilder: (context, index) {
-                          final video = editorsPicks[index];
-                          return VideoExploreTile(
-                            video: video,
-                            isActive: false,
-                            onTap: () {
-                              _enterFeedMode(editorsPicks, index);
-                            },
-                            onClose: _exitFeedMode,
-                          );
+                    : RefreshIndicator(
+                        color: VineTheme.vineGreen,
+                        onRefresh: () async {
+                          // Refresh editor's picks curation data
+                          final curationProvider = ref.read(curation_providers.curationProvider.notifier);
+                          await curationProvider.forceRefresh();
                         },
+                        child: GridView.builder(
+                          padding: const EdgeInsets.all(1),
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount:
+                                MediaQuery.of(context).size.width < 600
+                                    ? 3
+                                    : MediaQuery.of(context).size.width < 900
+                                        ? 4
+                                        : MediaQuery.of(context).size.width < 1200
+                                            ? 5
+                                            : 6,
+                            crossAxisSpacing: 1,
+                            mainAxisSpacing: 1,
+                            childAspectRatio: 1,
+                          ),
+                          itemCount: editorsPicks.length,
+                          itemBuilder: (context, index) {
+                            final video = editorsPicks[index];
+                            return VideoExploreTile(
+                              video: video,
+                              isActive: false,
+                              onTap: () {
+                                _enterFeedMode(editorsPicks, index);
+                              },
+                              onClose: _exitFeedMode,
+                            );
+                          },
+                        ),
                       ),
               ),
             ],
@@ -1193,65 +1219,30 @@ class ExploreScreenState extends ConsumerState<ExploreScreen>
   }
 
   Widget _buildTrendingVideoGrid() {
-    // Use the proper Riverpod provider that reactively updates
-    final asyncVideoEvents = ref.watch(videoEventsProvider);
+    // Use analytics trending provider for data sorted by actual popularity
+    final analyticsTrendingVideos = ref.watch(curation_providers.analyticsTrendingProvider);
     
-    return asyncVideoEvents.when(
-      loading: () => const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(
-              color: VineTheme.vineGreen,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Loading Trending Videos...',
-              style: TextStyle(
-                color: VineTheme.primaryText,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-      error: (error, stack) => const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(
-              color: VineTheme.vineGreen,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Loading Trending Videos...',
-              style: TextStyle(
-                color: VineTheme.primaryText,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-      data: (allVideos) {
-        // Sort by creation time for trending
-        final trendingVideos = List<VideoEvent>.from(allVideos)
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        
-        // Take videos up to current limit for trending
-        final videos = trendingVideos.take(_trendingLimit).toList();
-
-        Log.debug('Trending: ${videos.length} videos available',
-            name: 'ExploreScreen', category: LogCategory.ui);
-
-        if (videos.isEmpty) {
-          return RefreshIndicator(
+    // If we have very few videos, trigger a refresh
+    if (analyticsTrendingVideos.length < 10) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final trendingProvider = ref.read(curation_providers.analyticsTrendingProvider.notifier);
+        trendingProvider.refresh();
+      });
+    }
+    
+    // Take videos up to current limit for trending
+    final videos = analyticsTrendingVideos.take(_trendingLimit).toList();
+    
+    Log.debug('Trending: ${videos.length} videos from analytics',
+        name: 'ExploreScreen', category: LogCategory.ui);
+    
+    if (videos.isEmpty) {
+      return RefreshIndicator(
             color: VineTheme.vineGreen,
             onRefresh: () async {
-              // Invalidate the video events provider to refresh
-              ref.invalidate(videoEventsProvider);
+              // Refresh analytics trending data
+              final trendingProvider = ref.read(curation_providers.analyticsTrendingProvider.notifier);
+              await trendingProvider.refresh();
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -1290,15 +1281,15 @@ class ExploreScreenState extends ConsumerState<ExploreScreen>
               ),
             ),
           );
-        }
-        
-        // Batch fetch profiles for the first visible trending videos
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _batchFetchProfilesAroundIndex(0, videos);
-        });
+    }
+    
+    // Batch fetch profiles for the first visible trending videos
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _batchFetchProfilesAroundIndex(0, videos);
+    });
 
-        // Check if we should show feed mode or grid mode
-        if (_isInFeedMode) {
+    // Check if we should show feed mode or grid mode
+    if (_isInFeedMode) {
           debugPrint('📱 Building trending feed mode with ${_currentTabVideos.length} videos, currentIndex = $_currentVideoIndex');
           // Full-screen video feed mode
           return PageView.builder(
@@ -1341,7 +1332,10 @@ class ExploreScreenState extends ConsumerState<ExploreScreen>
               setState(() {
                 _trendingLimit = 100;
               });
-              ref.invalidate(videoEventsProvider);
+              
+              // Refresh analytics trending data
+              final trendingProvider = ref.read(curation_providers.analyticsTrendingProvider.notifier);
+              await trendingProvider.refresh();
             },
             child: CustomScrollView(
               slivers: [
@@ -1372,7 +1366,7 @@ class ExploreScreenState extends ConsumerState<ExploreScreen>
                   ),
                 ),
                 // Load more button if there are more videos available
-                if (videos.length >= _trendingLimit && _trendingLimit < allVideos.length)
+                if (videos.length >= _trendingLimit && _trendingLimit < analyticsTrendingVideos.length)
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
@@ -1394,8 +1388,6 @@ class ExploreScreenState extends ConsumerState<ExploreScreen>
               ],
             ),
           );
-        }
-      },
-    );
+    }
   }
 }

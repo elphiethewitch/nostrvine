@@ -6,7 +6,7 @@ part of 'profile_videos_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$profileVideosHash() => r'a782bbe009434dcd9c5f9684fe168c38816c9fe3';
+String _$profileVideosHash() => r'f8ef8460abfb0210cd0053cf350d2e617344a8a4';
 
 /// Copied from Dart SDK
 class _SystemHash {
@@ -172,14 +172,14 @@ class _ProfileVideosProviderElement
 }
 
 String _$profileVideosNotifierHash() =>
-    r'00f2c2333faa5c73a3517636643ffcfae328632c';
+    r'5539961403e06a3c42e2eeaae34db51bbe2056c8';
 
 /// Notifier for managing profile videos state
 ///
 /// Copied from [ProfileVideosNotifier].
 @ProviderFor(ProfileVideosNotifier)
-final profileVideosNotifierProvider = AutoDisposeNotifierProvider<
-    ProfileVideosNotifier, ProfileVideosState>.internal(
+final profileVideosNotifierProvider =
+    NotifierProvider<ProfileVideosNotifier, ProfileVideosState>.internal(
   ProfileVideosNotifier.new,
   name: r'profileVideosNotifierProvider',
   debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
@@ -189,6 +189,6 @@ final profileVideosNotifierProvider = AutoDisposeNotifierProvider<
   allTransitiveDependencies: null,
 );
 
-typedef _$ProfileVideosNotifier = AutoDisposeNotifier<ProfileVideosState>;
+typedef _$ProfileVideosNotifier = Notifier<ProfileVideosState>;
 // ignore_for_file: type=lint
 // ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package

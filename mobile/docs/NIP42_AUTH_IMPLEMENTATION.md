@@ -1,7 +1,7 @@
 # NIP-42 Authentication Implementation Required
 
 ## Problem
-The vine.hol.is relay requires NIP-42 authentication, but the current nostr_sdk doesn't implement it. This is causing profile updates and other events to fail.
+Some Nostr relays require NIP-42 authentication, but the current nostr_sdk doesn't implement it. This can cause profile updates and other events to fail on authenticated relays.
 
 ## What is NIP-42?
 NIP-42 defines authentication for Nostr relays. When a relay requires authentication:
@@ -60,8 +60,8 @@ Until NIP-42 is implemented in the SDK, consider:
 3. Using a relay that doesn't require authentication (not recommended)
 
 ## Testing
-Once implemented, test with:
-1. Connect to vine.hol.is
+Once implemented, test with an authenticated relay:
+1. Connect to the relay
 2. Verify AUTH challenge is received
 3. Verify AUTH response is sent
 4. Verify events can be both sent AND retrieved

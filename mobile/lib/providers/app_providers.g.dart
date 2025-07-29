@@ -587,6 +587,43 @@ final curatedListServiceProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef CuratedListServiceRef = AutoDisposeProviderRef<CuratedListService>;
+String _$bookmarkServiceHash() => r'0c1dceed1b58fd881204e8f9d2e2f31a6819899a';
+
+/// Bookmark service for NIP-51 bookmarks (temporarily using FakeSharedPreferences)
+///
+/// Copied from [bookmarkService].
+@ProviderFor(bookmarkService)
+final bookmarkServiceProvider = AutoDisposeProvider<BookmarkService>.internal(
+  bookmarkService,
+  name: r'bookmarkServiceProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$bookmarkServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef BookmarkServiceRef = AutoDisposeProviderRef<BookmarkService>;
+String _$muteServiceHash() => r'5c47d4d12a0931b6bb46a76f2d00db1dc0c6e50e';
+
+/// Mute service for NIP-51 mute lists (temporarily using FakeSharedPreferences)
+///
+/// Copied from [muteService].
+@ProviderFor(muteService)
+final muteServiceProvider = AutoDisposeProvider<MuteService>.internal(
+  muteService,
+  name: r'muteServiceProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$muteServiceHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef MuteServiceRef = AutoDisposeProviderRef<MuteService>;
 String _$videoSharingServiceHash() =>
     r'143e8562ab0f2c7df911141f5fcc53ec13a5b82a';
 

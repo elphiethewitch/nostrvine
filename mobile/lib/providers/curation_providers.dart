@@ -3,8 +3,8 @@
 
 import 'package:openvine/models/curation_set.dart';
 import 'package:openvine/models/video_event.dart';
+import 'package:openvine/providers/app_providers.dart';
 import 'package:openvine/providers/video_events_providers.dart';
-import 'package:openvine/services/curation_service.dart';
 import 'package:openvine/state/curation_state.dart';
 import 'package:openvine/utils/unified_logger.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -12,12 +12,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 part 'curation_providers.g.dart';
 
-/// Provider for CurationService instance
-@riverpod
-CurationService curationService(Ref ref) {
-  throw UnimplementedError(
-      'CurationService must be overridden in ProviderScope');
-}
 
 /// Main curation provider that manages curated content sets
 @riverpod
@@ -159,3 +153,88 @@ bool curationLoading(Ref ref) =>
 @riverpod
 List<VideoEvent> editorsPicks(Ref ref) =>
     ref.watch(curationProvider.select((state) => state.editorsPicks));
+
+/// Provider for analytics-based trending videos
+@riverpod
+class AnalyticsTrending extends _$AnalyticsTrending {
+  @override
+  List<VideoEvent> build() {
+    // Return cached trending videos from service
+    final service = ref.read(curationServiceProvider);
+    return service.analyticsTrendingVideos;
+  }
+
+  /// Refresh trending videos from analytics API
+  Future<void> refresh() async {
+    final service = ref.read(curationServiceProvider);
+    
+    Log.info(
+      'AnalyticsTrending: Refreshing trending videos from analytics API',
+      name: 'AnalyticsTrendingProvider',
+      category: LogCategory.system,
+    );
+
+    try {
+      await service.refreshTrendingFromAnalytics();
+      
+      // Update state with new trending videos
+      state = service.analyticsTrendingVideos;
+      
+      Log.info(
+        'AnalyticsTrending: Loaded ${state.length} trending videos',
+        name: 'AnalyticsTrendingProvider',
+        category: LogCategory.system,
+      );
+    } catch (e) {
+      Log.error(
+        'AnalyticsTrending: Error refreshing: $e',
+        name: 'AnalyticsTrendingProvider',
+        category: LogCategory.system,
+      );
+      // Keep existing state on error
+    }
+  }
+}
+
+/// Provider for analytics-based popular videos (same as trending for now)
+@riverpod
+class AnalyticsPopular extends _$AnalyticsPopular {
+  @override
+  List<VideoEvent> build() {
+    // For now, popular videos use the same analytics data as trending
+    // In the future, this could be enhanced with different time windows or metrics
+    final service = ref.read(curationServiceProvider);
+    return service.analyticsTrendingVideos;
+  }
+
+  /// Refresh popular videos from analytics API
+  Future<void> refresh() async {
+    final service = ref.read(curationServiceProvider);
+    
+    Log.info(
+      'AnalyticsPopular: Refreshing popular videos from analytics API',
+      name: 'AnalyticsPopularProvider',
+      category: LogCategory.system,
+    );
+
+    try {
+      await service.refreshTrendingFromAnalytics();
+      
+      // Update state with new popular videos (same as trending for now)
+      state = service.analyticsTrendingVideos;
+      
+      Log.info(
+        'AnalyticsPopular: Loaded ${state.length} popular videos',
+        name: 'AnalyticsPopularProvider',
+        category: LogCategory.system,
+      );
+    } catch (e) {
+      Log.error(
+        'AnalyticsPopular: Error refreshing: $e',
+        name: 'AnalyticsPopularProvider',
+        category: LogCategory.system,
+      );
+      // Keep existing state on error
+    }
+  }
+}

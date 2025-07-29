@@ -6,7 +6,7 @@ part of 'feed_mode_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$feedModeNotifierHash() => r'0ca607e8db828ae1d61458f76967212f98059d5f';
+String _$feedModeNotifierHash() => r'7fd545ea4858ecc25cf0fc02613c3058bbe67f6c';
 
 /// Provider for managing the current feed mode
 ///

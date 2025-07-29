@@ -9,6 +9,7 @@ import 'package:openvine/services/nostr_service.dart';
 import 'package:openvine/services/nostr_key_manager.dart';
 import 'package:openvine/services/subscription_manager.dart';
 import 'package:openvine/services/video_event_service.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 void main() {
   // Initialize Flutter bindings and mock platform dependencies for test environment
@@ -61,9 +62,9 @@ void main() {
       await nostrService.initialize(customRelays: ['wss://vine.hol.is']);
       
       // Wait for connection to stabilize
-      print('⏳ Waiting for relay connection...');
+      Log.info('⏳ Waiting for relay connection...', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
       await Future.delayed(Duration(seconds: 3));
-      print('✅ Connection status: ${nostrService.connectedRelayCount} relays connected');
+      Log.info('✅ Connection status: ${nostrService.connectedRelayCount} relays connected', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
       
       subscriptionManager = SubscriptionManager(nostrService);
       videoEventService = VideoEventService(nostrService, subscriptionManager: subscriptionManager);
@@ -77,7 +78,7 @@ void main() {
     });
 
     test('VideoEventService should receive videos from vine.hol.is relay', () async {
-      print('🔍 Testing VideoEventService with real vine.hol.is relay...');
+      Log.debug('🔍 Testing VideoEventService with real vine.hol.is relay...', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
       
       final receivedVideos = <VideoEvent>[];
       final completer = Completer<void>();
@@ -85,15 +86,15 @@ void main() {
       // Listen to VideoEventService changes
       void onVideoEventChange() {
         final events = videoEventService.videoEvents;
-        print('📹 VideoEventService updated: ${events.length} total events');
+        Log.debug('📹 VideoEventService updated: ${events.length} total events', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
         
         for (final event in events) {
           if (!receivedVideos.any((v) => v.id == event.id)) {
             receivedVideos.add(event);
-            print('✅ New video: ${event.title ?? event.id.substring(0, 8)} (hasVideo: ${event.hasVideo})');
-            print('   - URL: ${event.videoUrl}');
-            print('   - Author: ${event.pubkey.substring(0, 8)}');
-            print('   - Hashtags: ${event.hashtags}');
+            Log.info('✅ New video: ${event.title ?? event.id.substring(0, 8)} (hasVideo: ${event.hasVideo})', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
+            Log.info('   - URL: ${event.videoUrl}', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
+            Log.info('   - Author: ${event.pubkey.substring(0, 8)}', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
+            Log.info('   - Hashtags: ${event.hashtags}', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
           }
         }
         
@@ -111,21 +112,21 @@ void main() {
       
       try {
         // Subscribe to video feed (same as app does)
-        print('📡 Subscribing to video feed...');
+        Log.debug('📡 Subscribing to video feed...', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
         await videoEventService.subscribeToVideoFeed(
           limit: 10,
           includeReposts: false,
         );
         
-        print('📡 Subscription created. Waiting for events...');
-        print('📡 VideoEventService isSubscribed: ${videoEventService.isSubscribed}');
-        print('📡 VideoEventService isLoading: ${videoEventService.isLoading}');
-        print('📡 VideoEventService error: ${videoEventService.error}');
+        Log.debug('📡 Subscription created. Waiting for events...', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
+        Log.debug('📡 VideoEventService isSubscribed: ${videoEventService.isSubscribed}', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
+        Log.debug('📡 VideoEventService isLoading: ${videoEventService.isLoading}', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
+        Log.debug('📡 VideoEventService error: ${videoEventService.error}', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
         
         // Wait for events with reasonable timeout
         await completer.future.timeout(Duration(seconds: 15));
         
-        print('🎉 SUCCESS! Received ${receivedVideos.length} videos from real relay');
+        Log.info('🎉 SUCCESS! Received ${receivedVideos.length} videos from real relay', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
         
         // Verify we got videos
         expect(receivedVideos.length, greaterThan(0), 
@@ -136,17 +137,17 @@ void main() {
         expect(videosWithUrls.length, greaterThan(0), 
           reason: 'Should receive videos with valid URLs');
         
-        print('✅ Test passed! ${videosWithUrls.length} videos have valid URLs');
+        Log.info('✅ Test passed! ${videosWithUrls.length} videos have valid URLs', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
         
       } catch (e) {
-        print('❌ Test failed: $e');
-        print('🔍 Final state:');
-        print('  - VideoEventService isSubscribed: ${videoEventService.isSubscribed}');
-        print('  - VideoEventService eventCount: ${videoEventService.eventCount}');
-        print('  - VideoEventService hasEvents: ${videoEventService.hasEvents}');
-        print('  - VideoEventService error: ${videoEventService.error}');
-        print('  - Received videos: ${receivedVideos.length}');
-        print('  - NostrService connectedRelayCount: ${nostrService.connectedRelayCount}');
+        Log.error('❌ Test failed: $e', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
+        Log.error('🔍 Final state:', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
+        Log.error('  - VideoEventService isSubscribed: ${videoEventService.isSubscribed}', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
+        Log.error('  - VideoEventService eventCount: ${videoEventService.eventCount}', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
+        Log.error('  - VideoEventService hasEvents: ${videoEventService.hasEvents}', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
+        Log.error('  - VideoEventService error: ${videoEventService.error}', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
+        Log.error('  - Received videos: ${receivedVideos.length}', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
+        Log.error('  - NostrService connectedRelayCount: ${nostrService.connectedRelayCount}', name: 'RealVideoSubscriptionTest', category: LogCategory.system);
         
         rethrow;
       } finally {

@@ -85,6 +85,12 @@ class MockSocialService extends _i1.Mock implements _i5.SocialService {
       ) as List<String>);
 
   @override
+  List<_i5.FollowSet> get followSets => (super.noSuchMethod(
+        Invocation.getter(#followSets),
+        returnValue: <_i5.FollowSet>[],
+      ) as List<_i5.FollowSet>);
+
+  @override
   bool isLiked(String? eventId) => (super.noSuchMethod(
         Invocation.method(
           #isLiked,
@@ -124,6 +130,29 @@ class MockSocialService extends _i1.Mock implements _i5.SocialService {
         #getCachedFollowerStats,
         [pubkey],
       )) as Map<String, int>?);
+
+  @override
+  _i5.FollowSet? getFollowSetById(String? setId) =>
+      (super.noSuchMethod(Invocation.method(
+        #getFollowSetById,
+        [setId],
+      )) as _i5.FollowSet?);
+
+  @override
+  bool isInFollowSet(
+    String? setId,
+    String? pubkey,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #isInFollowSet,
+          [
+            setId,
+            pubkey,
+          ],
+        ),
+        returnValue: false,
+      ) as bool);
 
   @override
   _i6.Future<void> toggleLike(
@@ -203,6 +232,89 @@ class MockSocialService extends _i1.Mock implements _i5.SocialService {
         ),
         returnValue: _i6.Future<Map<String, int>>.value(<String, int>{}),
       ) as _i6.Future<Map<String, int>>);
+
+  @override
+  _i6.Future<_i5.FollowSet?> createFollowSet({
+    required String? name,
+    String? description,
+    String? imageUrl,
+    List<String>? initialPubkeys = const [],
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #createFollowSet,
+          [],
+          {
+            #name: name,
+            #description: description,
+            #imageUrl: imageUrl,
+            #initialPubkeys: initialPubkeys,
+          },
+        ),
+        returnValue: _i6.Future<_i5.FollowSet?>.value(),
+      ) as _i6.Future<_i5.FollowSet?>);
+
+  @override
+  _i6.Future<bool> addToFollowSet(
+    String? setId,
+    String? pubkey,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #addToFollowSet,
+          [
+            setId,
+            pubkey,
+          ],
+        ),
+        returnValue: _i6.Future<bool>.value(false),
+      ) as _i6.Future<bool>);
+
+  @override
+  _i6.Future<bool> removeFromFollowSet(
+    String? setId,
+    String? pubkey,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #removeFromFollowSet,
+          [
+            setId,
+            pubkey,
+          ],
+        ),
+        returnValue: _i6.Future<bool>.value(false),
+      ) as _i6.Future<bool>);
+
+  @override
+  _i6.Future<bool> updateFollowSet({
+    required String? setId,
+    String? name,
+    String? description,
+    String? imageUrl,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateFollowSet,
+          [],
+          {
+            #setId: setId,
+            #name: name,
+            #description: description,
+            #imageUrl: imageUrl,
+          },
+        ),
+        returnValue: _i6.Future<bool>.value(false),
+      ) as _i6.Future<bool>);
+
+  @override
+  _i6.Future<bool> deleteFollowSet(String? setId) => (super.noSuchMethod(
+        Invocation.method(
+          #deleteFollowSet,
+          [setId],
+        ),
+        returnValue: _i6.Future<bool>.value(false),
+      ) as _i6.Future<bool>);
 
   @override
   _i6.Future<int> getUserVideoCount(String? pubkey) => (super.noSuchMethod(
@@ -776,6 +888,28 @@ class MockINostrService extends _i1.Mock implements _i4.INostrService {
         returnValue: _i6.Future<void>.value(),
         returnValueForMissingStub: _i6.Future<void>.value(),
       ) as _i6.Future<void>);
+
+  @override
+  _i6.Stream<_i7.Event> searchVideos(
+    String? query, {
+    List<String>? authors,
+    DateTime? since,
+    DateTime? until,
+    int? limit,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #searchVideos,
+          [query],
+          {
+            #authors: authors,
+            #since: since,
+            #until: until,
+            #limit: limit,
+          },
+        ),
+        returnValue: _i6.Stream<_i7.Event>.empty(),
+      ) as _i6.Stream<_i7.Event>);
 
   @override
   void dispose() => super.noSuchMethod(

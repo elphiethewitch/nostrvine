@@ -630,6 +630,28 @@ class MockINostrService extends _i1.Mock implements _i4.INostrService {
       ) as _i7.Future<void>);
 
   @override
+  _i7.Stream<_i10.Event> searchVideos(
+    String? query, {
+    List<String>? authors,
+    DateTime? since,
+    DateTime? until,
+    int? limit,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #searchVideos,
+          [query],
+          {
+            #authors: authors,
+            #since: since,
+            #until: until,
+            #limit: limit,
+          },
+        ),
+        returnValue: _i7.Stream<_i10.Event>.empty(),
+      ) as _i7.Stream<_i10.Event>);
+
+  @override
   void dispose() => super.noSuchMethod(
         Invocation.method(
           #dispose,

@@ -117,21 +117,6 @@ class _ExploreVideoFeedScreenState extends ConsumerState<ExploreVideoFeedScreen>
     }
   }
 
-  void _onExploreVideosChanged() {
-    if (!mounted) return;
-
-    final newVideos =
-        _exploreVideoManager!.getVideosForType(widget.curationSetType);
-
-    if (newVideos.length != _videos.length) {
-      setState(() {
-        _videos = newVideos;
-      });
-
-      Log.debug('📱 Explore videos updated: ${_videos.length} videos available',
-          name: 'ExploreVideoFeedScreen', category: LogCategory.ui);
-    }
-  }
 
   void _onPageChanged(int index) {
     if (!_isInitialized || _videoManager == null) return;

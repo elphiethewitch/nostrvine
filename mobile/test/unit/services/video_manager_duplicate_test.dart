@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:openvine/models/video_event.dart';
 import 'package:openvine/providers/video_manager_providers.dart';
 import '../../builders/test_video_event_builder.dart';
+import 'package:openvine/utils/unified_logger.dart';
 // Helper function to create test videos
 VideoEvent createTestVideo({String? id, String? title}) {
   return TestVideoEventBuilder.create(id: id, title: title);
@@ -33,7 +34,7 @@ void main() {
       expect(currentState.hasController(testVideo.id), isFalse);
       
       // Call preloadVideo multiple times rapidly (simulating the duplicate bug)
-      print('🔍 TEST: Calling preloadVideo multiple times for ${testVideo.id.substring(0, 8)}...');
+      Log.debug('🔍 TEST: Calling preloadVideo multiple times for ${testVideo.id.substring(0, 8)}...', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
       
       // This should not create multiple controllers
       await videoManager.preloadVideo(testVideo.id);
@@ -43,8 +44,8 @@ void main() {
       // Check final state
       currentState = container.read(videoManagerProvider);
       
-      print('🔍 TEST: Final controller count: ${currentState.controllers.length}');
-      print('🔍 TEST: Controllers for this video: ${currentState.controllers.keys.where((id) => id == testVideo.id).length}');
+      Log.debug('🔍 TEST: Final controller count: ${currentState.controllers.length}', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
+      Log.debug('🔍 TEST: Controllers for this video: ${currentState.controllers.keys.where((id) => id == testVideo.id).length}', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
       
       // Should have exactly one controller for this video
       final videoControllers = currentState.controllers.keys
@@ -72,33 +73,33 @@ void main() {
       final videoManager = container.read(videoManagerProvider.notifier);
       
       // Initial preload
-      print('🔍 TEST: Initial preload for ${testVideo.id.substring(0, 8)}...');
+      Log.debug('🔍 TEST: Initial preload for ${testVideo.id.substring(0, 8)}...', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
       await videoManager.preloadVideo(testVideo.id);
       
       var currentState = container.read(videoManagerProvider);
       final afterPreloadCount = currentState.controllers.length;
-      print('🔍 TEST: Controllers after initial preload: $afterPreloadCount');
+      Log.debug('🔍 TEST: Controllers after initial preload: $afterPreloadCount', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
       
       // Multiple resume calls (this was part of the duplicate pattern in logs)
-      print('🔍 TEST: Multiple resume calls...');
+      Log.debug('🔍 TEST: Multiple resume calls...', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
       videoManager.resumeVideo(testVideo.id);
       videoManager.resumeVideo(testVideo.id);
       videoManager.resumeVideo(testVideo.id);
       
       // Multiple pause calls
-      print('🔍 TEST: Multiple pause calls...');
+      Log.debug('🔍 TEST: Multiple pause calls...', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
       videoManager.pauseVideo(testVideo.id);
       videoManager.pauseVideo(testVideo.id);
       
       // More resume calls (like scroll behavior)
-      print('🔍 TEST: More resume calls (scroll simulation)...');
+      Log.debug('🔍 TEST: More resume calls (scroll simulation)...', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
       videoManager.resumeVideo(testVideo.id);
       videoManager.resumeVideo(testVideo.id);
       
       currentState = container.read(videoManagerProvider);
       final finalControllerCount = currentState.controllers.length;
       
-      print('🔍 TEST: Final controller count: $finalControllerCount');
+      Log.debug('🔍 TEST: Final controller count: $finalControllerCount', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
       
       // Should still have exactly one controller
       expect(
@@ -133,12 +134,12 @@ void main() {
       
       final videoManager = container.read(videoManagerProvider.notifier);
       
-      print('🔍 TEST: Simulating rapid scroll through ${videos.length} videos...');
+      Log.debug('🔍 TEST: Simulating rapid scroll through ${videos.length} videos...', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
       
       // Simulate rapid scrolling - this was the pattern that created duplicates
       for (int i = 0; i < videos.length; i++) {
         final video = videos[i];
-        print('🔍 TEST: Scrolling to video $i: ${video.id.substring(0, 8)}...');
+        Log.debug('🔍 TEST: Scrolling to video $i: ${video.id.substring(0, 8)}...', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
         
         // Pause previous videos (like real scroll behavior)
         for (int j = 0; j < i; j++) {
@@ -156,8 +157,8 @@ void main() {
       
       final finalState = container.read(videoManagerProvider);
       
-      print('🔍 TEST: Final state after scroll simulation:');
-      print('🔍 TEST: Total controllers: ${finalState.controllers.length}');
+      Log.debug('🔍 TEST: Final state after scroll simulation:', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
+      Log.debug('🔍 TEST: Total controllers: ${finalState.controllers.length}', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
       
       // Each video should have exactly one controller
       for (int i = 0; i < videos.length; i++) {
@@ -166,7 +167,7 @@ void main() {
             .where((id) => id == video.id)
             .length;
         
-        print('🔍 TEST: Video $i (${video.id.substring(0, 8)}): $videoControllers controllers');
+        Log.debug('🔍 TEST: Video $i (${video.id.substring(0, 8)}): $videoControllers controllers', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
         
         expect(
           videoControllers,
@@ -192,14 +193,14 @@ void main() {
       // Simulate the behavior of _syncVideosFromFeed calling _addVideoEvent multiple times
       // This was suspected to be part of the duplicate issue
       
-      print('🔍 TEST: Simulating feed sync behavior...');
+      Log.debug('🔍 TEST: Simulating feed sync behavior...', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
       
       // First sync - add video
       await videoManager.preloadVideo(testVideo.id);
       
       var currentState = container.read(videoManagerProvider);
       final afterFirstSync = currentState.controllers.length;
-      print('🔍 TEST: Controllers after first sync: $afterFirstSync');
+      Log.debug('🔍 TEST: Controllers after first sync: $afterFirstSync', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
       
       // Second sync - same video (should not duplicate)
       await videoManager.preloadVideo(testVideo.id);
@@ -210,7 +211,7 @@ void main() {
       currentState = container.read(videoManagerProvider);
       final afterMultipleSync = currentState.controllers.length;
       
-      print('🔍 TEST: Controllers after multiple syncs: $afterMultipleSync');
+      Log.debug('🔍 TEST: Controllers after multiple syncs: $afterMultipleSync', name: 'VideoManagerDuplicateTest', category: LogCategory.system);
       
       expect(
         afterMultipleSync,

@@ -96,6 +96,14 @@ abstract class INostrService {
   // Subscription management
   Future<void> closeAllSubscriptions();
 
+  // NIP-50 Search functionality
+  Stream<Event> searchVideos(String query, {
+    List<String>? authors,
+    DateTime? since,
+    DateTime? until,
+    int? limit,
+  });
+
   // Primary relay for all client operations
   String get primaryRelay;
 

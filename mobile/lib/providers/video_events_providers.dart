@@ -198,6 +198,15 @@ class VideoEvents extends _$VideoEvents {
           );
           return null;
         }
+
+      case FeedMode.search:
+        // Search mode doesn't use video events provider - handled by search provider
+        Log.info(
+          'VideoEvents: Search mode - using search provider instead',
+          name: 'VideoEventsProvider',
+          category: LogCategory.video,
+        );
+        return null;
     }
 
     return filter;

@@ -51,17 +51,10 @@ class _CameraZoomWidgetState extends State<CameraZoomWidget> {
 
   @override
   void dispose() {
-      // REFACTORED: Service no longer needs manual listener cleanup
-    
+    // REFACTORED: Service no longer needs manual listener cleanup
+    super.dispose();
   }
 
-  void _onCameraServiceChanged() {
-    if (mounted) {
-      setState(() {
-        _baseZoomLevel = widget.cameraService.currentZoomLevel;
-      });
-    }
-  }
 
   void _onScaleStart(ScaleStartDetails details) {
     _baseZoomLevel = widget.cameraService.currentZoomLevel;
@@ -240,10 +233,5 @@ class _CameraZoomWidgetState extends State<CameraZoomWidget> {
           ),
       ],
     );
-  }
-  
-  @override
-  void dispose() {
-    super.dispose();
   }
 }

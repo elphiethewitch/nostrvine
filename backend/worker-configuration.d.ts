@@ -15,6 +15,7 @@ declare namespace Cloudflare {
 		UPLOAD_JOBS: DurableObjectNamespace<import("./src/index").UploadJobManager>;
 		MEDIA_BUCKET: R2Bucket;
 		UPLOAD_ANALYTICS: AnalyticsEngineDataset;
+		VIDEO_ANALYTICS: AnalyticsEngineDataset;
 	}
 }
 interface Env extends Cloudflare.Env {}

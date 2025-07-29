@@ -13,7 +13,6 @@ import 'package:openvine/providers/video_manager_providers.dart';
 import 'package:openvine/providers/feed_mode_providers.dart';
 import 'package:openvine/providers/user_profile_providers.dart';
 import 'package:openvine/providers/social_providers.dart' as social;
-import 'package:openvine/screens/search_screen.dart';
 import 'package:openvine/main.dart';
 import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/utils/unified_logger.dart';
@@ -28,6 +27,7 @@ enum FeedContext {
   editorsPicks, // Curated videos
   trending, // Trending content
   userProfile, // User's videos
+  search, // Search results videos
 }
 
 /// Main video feed screen implementing TDD specifications with Riverpod
@@ -163,6 +163,11 @@ class _VideoFeedScreenState extends ConsumerState<VideoFeedScreen>
       case FeedContext.userProfile:
         if (widget.contextValue != null) {
           feedModeNotifier.setProfileMode(widget.contextValue!);
+        }
+        break;
+      case FeedContext.search:
+        if (widget.contextValue != null) {
+          feedModeNotifier.setSearchMode(widget.contextValue!);
         }
         break;
     }
@@ -366,18 +371,6 @@ class _VideoFeedScreenState extends ConsumerState<VideoFeedScreen>
             fontWeight: FontWeight.w400,
           ),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search, color: Colors.white),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const SearchScreen(),
-                ),
-              );
-            },
-          ),
-        ],
       ),
       body: SafeArea(
         top: false, // AppBar handles top safe area

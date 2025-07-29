@@ -51,7 +51,6 @@ class NostrVideoBridge  {
   // Configuration
   final int _maxProcessedEvents = 1000; // Prevent memory leaks
   final Duration _healthCheckInterval = const Duration(minutes: 2);
-  final Duration _eventProcessingDelay = const Duration(milliseconds: 100);
 
   /// Whether the bridge is actively processing events
   bool get isActive => _isActive;
@@ -214,22 +213,7 @@ class NostrVideoBridge  {
 
   // Private methods
 
-  void _onVideoEventsChanged() {
-    if (!_isActive) return;
 
-    // Process new events with a small delay to batch updates
-    Timer(_eventProcessingDelay, _processNewEvents);
-  }
-
-  Future<void> _processNewEvents() async {
-    final currentEvents = _videoEventService.videoEvents;
-
-    for (final event in currentEvents) {
-      if (!_processedEventIds.contains(event.id)) {
-        await _processVideoEvent(event);
-      }
-    }
-  }
 
   Future<void> _processVideoEvent(VideoEvent event) async {
     try {

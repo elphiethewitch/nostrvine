@@ -5,9 +5,22 @@ All notable changes to the OpenVine mobile application will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - 2025-07-26
+## [Unreleased] - 2025-07-29
 
 ### Added
+- **Analytics-Driven Trending**: Implemented trending content based on real analytics data
+  - Added `AnalyticsTrending` provider that fetches data from analytics.openvine.co API
+  - Trending section now shows videos sorted by actual view counts instead of chronological order
+  - Added pull-to-refresh functionality to trending tab for real-time analytics updates
+  - Removed fallback behavior to ensure trending only shows analytics-driven content
+- **New Vines Section**: Renamed "Popular Now" to "New Vines" with chronological content
+  - "New Vines" tab now shows latest Nostr content in chronological order
+  - Designed to generate view data that feeds into analytics for trending calculations
+  - Added pull-to-refresh functionality to New Vines tab
+- **Enhanced Explore Screen**: Improved explore screen with comprehensive pull-to-refresh
+  - All three tabs (Editor's Picks, New Vines, Trending) now support pull-to-refresh
+  - Added proper refresh indicators and user feedback for all content sections
+  - Updated tab labels and functionality to reflect new content strategy
 - **Blurhash Support**: Implemented blurhash generation and display for Kind 22 video events
   - Videos now publish with blurhash tags for progressive image loading
   - Added blurhash generation from video thumbnails during upload
@@ -17,9 +30,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Improved Tab Navigation**: Enhanced explore screen tab bar navigation behavior
   - Single tap on current tab now exits feed mode and returns to grid view
   - Double-tap detection on tabs for quick navigation back to root
-  - Consistent navigation behavior across Editor's Picks, Popular Now, and Trending tabs
+  - Consistent navigation behavior across Editor's Picks, New Vines, and Trending tabs
 
 ### Changed
+- **Explore Screen Architecture**: Completely restructured explore content strategy
+  - Trending tab now exclusively uses analytics.openvine.co data (no fallback to random content)
+  - "Popular Now" renamed to "New Vines" to better reflect chronological content purpose
+  - Content flow designed: New Vines → generates views → feeds analytics → drives Trending
+- **Provider System**: Updated Riverpod providers for new content architecture
+  - Enhanced `AnalyticsTrending` provider with proper error handling and refresh logic
+  - Updated `curationProvider` to support pull-to-refresh for Editor's Picks
+  - Improved provider invalidation and refresh patterns across all explore tabs
 - **Relay Configuration**: Switched to using relay3.openvine.co as primary relay
 - Enhanced VideoEvent model to parse and store blurhash from Kind 22 events
 - Updated video publishing to include blurhash tag following NIP-71 standards

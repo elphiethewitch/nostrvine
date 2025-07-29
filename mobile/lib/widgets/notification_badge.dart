@@ -145,7 +145,7 @@ class _AnimatedNotificationBadgeState extends State<AnimatedNotificationBadge>
   @override
   void dispose() {
     _animationController.dispose();
-    
+    super.dispose();
   }
 
   @override
@@ -216,8 +216,4 @@ class _AnimatedNotificationBadgeState extends State<AnimatedNotificationBadge>
     );
   }
   
-  @override
-  void dispose() {
-    super.dispose();
-  }
 }

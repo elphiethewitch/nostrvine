@@ -9,6 +9,7 @@ import 'package:nostr_sdk/event.dart';
 import 'package:nostr_sdk/filter.dart';
 import 'package:openvine/services/nostr_service_interface.dart';
 import 'package:openvine/services/subscription_manager.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 @GenerateNiceMocks([MockSpec<INostrService>()])
 import 'subscription_manager_tdd_test.mocks.dart';
@@ -36,7 +37,7 @@ void main() {
     });
 
     test('TDD: SubscriptionManager should forward events from NostrService to callback - WILL FAIL FIRST', () async {
-      print('🔍 TDD: Testing if SubscriptionManager forwards events to callbacks...');
+      Log.debug('🔍 TDD: Testing if SubscriptionManager forwards events to callbacks...', name: 'SubscriptionManagerTDDTest', category: LogCategory.system);
       
       // This test will FAIL initially - proving the bug exists!
       final receivedEvents = <Event>[];
@@ -47,23 +48,23 @@ void main() {
         name: 'tdd_test',
         filters: [Filter(kinds: [22], limit: 3)],
         onEvent: (event) {
-          print('✅ TDD: Callback received event: ${event.id.substring(0, 8)}');
+          Log.info('✅ TDD: Callback received event: ${event.id.substring(0, 8)}', name: 'SubscriptionManagerTDDTest', category: LogCategory.system);
           receivedEvents.add(event);
           if (receivedEvents.length >= 2) {
             completer.complete();
           }
         },
         onError: (error) {
-          print('❌ TDD: Callback error: $error');
+          Log.error('❌ TDD: Callback error: $error', name: 'SubscriptionManagerTDDTest', category: LogCategory.system);
           completer.completeError(error);
         },
         onComplete: () {
-          print('🏁 TDD: Callback completed');
+          Log.debug('🏁 TDD: Callback completed', name: 'SubscriptionManagerTDDTest', category: LogCategory.system);
           if (!completer.isCompleted) completer.complete();
         },
       );
 
-      print('📡 TDD: Created subscription $subscriptionId');
+      Log.debug('📡 TDD: Created subscription $subscriptionId', name: 'SubscriptionManagerTDDTest', category: LogCategory.system);
       
       // Simulate events coming from the NostrService stream (using valid hex pubkeys)
       final testEvent1 = Event(
@@ -81,7 +82,7 @@ void main() {
       );
 
       // Send events through the stream (simulating real relay events)
-      print('📤 TDD: Sending test events through stream...');
+      Log.debug('📤 TDD: Sending test events through stream...', name: 'SubscriptionManagerTDDTest', category: LogCategory.system);
       testEventController.add(testEvent1);
       await Future.delayed(Duration(milliseconds: 100));
       testEventController.add(testEvent2);
@@ -90,12 +91,12 @@ void main() {
       try {
         await completer.future.timeout(Duration(seconds: 5));
       } catch (e) {
-        print('⏰ TDD: Timeout - events were not forwarded to callback');
+        Log.warning('⏰ TDD: Timeout - events were not forwarded to callback', name: 'SubscriptionManagerTDDTest', category: LogCategory.system);
       }
 
       await subscriptionManager.cancelSubscription(subscriptionId);
       
-      print('📊 TDD: Received ${receivedEvents.length} events via callback');
+      Log.debug('📊 TDD: Received ${receivedEvents.length} events via callback', name: 'SubscriptionManagerTDDTest', category: LogCategory.system);
       
       // This assertion will FAIL initially if SubscriptionManager has the bug
       expect(receivedEvents.length, equals(2), 
@@ -103,7 +104,7 @@ void main() {
     });
 
     test('TDD: Verify NostrService stream works correctly (control test)', () async {
-      print('🔍 TDD: Control test - verify our test setup works...');
+      Log.debug('🔍 TDD: Control test - verify our test setup works...', name: 'SubscriptionManagerTDDTest', category: LogCategory.system);
       
       // This should pass - verifying our test setup is correct
       final receivedEvents = <Event>[];
@@ -113,7 +114,7 @@ void main() {
       final directStream = mockNostrService.subscribeToEvents(filters: [Filter(kinds: [22])]);
       final subscription = directStream.listen(
         (event) {
-          print('✅ TDD: Direct stream received: ${event.id.substring(0, 8)}');
+          Log.info('✅ TDD: Direct stream received: ${event.id.substring(0, 8)}', name: 'SubscriptionManagerTDDTest', category: LogCategory.system);
           receivedEvents.add(event);
           if (receivedEvents.length >= 2) {
             completer.complete();
@@ -132,7 +133,7 @@ void main() {
       await completer.future.timeout(Duration(seconds: 2));
       subscription.cancel();
       
-      print('📊 TDD: Direct stream received ${receivedEvents.length} events');
+      Log.debug('📊 TDD: Direct stream received ${receivedEvents.length} events', name: 'SubscriptionManagerTDDTest', category: LogCategory.system);
       
       // This should pass - proving our test setup works
       expect(receivedEvents.length, equals(2), 

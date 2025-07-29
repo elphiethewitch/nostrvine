@@ -1,5 +1,7 @@
 // ABOUTME: Analytics and monitoring service for video delivery performance tracking
 // ABOUTME: Collects metrics on requests, cache performance, and system health
+// IMPORTANT: Analytics data is stored permanently without TTL for historical tracking
+// TODO: Implement data aggregation and archival strategy for long-term storage management
 
 export interface VideoAnalytics {
   videoId: string;
@@ -279,10 +281,8 @@ export class VideoAnalyticsService {
 
     analytics.lastAccessed = Date.now();
 
-    // Save back to KV with TTL
-    await this.env.METADATA_CACHE.put(videoKey, JSON.stringify(analytics), {
-      expirationTtl: 86400, // 24 hours
-    });
+    // Save back to KV without TTL for permanent storage
+    await this.env.METADATA_CACHE.put(videoKey, JSON.stringify(analytics));
   }
 
   /**
@@ -324,9 +324,8 @@ export class VideoAnalyticsService {
     const current = await this.env.METADATA_CACHE.get(popularityKey);
     const count = current ? parseInt(current) + 1 : 1;
 
-    await this.env.METADATA_CACHE.put(popularityKey, count.toString(), {
-      expirationTtl: 86400, // 24 hour sliding window
-    });
+    // Store popularity count without TTL for historical data
+    await this.env.METADATA_CACHE.put(popularityKey, count.toString());
 
     // Update hourly and daily rankings
     await Promise.all([
@@ -367,9 +366,8 @@ export class VideoAnalyticsService {
       .sort((a, b) => b.requestCount - a.requestCount)
       .slice(0, 100);
 
-    await this.env.METADATA_CACHE.put(key, JSON.stringify(sorted), {
-      expirationTtl: window === '1h' ? 3600 : window === '24h' ? 86400 : 604800,
-    });
+    // Store popularity rankings without TTL for historical tracking
+    await this.env.METADATA_CACHE.put(key, JSON.stringify(sorted));
   }
 
   /**
@@ -414,11 +412,9 @@ export class VideoAnalyticsService {
       country: context.country,
     };
 
-    // Store error log with TTL
+    // Store error log - consider implementing cleanup strategy later
     const errorKey = `error:${Date.now()}:${Math.random()}`;
-    await this.env.METADATA_CACHE.put(errorKey, JSON.stringify(errorLog), {
-      expirationTtl: 86400, // Keep error logs for 24 hours
-    });
+    await this.env.METADATA_CACHE.put(errorKey, JSON.stringify(errorLog));
 
     console.error('🚨 API Error:', errorLog);
   }
@@ -465,9 +461,8 @@ export class VideoAnalyticsService {
    */
   private async incrementCounter(key: string, amount: number = 1): Promise<void> {
     const current = await this.getCounter(key);
-    await this.env.METADATA_CACHE.put(key, (current + amount).toString(), {
-      expirationTtl: 86400, // 24 hour TTL for all counters
-    });
+    // Store counters without TTL for permanent analytics
+    await this.env.METADATA_CACHE.put(key, (current + amount).toString());
   }
 
   private async getCounter(key: string): Promise<number> {

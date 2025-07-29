@@ -44,6 +44,12 @@ class MockSocialService extends _i1.Mock implements _i2.SocialService {
       ) as List<String>);
 
   @override
+  List<_i2.FollowSet> get followSets => (super.noSuchMethod(
+        Invocation.getter(#followSets),
+        returnValue: <_i2.FollowSet>[],
+      ) as List<_i2.FollowSet>);
+
+  @override
   bool isLiked(String? eventId) => (super.noSuchMethod(
         Invocation.method(
           #isLiked,
@@ -83,6 +89,29 @@ class MockSocialService extends _i1.Mock implements _i2.SocialService {
         #getCachedFollowerStats,
         [pubkey],
       )) as Map<String, int>?);
+
+  @override
+  _i2.FollowSet? getFollowSetById(String? setId) =>
+      (super.noSuchMethod(Invocation.method(
+        #getFollowSetById,
+        [setId],
+      )) as _i2.FollowSet?);
+
+  @override
+  bool isInFollowSet(
+    String? setId,
+    String? pubkey,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #isInFollowSet,
+          [
+            setId,
+            pubkey,
+          ],
+        ),
+        returnValue: false,
+      ) as bool);
 
   @override
   _i3.Future<void> toggleLike(
@@ -162,6 +191,89 @@ class MockSocialService extends _i1.Mock implements _i2.SocialService {
         ),
         returnValue: _i3.Future<Map<String, int>>.value(<String, int>{}),
       ) as _i3.Future<Map<String, int>>);
+
+  @override
+  _i3.Future<_i2.FollowSet?> createFollowSet({
+    required String? name,
+    String? description,
+    String? imageUrl,
+    List<String>? initialPubkeys = const [],
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #createFollowSet,
+          [],
+          {
+            #name: name,
+            #description: description,
+            #imageUrl: imageUrl,
+            #initialPubkeys: initialPubkeys,
+          },
+        ),
+        returnValue: _i3.Future<_i2.FollowSet?>.value(),
+      ) as _i3.Future<_i2.FollowSet?>);
+
+  @override
+  _i3.Future<bool> addToFollowSet(
+    String? setId,
+    String? pubkey,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #addToFollowSet,
+          [
+            setId,
+            pubkey,
+          ],
+        ),
+        returnValue: _i3.Future<bool>.value(false),
+      ) as _i3.Future<bool>);
+
+  @override
+  _i3.Future<bool> removeFromFollowSet(
+    String? setId,
+    String? pubkey,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #removeFromFollowSet,
+          [
+            setId,
+            pubkey,
+          ],
+        ),
+        returnValue: _i3.Future<bool>.value(false),
+      ) as _i3.Future<bool>);
+
+  @override
+  _i3.Future<bool> updateFollowSet({
+    required String? setId,
+    String? name,
+    String? description,
+    String? imageUrl,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateFollowSet,
+          [],
+          {
+            #setId: setId,
+            #name: name,
+            #description: description,
+            #imageUrl: imageUrl,
+          },
+        ),
+        returnValue: _i3.Future<bool>.value(false),
+      ) as _i3.Future<bool>);
+
+  @override
+  _i3.Future<bool> deleteFollowSet(String? setId) => (super.noSuchMethod(
+        Invocation.method(
+          #deleteFollowSet,
+          [setId],
+        ),
+        returnValue: _i3.Future<bool>.value(false),
+      ) as _i3.Future<bool>);
 
   @override
   _i3.Future<int> getUserVideoCount(String? pubkey) => (super.noSuchMethod(

@@ -171,7 +171,7 @@ class _ProfileStatsProviderElement
 }
 
 String _$profileStatsNotifierHash() =>
-    r'ef429150896a603acedfc4ce0a199f9816fb693f';
+    r'176e0de9672c078ddc391901a2633cc3fc135b6e';
 
 /// Notifier for managing profile stats state
 ///

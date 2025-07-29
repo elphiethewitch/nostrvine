@@ -10,7 +10,6 @@ void main() {
       // This test verifies the concept - actual AuthService requires secure storage
 
       // Verify that Kind 0 would get both vine and expiration tags
-      const kind = 0;
       final expectedTags = [
         ['h', 'vine'],
         ['expiration', '1751456256'], // Example timestamp
@@ -32,7 +31,6 @@ void main() {
     });
 
     test('Kind 22 events should include vine tag but no expiration', () async {
-      const kind = 22;
       final expectedTags = [
         ['h', 'vine'],
         ['url', 'https://example.com/video.mp4'],
@@ -91,7 +89,6 @@ void main() {
 
     test('Required tags combination for vine.hol.is relay', () async {
       // Test the complete tag set that vine.hol.is relay requires
-      const kind = 0;
       final eventTags = <List<String>>[];
 
       // Add vine tag

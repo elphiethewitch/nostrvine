@@ -9,6 +9,7 @@ import 'package:nostr_sdk/filter.dart';
 import 'package:openvine/services/nostr_service.dart';
 import 'package:openvine/services/nostr_key_manager.dart';
 import 'package:openvine/services/subscription_manager.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 void main() {
   // Initialize Flutter bindings for tests
@@ -88,7 +89,7 @@ void main() {
     });
 
     test('SubscriptionManager should receive kind 22 events from vine.hol.is - REAL RELAY', () async {
-      print('🔍 TEST: Starting SubscriptionManager real relay test...');
+      Log.debug('🔍 TEST: Starting SubscriptionManager real relay test...', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
       
       final receivedEvents = <Event>[];
       final completer = Completer<void>();
@@ -103,39 +104,39 @@ void main() {
           )
         ],
         onEvent: (event) {
-          print('✅ SUBSCRIPTION_MANAGER: Received event via SubscriptionManager: kind=${event.kind}, id=${event.id.substring(0, 8)}');
+          Log.info('✅ SUBSCRIPTION_MANAGER: Received event via SubscriptionManager: kind=${event.kind}, id=${event.id.substring(0, 8)}', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
           receivedEvents.add(event);
           if (receivedEvents.length >= 3) {
             completer.complete();
           }
         },
         onError: (error) {
-          print('❌ SUBSCRIPTION_MANAGER: Error: $error');
+          Log.error('❌ SUBSCRIPTION_MANAGER: Error: $error', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
           if (!completer.isCompleted) {
             completer.completeError(error);
           }
         },
         onComplete: () {
-          print('🏁 SUBSCRIPTION_MANAGER: Subscription completed');
+          Log.debug('🏁 SUBSCRIPTION_MANAGER: Subscription completed', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
           if (!completer.isCompleted) {
             completer.complete();
           }
         },
       );
 
-      print('📡 TEST: Created SubscriptionManager subscription ID: $subscriptionId');
+      Log.debug('📡 TEST: Created SubscriptionManager subscription ID: $subscriptionId', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
       
       // Wait for events with timeout
       try {
         await completer.future.timeout(Duration(seconds: 15));
       } catch (e) {
-        print('⏰ TEST: Timeout waiting for SubscriptionManager events');
+        Log.warning('⏰ TEST: Timeout waiting for SubscriptionManager events', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
       }
 
-      print('📊 TEST: SubscriptionManager received ${receivedEvents.length} events');
+      Log.debug('📊 TEST: SubscriptionManager received ${receivedEvents.length} events', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
       
       // Now test direct subscription for comparison
-      print('🔍 TEST: Now testing direct subscription for comparison...');
+      Log.debug('🔍 TEST: Now testing direct subscription for comparison...', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
       
       final directEvents = <Event>[];
       final directCompleter = Completer<void>();
@@ -146,20 +147,20 @@ void main() {
       
       final directSub = directStream.listen(
         (event) {
-          print('✅ DIRECT: Received event via direct subscription: kind=${event.kind}, id=${event.id.substring(0, 8)}');
+          Log.info('✅ DIRECT: Received event via direct subscription: kind=${event.kind}, id=${event.id.substring(0, 8)}', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
           directEvents.add(event);
           if (directEvents.length >= 3) {
             directCompleter.complete();
           }
         },
         onError: (error) {
-          print('❌ DIRECT: Error: $error');
+          Log.error('❌ DIRECT: Error: $error', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
           if (!directCompleter.isCompleted) {
             directCompleter.completeError(error);
           }
         },
         onDone: () {
-          print('🏁 DIRECT: Direct subscription completed');
+          Log.debug('🏁 DIRECT: Direct subscription completed', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
           if (!directCompleter.isCompleted) {
             directCompleter.complete();
           }
@@ -169,24 +170,24 @@ void main() {
       try {
         await directCompleter.future.timeout(Duration(seconds: 15));
       } catch (e) {
-        print('⏰ TEST: Timeout waiting for direct subscription events');
+        Log.warning('⏰ TEST: Timeout waiting for direct subscription events', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
       }
 
       directSub.cancel();
       
-      print('📊 TEST: Direct subscription received ${directEvents.length} events');
+      Log.debug('📊 TEST: Direct subscription received ${directEvents.length} events', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
       
       // Print detailed comparison
-      print('🔍 COMPARISON RESULTS:');
-      print('  SubscriptionManager events: ${receivedEvents.length}');
-      print('  Direct subscription events: ${directEvents.length}');
+      Log.debug('🔍 COMPARISON RESULTS:', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
+      Log.debug('  SubscriptionManager events: ${receivedEvents.length}', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
+      Log.debug('  Direct subscription events: ${directEvents.length}', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
       
       if (receivedEvents.isEmpty && directEvents.isNotEmpty) {
-        print('💥 PROOF: SubscriptionManager is BROKEN - receives 0 events while direct gets ${directEvents.length}');
+        Log.error('💥 PROOF: SubscriptionManager is BROKEN - receives 0 events while direct gets ${directEvents.length}', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
       } else if (receivedEvents.length == directEvents.length) {
-        print('✅ Both methods work equally');
+        Log.info('✅ Both methods work equally', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
       } else {
-        print('⚠️  Different event counts - needs investigation');
+        Log.warning('⚠️  Different event counts - needs investigation', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
       }
       
       // The test assertion
@@ -198,7 +199,7 @@ void main() {
     });
 
     test('Direct comparison: Both should get same events from vine.hol.is', () async {
-      print('🔍 TEST: Direct comparison test...');
+      Log.debug('🔍 TEST: Direct comparison test...', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
       
       // Test SubscriptionManager
       final managedEvents = <Event>[];
@@ -208,7 +209,7 @@ void main() {
         name: 'comparison_managed',
         filters: [Filter(kinds: [22], limit: 3)],
         onEvent: (event) {
-          print('📱 MANAGED: ${event.id.substring(0, 8)}');
+          Log.debug('📱 MANAGED: ${event.id.substring(0, 8)}', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
           managedEvents.add(event);
           if (managedEvents.length >= 3) managedCompleter.complete();
         },
@@ -230,7 +231,7 @@ void main() {
       
       final directSub = directStream.listen(
         (event) {
-          print('🔗 DIRECT: ${event.id.substring(0, 8)}');
+          Log.debug('🔗 DIRECT: ${event.id.substring(0, 8)}', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
           directEvents.add(event);
           if (directEvents.length >= 3) directCompleter.complete();
         },
@@ -251,13 +252,13 @@ void main() {
       directSub.cancel();
       await subscriptionManager.cancelSubscription(managedSubId);
 
-      print('📊 FINAL COMPARISON:');
-      print('  SubscriptionManager: ${managedEvents.length} events');
-      print('  Direct subscription: ${directEvents.length} events');
+      Log.debug('📊 FINAL COMPARISON:', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
+      Log.debug('  SubscriptionManager: ${managedEvents.length} events', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
+      Log.debug('  Direct subscription: ${directEvents.length} events', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
       
       if (managedEvents.isEmpty && directEvents.isNotEmpty) {
-        print('💥 CONFIRMED: SubscriptionManager is completely broken!');
-        print('   Direct gets ${directEvents.length} events, SubscriptionManager gets 0');
+        Log.error('💥 CONFIRMED: SubscriptionManager is completely broken!', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
+        Log.error('   Direct gets ${directEvents.length} events, SubscriptionManager gets 0', name: 'SubscriptionManagerRealRelayTest', category: LogCategory.system);
       }
 
       // This will fail if SubscriptionManager is broken

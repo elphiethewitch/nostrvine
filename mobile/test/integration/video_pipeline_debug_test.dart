@@ -8,6 +8,7 @@ import 'package:mockito/mockito.dart';
 import 'package:nostr_sdk/event.dart';
 import 'package:nostr_sdk/filter.dart';
 import 'package:openvine/models/video_event.dart';
+import 'package:openvine/utils/unified_logger.dart';
 import 'package:openvine/services/nostr_service_interface.dart';
 import 'package:openvine/services/subscription_manager.dart';
 import 'package:openvine/services/video_event_service.dart';
@@ -57,10 +58,10 @@ void main() {
     });
 
     test('Complete video pipeline: VideoEventsProvider -> VideoEventService -> SubscriptionManager', () async {
-      print('🔍 Testing complete video pipeline...');
+      Log.info('🔍 Testing complete video pipeline...', name: 'VideoPipelineTest', category: LogCategory.test);
       
       // Step 1: Create VideoEventsProvider and trigger build
-      print('📡 Step 1: Creating VideoEventsProvider...');
+      Log.info('📡 Step 1: Creating VideoEventsProvider...', name: 'VideoPipelineTest', category: LogCategory.test);
       final eventsProvider = videoEventsProvider;
       
       // Create a manual stream to control the flow
@@ -71,31 +72,31 @@ void main() {
       container.listen(eventsProvider, (previous, next) {
         if (next.hasValue) {
           final events = next.value!;
-          print('✅ VideoEventsProvider received ${events.length} events');
+          Log.info('✅ VideoEventsProvider received ${events.length} events', name: 'VideoPipelineTest', category: LogCategory.test);
           videoEvents.addAll(events);
           if (events.isNotEmpty && !eventsCompleter.isCompleted) {
             eventsCompleter.complete(events);
           }
         } else if (next.hasError) {
-          print('❌ VideoEventsProvider error: ${next.error}');
+          Log.error('❌ VideoEventsProvider error: ${next.error}', name: 'VideoPipelineTest', category: LogCategory.test);
           if (!eventsCompleter.isCompleted) {
             eventsCompleter.completeError(next.error!);
           }
         } else {
-          print('⏳ VideoEventsProvider loading...');
+          Log.debug('⏳ VideoEventsProvider loading...', name: 'VideoPipelineTest', category: LogCategory.test);
         }
       });
       
       // Step 2: Read the provider to trigger build
-      print('📡 Step 2: Reading VideoEventsProvider (triggers build)...');
+      Log.info('📡 Step 2: Reading VideoEventsProvider (triggers build)...', name: 'VideoPipelineTest', category: LogCategory.test);
       final initialState = container.read(eventsProvider);
-      print('📡 Initial state: $initialState');
+      Log.debug('📡 Initial state: $initialState', name: 'VideoPipelineTest', category: LogCategory.test);
       
       // Step 3: Wait a moment for subscription to be created
       await Future.delayed(Duration(milliseconds: 100));
       
       // Step 4: Send test event through the stream
-      print('📡 Step 3: Sending test kind 22 event...');
+      Log.info('📡 Step 3: Sending test kind 22 event...', name: 'VideoPipelineTest', category: LogCategory.test);
       final testEvent = Event(
         '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
         22,
@@ -111,24 +112,24 @@ void main() {
       testEventController.add(testEvent);
       
       // Step 5: Wait for event to flow through the pipeline
-      print('📡 Step 4: Waiting for event to flow through pipeline...');
+      Log.info('📡 Step 4: Waiting for event to flow through pipeline...', name: 'VideoPipelineTest', category: LogCategory.test);
       try {
         final events = await eventsCompleter.future.timeout(Duration(seconds: 5));
-        print('✅ Pipeline complete! Received ${events.length} events');
+        Log.info('✅ Pipeline complete! Received ${events.length} events', name: 'VideoPipelineTest', category: LogCategory.test);
         
         expect(events.length, greaterThan(0), reason: 'Should receive events through complete pipeline');
         expect(events.first.hasVideo, true, reason: 'Event should have video URL');
         expect(events.first.videoUrl, 'https://api.openvine.co/media/test-video-123');
         
       } catch (e) {
-        print('❌ Pipeline failed with timeout or error: $e');
+        Log.error('❌ Pipeline failed with timeout or error: $e', name: 'VideoPipelineTest', category: LogCategory.test);
         
         // Debug information
-        print('🔍 Debug info:');
-        print('  - VideoEventService isSubscribed: ${videoEventService.isSubscribed}');
-        print('  - VideoEventService eventCount: ${videoEventService.eventCount}');
-        print('  - VideoEventService hasEvents: ${videoEventService.hasEvents}');
-        print('  - SubscriptionManager exists: ${subscriptionManager != null}');
+        Log.debug('🔍 Debug info:', name: 'VideoPipelineTest', category: LogCategory.test);
+        Log.debug('  - VideoEventService isSubscribed: ${videoEventService.isSubscribed}', name: 'VideoPipelineTest', category: LogCategory.test);
+        Log.debug('  - VideoEventService eventCount: ${videoEventService.eventCount}', name: 'VideoPipelineTest', category: LogCategory.test);
+        Log.debug('  - VideoEventService hasEvents: ${videoEventService.hasEvents}', name: 'VideoPipelineTest', category: LogCategory.test);
+        Log.debug('  - SubscriptionManager exists: true', name: 'VideoPipelineTest', category: LogCategory.test);
         
         // Fail the test with debug info
         fail('Pipeline did not complete within timeout. Debug info printed above.');
@@ -136,7 +137,7 @@ void main() {
     });
     
     test('Direct VideoEventService test for comparison', () async {
-      print('🔍 Testing VideoEventService directly...');
+      Log.info('🔍 Testing VideoEventService directly...', name: 'VideoPipelineTest', category: LogCategory.test);
       
       final receivedEvents = <VideoEvent>[];
       final completer = Completer<void>();
@@ -144,7 +145,7 @@ void main() {
       // Listen to VideoEventService changes
       void onVideoEventChange() {
         final events = videoEventService.videoEvents;
-        print('✅ VideoEventService updated: ${events.length} events');
+        Log.info('✅ VideoEventService updated: ${events.length} events', name: 'VideoPipelineTest', category: LogCategory.test);
         if (events.isNotEmpty) {
           receivedEvents.addAll(events);
           if (!completer.isCompleted) {
@@ -180,15 +181,15 @@ void main() {
       // Wait for event
       try {
         await completer.future.timeout(Duration(seconds: 3));
-        print('✅ Direct test complete! Received ${receivedEvents.length} events');
+        Log.info('✅ Direct test complete! Received ${receivedEvents.length} events', name: 'VideoPipelineTest', category: LogCategory.test);
         
         expect(receivedEvents.length, greaterThan(0));
         expect(receivedEvents.first.hasVideo, true);
         
       } catch (e) {
-        print('❌ Direct test failed: $e');
-        print('  - VideoEventService isSubscribed: ${videoEventService.isSubscribed}');
-        print('  - VideoEventService eventCount: ${videoEventService.eventCount}');
+        Log.error('❌ Direct test failed: $e', name: 'VideoPipelineTest', category: LogCategory.test);
+        Log.debug('  - VideoEventService isSubscribed: ${videoEventService.isSubscribed}', name: 'VideoPipelineTest', category: LogCategory.test);
+        Log.debug('  - VideoEventService eventCount: ${videoEventService.eventCount}', name: 'VideoPipelineTest', category: LogCategory.test);
         rethrow;
       } finally {
         eventPollingTimer?.cancel();

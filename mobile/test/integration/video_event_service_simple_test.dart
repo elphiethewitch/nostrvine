@@ -24,7 +24,6 @@ void main() {
     late MockINostrService mockNostrService;
     late MockSubscriptionManager mockSubscriptionManager;
     late VideoEventService videoEventService;
-    late SeenVideosService seenVideosService;
     late ContentBlocklistService blocklistService;
     late StreamController<Event> mockEventStream;
 
@@ -54,7 +53,6 @@ void main() {
           .thenAnswer((_) => mockEventStream.stream);
 
       // Initialize services that don't require SharedPreferences
-      seenVideosService = SeenVideosService();
       // Bypass actual initialization to avoid SharedPreferences
 
       blocklistService = ContentBlocklistService();

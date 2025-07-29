@@ -81,7 +81,7 @@ final hasVideosProvider = AutoDisposeProvider<bool>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef HasVideosRef = AutoDisposeProviderRef<bool>;
-String _$videoFeedHash() => r'1553a75d9015b5e3dec52307e13bf5bcb84d94b8';
+String _$videoFeedHash() => r'c13fbb067e375abf73b0f09672f91638fc2cde50';
 
 /// Main video feed provider that orchestrates all video-related state
 ///

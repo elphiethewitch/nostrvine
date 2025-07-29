@@ -333,7 +333,6 @@ class StartupCoordinator  {
     return StartupPhase.values.first;
   }
 
-  @override
   void dispose() {
     _progressController.close();
     _phaseCompletedController.close();

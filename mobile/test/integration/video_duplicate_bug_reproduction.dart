@@ -8,6 +8,7 @@ import 'package:openvine/models/video_event.dart';
 import 'package:openvine/providers/video_manager_providers.dart';
 import 'package:openvine/widgets/video_feed_item.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -32,8 +33,6 @@ void main() {
       late ProviderContainer container;
       
       // Track preload calls to detect duplicates (like the user's logs showed)
-      var preloadCallCount = 0;
-      final originalPreloadVideo = VideoManager;
       
       container = ProviderContainer();
 
@@ -72,10 +71,10 @@ void main() {
       final videoManager = container.read(videoManagerProvider.notifier);
       final initialState = container.read(videoManagerProvider);
       
-      print('🔍 REPRODUCTION: Initial controller count: ${initialState.controllers.length}');
+      Log.debug('🔍 REPRODUCTION: Initial controller count: ${initialState.controllers.length}', name: 'VideoDuplicateBugTest', category: LogCategory.system);
       
       // Reproduce the exact pattern from user logs - rapid preload calls
-      print('🔍 REPRODUCTION: Calling preloadVideo multiple times for ${testVideo.id.substring(0, 8)}...');
+      Log.debug('🔍 REPRODUCTION: Calling preloadVideo multiple times for ${testVideo.id.substring(0, 8)}...', name: 'VideoDuplicateBugTest', category: LogCategory.system);
       
       await videoManager.preloadVideo(testVideo.id);
       await videoManager.preloadVideo(testVideo.id);
@@ -83,14 +82,14 @@ void main() {
       await tester.pump();
       
       final finalState = container.read(videoManagerProvider);
-      print('🔍 REPRODUCTION: Final controller count: ${finalState.controllers.length}');
+      Log.debug('🔍 REPRODUCTION: Final controller count: ${finalState.controllers.length}', name: 'VideoDuplicateBugTest', category: LogCategory.system);
       
       // Check that we don't have duplicate controllers
       final videoControllers = finalState.controllers.keys
           .where((id) => id == testVideo.id)
           .length;
       
-      print('🔍 REPRODUCTION: Controllers for video ${testVideo.id.substring(0, 8)}: $videoControllers');
+      Log.debug('🔍 REPRODUCTION: Controllers for video ${testVideo.id.substring(0, 8)}: $videoControllers', name: 'VideoDuplicateBugTest', category: LogCategory.system);
       
       expect(
         videoControllers,
@@ -152,7 +151,7 @@ void main() {
 
       final videoManager = container.read(videoManagerProvider.notifier);
       
-      print('🔍 SCROLL REPRODUCTION: Simulating scroll behavior that caused duplicates...');
+      Log.debug('🔍 SCROLL REPRODUCTION: Simulating scroll behavior that caused duplicates...', name: 'VideoDuplicateBugTest', category: LogCategory.system);
       
       // Reproduce the scroll pattern that caused the duplicate logs
       // User showed logs where same video got "Starting preload" multiple times
@@ -179,9 +178,9 @@ void main() {
       final video1Controllers = finalState.controllers.keys.where((id) => id == video1.id).length;
       final video2Controllers = finalState.controllers.keys.where((id) => id == video2.id).length;
       
-      print('🔍 SCROLL REPRODUCTION: Video1 controllers: $video1Controllers');
-      print('🔍 SCROLL REPRODUCTION: Video2 controllers: $video2Controllers');
-      print('🔍 SCROLL REPRODUCTION: Total controllers: ${finalState.controllers.length}');
+      Log.debug('🔍 SCROLL REPRODUCTION: Video1 controllers: $video1Controllers', name: 'VideoDuplicateBugTest', category: LogCategory.system);
+      Log.debug('🔍 SCROLL REPRODUCTION: Video2 controllers: $video2Controllers', name: 'VideoDuplicateBugTest', category: LogCategory.system);
+      Log.debug('🔍 SCROLL REPRODUCTION: Total controllers: ${finalState.controllers.length}', name: 'VideoDuplicateBugTest', category: LogCategory.system);
       
       expect(video1Controllers, equals(1), reason: 'Video1 should have exactly 1 controller');
       expect(video2Controllers, equals(1), reason: 'Video2 should have exactly 1 controller');
@@ -221,13 +220,13 @@ void main() {
 
       final videoManager = container.read(videoManagerProvider.notifier);
       
-      print('🔍 PAUSE/RESUME REPRODUCTION: Testing pause/resume that user reported...');
+      Log.debug('🔍 PAUSE/RESUME REPRODUCTION: Testing pause/resume that user reported...', name: 'VideoDuplicateBugTest', category: LogCategory.system);
       
       // Reproduce the exact pattern: pause the visible video but audio keeps going
       await videoManager.preloadVideo(testVideo.id);
       videoManager.resumeVideo(testVideo.id);
       
-      print('🔍 PAUSE/RESUME REPRODUCTION: Pausing video...');
+      Log.debug('🔍 PAUSE/RESUME REPRODUCTION: Pausing video...', name: 'VideoDuplicateBugTest', category: LogCategory.system);
       videoManager.pauseVideo(testVideo.id);
       
       // The bug: audio should stop but doesn't, indicating the pause didn't work on all instances
@@ -235,9 +234,9 @@ void main() {
       final state = container.read(videoManagerProvider);
       final controllerState = state.getController(testVideo.id);
       
-      print('🔍 PAUSE/RESUME REPRODUCTION: Controller exists: ${controllerState != null}');
+      Log.debug('🔍 PAUSE/RESUME REPRODUCTION: Controller exists: ${controllerState != null}', name: 'VideoDuplicateBugTest', category: LogCategory.system);
       if (controllerState != null) {
-        print('🔍 PAUSE/RESUME REPRODUCTION: Is playing: ${controllerState.controller.value.isPlaying}');
+        Log.debug('🔍 PAUSE/RESUME REPRODUCTION: Is playing: ${controllerState.controller.value.isPlaying}', name: 'VideoDuplicateBugTest', category: LogCategory.system);
       }
       
       // The video should be paused

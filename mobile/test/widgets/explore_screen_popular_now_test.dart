@@ -90,8 +90,8 @@ void main() {
       );
       
       await tester.pumpWidget(
-        ProviderScope(
-          parent: container,
+        UncontrolledProviderScope(
+          container: container,
           child: const MaterialApp(
             home: ExploreScreen(),
           ),
@@ -157,8 +157,8 @@ void main() {
       );
       
       await tester.pumpWidget(
-        ProviderScope(
-          parent: container,
+        UncontrolledProviderScope(
+          container: container,
           child: const MaterialApp(
             home: ExploreScreen(),
           ),

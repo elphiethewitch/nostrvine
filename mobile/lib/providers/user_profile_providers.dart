@@ -119,7 +119,6 @@ Future<UserProfile?> userProfile(Ref ref, String pubkey) async {
       kinds: const [0],
       authors: [pubkey],
       limit: 1,
-      h: ['vine'], // Required for vine.hol.is relay
     );
 
     // Subscribe and wait for profile
@@ -409,7 +408,6 @@ class UserProfileNotifier extends _$UserProfileNotifier {
         kinds: const [0],
         authors: pubkeysToFetch,
         limit: pubkeysToFetch.length,
-        h: ['vine'], // Required for vine.hol.is relay
       );
 
       final nostrService = ref.read(nostrServiceProvider);

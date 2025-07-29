@@ -16,7 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AnalyticsService  implements BackgroundAwareService {
   AnalyticsService({http.Client? client}) : _client = client ?? http.Client();
   static const String _analyticsEndpoint =
-      'https://analytics.openvine.co/analytics/view';
+      'https://nostrvine-backend.protestnet.workers.dev/analytics/view';
   static const String _analyticsEnabledKey = 'analytics_enabled';
   static const Duration _requestTimeout = Duration(seconds: 10);
 

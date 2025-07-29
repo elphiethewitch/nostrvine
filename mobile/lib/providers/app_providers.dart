@@ -8,6 +8,7 @@ import 'package:openvine/services/age_verification_service.dart';
 import 'package:openvine/services/analytics_service.dart';
 import 'package:openvine/services/api_service.dart';
 import 'package:openvine/services/auth_service.dart';
+import 'package:openvine/services/bookmark_service.dart';
 import 'package:openvine/services/connection_status_service.dart';
 import 'package:openvine/services/content_blocklist_service.dart';
 import 'package:openvine/services/content_deletion_service.dart';
@@ -18,6 +19,7 @@ import 'package:openvine/services/direct_upload_service.dart';
 import 'package:openvine/services/explore_video_manager.dart';
 import 'package:openvine/services/fake_shared_preferences.dart';
 import 'package:openvine/services/hashtag_service.dart';
+import 'package:openvine/services/mute_service.dart';
 import 'package:openvine/services/nip05_service.dart';
 import 'package:openvine/services/nip98_auth_service.dart';
 import 'package:openvine/services/nostr_key_manager.dart';
@@ -358,6 +360,32 @@ CuratedListService curatedListService(Ref ref) {
   final authService = ref.watch(authServiceProvider);
   
   return CuratedListService(
+    nostrService: nostrService,
+    authService: authService,
+    prefs: FakeSharedPreferences(),
+  );
+}
+
+/// Bookmark service for NIP-51 bookmarks (temporarily using FakeSharedPreferences)
+@riverpod
+BookmarkService bookmarkService(Ref ref) {
+  final nostrService = ref.watch(nostrServiceProvider);
+  final authService = ref.watch(authServiceProvider);
+  
+  return BookmarkService(
+    nostrService: nostrService,
+    authService: authService,
+    prefs: FakeSharedPreferences(),
+  );
+}
+
+/// Mute service for NIP-51 mute lists (temporarily using FakeSharedPreferences)
+@riverpod
+MuteService muteService(Ref ref) {
+  final nostrService = ref.watch(nostrServiceProvider);
+  final authService = ref.watch(authServiceProvider);
+  
+  return MuteService(
     nostrService: nostrService,
     authService: authService,
     prefs: FakeSharedPreferences(),

@@ -108,10 +108,6 @@ class _InfiniteFeedScreenState extends ConsumerState<InfiniteFeedScreen>
     }
   }
 
-  void _onFeedChanged() {
-    if (!mounted) return;
-    _updateVideosList();
-  }
 
   void _updateVideosList() {
     final newVideos = _feedService.getVideosForFeed(widget.feedType);

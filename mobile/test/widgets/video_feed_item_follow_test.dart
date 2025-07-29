@@ -70,9 +70,7 @@ void main() {
       when(mockVideoManager.getVideoState(any))
           .thenReturn(VideoState(event: testVideo));
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: final container = ProviderContainer(
+      final container = ProviderContainer(
         overrides: [
           authServiceProvider.overrideWithValue(mockAuthService),
           socialServiceProvider.overrideWithValue(mockSocialService),
@@ -80,16 +78,15 @@ void main() {
         ],
       );
       
-      return ProviderScope(
-        parent: container,
-        child: MaterialApp(
-          home: Scaffold(
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
               body: VideoFeedItem(
                 video: testVideo,
                 isActive: true,
-              
-        ),
-      ),
+              ),
             ),
           ),
         ),
@@ -112,9 +109,7 @@ void main() {
       when(mockVideoManager.getVideoState(any))
           .thenReturn(VideoState(event: testVideo));
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: final container = ProviderContainer(
+      final container = ProviderContainer(
         overrides: [
           authServiceProvider.overrideWithValue(mockAuthService),
           socialServiceProvider.overrideWithValue(mockSocialService),
@@ -122,16 +117,15 @@ void main() {
         ],
       );
       
-      return ProviderScope(
-        parent: container,
-        child: MaterialApp(
-          home: Scaffold(
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
               body: VideoFeedItem(
                 video: testVideo,
                 isActive: true,
-              
-        ),
-      ),
+              ),
             ),
           ),
         ),
@@ -152,9 +146,7 @@ void main() {
       when(mockVideoManager.getVideoState(any))
           .thenReturn(VideoState(event: testVideo));
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: final container = ProviderContainer(
+      final container = ProviderContainer(
         overrides: [
           authServiceProvider.overrideWithValue(mockAuthService),
           socialServiceProvider.overrideWithValue(mockSocialService),
@@ -162,16 +154,15 @@ void main() {
         ],
       );
       
-      return ProviderScope(
-        parent: container,
-        child: MaterialApp(
-          home: Scaffold(
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
               body: VideoFeedItem(
                 video: testVideo,
                 isActive: true,
-              
-        ),
-      ),
+              ),
             ),
           ),
         ),
@@ -195,9 +186,7 @@ void main() {
       when(mockVideoManager.getVideoState(any))
           .thenReturn(VideoState(event: testVideo));
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: final container = ProviderContainer(
+      final container = ProviderContainer(
         overrides: [
           authServiceProvider.overrideWithValue(mockAuthService),
           socialServiceProvider.overrideWithValue(mockSocialService),
@@ -205,16 +194,15 @@ void main() {
         ],
       );
       
-      return ProviderScope(
-        parent: container,
-        child: MaterialApp(
-          home: Scaffold(
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
               body: VideoFeedItem(
                 video: testVideo,
                 isActive: true,
-              
-        ),
-      ),
+              ),
             ),
           ),
         ),

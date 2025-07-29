@@ -68,7 +68,7 @@ final featureFlagServiceProvider =
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef FeatureFlagServiceRef = AutoDisposeProviderRef<FeatureFlagService>;
-String _$featureFlagStateHash() => r'c873eb78ee0fea34033c61f2054af4e367b479a5';
+String _$featureFlagStateHash() => r'47719db282465c7229d72b8ab05761246937d6be';
 
 /// Feature flag state provider (reactive to service changes)
 ///

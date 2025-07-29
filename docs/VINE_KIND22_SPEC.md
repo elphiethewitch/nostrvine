@@ -21,10 +21,6 @@ This document describes how we use Nostr kind 22 events to store archived Vine v
 
 ### Required Tags
 
-#### 1. Group Tag (h)
-- **Tag**: `["h", "vine"]`
-- **Purpose**: Required by vine.hol.is relay for group/community identification
-- **NIP**: NIP-72 (Moderated Communities)
 
 #### 2. Replaceable Event ID (d)
 - **Tag**: `["d", "<vine_id>"]`
@@ -211,5 +207,5 @@ The vine_id serves multiple purposes:
 2. Usernames are sanitized for filesystem safety
 3. Unknown users fallback to `vine_user_<vine_id>`
 4. Events expire to manage storage (configurable 72-168 hours)
-5. The relay vine.hol.is requires the `["h", "vine"]` tag
+5. Vine videos use standard Nostr event structure
 6. CDN URLs are reused when possible to avoid re-uploading

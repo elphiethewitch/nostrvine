@@ -170,11 +170,10 @@ Future<List<VideoEvent>> profileVideos(Ref ref, String pubkey) async {
     final filter = Filter(
       authors: [pubkey],
       kinds: [22], // NIP-71 short videos (corrected from 34550)
-      h: ['vine'], // Required vine tag for vine.hol.is relay
       limit: _profileVideosPageSize,
     );
     
-    Log.info('📱 Querying for videos: authors=[${pubkey.substring(0, 16)}], kinds=[22], h=[vine], limit=$_profileVideosPageSize',
+    Log.info('📱 Querying for videos: authors=[${pubkey.substring(0, 16)}], kinds=[22], limit=$_profileVideosPageSize',
         name: 'ProfileVideosProvider', category: LogCategory.ui);
 
     final completer = Completer<List<VideoEvent>>();
@@ -242,7 +241,7 @@ Future<List<VideoEvent>> profileVideos(Ref ref, String pubkey) async {
 }
 
 /// Notifier for managing profile videos state
-@riverpod
+@Riverpod(keepAlive: true)
 class ProfileVideosNotifier extends _$ProfileVideosNotifier {
   String? _currentPubkey;
   Completer<void>? _loadingCompleter;
@@ -335,7 +334,6 @@ class ProfileVideosNotifier extends _$ProfileVideosNotifier {
       final filter = Filter(
         authors: [_currentPubkey!],
         kinds: [22], // Corrected from 34550
-        h: ['vine'],
         until: state.lastTimestamp! - 1, // Load older videos
         limit: _profileVideosPageSize,
       );

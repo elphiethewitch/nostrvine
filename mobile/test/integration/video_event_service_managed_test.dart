@@ -10,6 +10,7 @@ import 'package:nostr_sdk/filter.dart';
 import 'package:openvine/services/nostr_service_interface.dart';
 import 'package:openvine/services/subscription_manager.dart';
 import 'package:openvine/services/video_event_service.dart';
+import 'package:openvine/utils/unified_logger.dart';
 
 // Use existing mocks from unit test
 import '../unit/subscription_manager_tdd_test.mocks.dart';
@@ -44,7 +45,7 @@ void main() {
     });
 
     test('VideoEventService should use SubscriptionManager for main video feed', () async {
-      print('🔍 Testing VideoEventService uses SubscriptionManager...');
+      Log.debug('🔍 Testing VideoEventService uses SubscriptionManager...', name: 'VideoEventServiceManagedTest', category: LogCategory.system);
       
       // Subscribe to video feed - this should use SubscriptionManager now
       await videoEventService.subscribeToVideoFeed(limit: 3);
@@ -67,7 +68,7 @@ void main() {
       expect(videoEventService.hasEvents, true);
       expect(videoEventService.eventCount, greaterThan(0));
       
-      print('✅ VideoEventService successfully uses SubscriptionManager');
+      Log.info('✅ VideoEventService successfully uses SubscriptionManager', name: 'VideoEventServiceManagedTest', category: LogCategory.system);
     });
   });
 }

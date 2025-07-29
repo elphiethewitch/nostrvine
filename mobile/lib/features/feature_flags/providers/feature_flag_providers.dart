@@ -41,8 +41,6 @@ Map<FeatureFlag, bool> featureFlagState(Ref ref) {
     // Cleanup will be handled automatically by Riverpod
   });
   
-  // Add listener to service for state changes
-  void invalidate() => ref.invalidateSelf();
       // REFACTORED: Service no longer extends ChangeNotifier - use Riverpod ref.watch instead
       // REFACTORED: Service no longer needs manual listener cleanup
   

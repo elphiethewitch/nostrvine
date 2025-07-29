@@ -201,7 +201,6 @@ Future<bool> _fixOccurrences(List<FutureDelayedOccurrence> occurrences) async {
     final content = await file.readAsString();
     final lines = content.split('\n');
     var modified = false;
-    const needsAsyncUtilsImport = false;
     var needsTimerImport = !content.contains("import 'dart:async'");
 
     // Sort occurrences by line number in reverse order to avoid offset issues
@@ -232,10 +231,6 @@ Future<bool> _fixOccurrences(List<FutureDelayedOccurrence> occurrences) async {
       // Add imports if needed
       if (needsTimerImport && !content.contains("import 'dart:async'")) {
         lines.insert(0, "import 'dart:async';");
-      }
-      if (needsAsyncUtilsImport && !content.contains('async_utils.dart')) {
-        final importIndex = lines.indexWhere((line) => line.startsWith('import'));
-        lines.insert(importIndex + 1, "import 'package:openvine/core/async/async_utils.dart';");
       }
 
       await file.writeAsString(lines.join('\n'));

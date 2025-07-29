@@ -325,7 +325,6 @@ class ApiService  {
   }
 
   /// Close the HTTP client
-  @override
   void dispose() {
     _client.close();
     
