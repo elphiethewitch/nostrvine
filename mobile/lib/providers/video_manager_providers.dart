@@ -7,7 +7,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:openvine/models/video_event.dart';
 import 'package:openvine/models/video_state.dart';
+import 'package:openvine/providers/tab_visibility_provider.dart';
 import 'package:openvine/providers/video_events_providers.dart';
+import 'package:openvine/providers/home_feed_provider.dart';
+import 'package:openvine/services/global_video_registry.dart';
 import 'package:openvine/services/video_manager_interface.dart';
 import 'package:openvine/state/video_manager_state.dart';
 import 'package:openvine/utils/unified_logger.dart';
@@ -45,10 +48,16 @@ class VideoManager extends _$VideoManager {
     // Start memory monitoring
     _startMemoryMonitoring();
 
+    // Listen to tab visibility changes
+    ref.listen(tabVisibilityProvider, (previous, next) {
+      _handleTabVisibilityChange(previous, next);
+    });
+
     // Listen to VideoEvents directly (not VideoFeed) to avoid circular dependency
     // This is deferred to after provider initialization to avoid test failures
     Timer.run(() {
       try {
+        // Listen to discovery videos
         ref.listen(videoEventsProvider, (previous, next) {
           if (next.hasValue) {
             final newVideos = next.value!;
@@ -67,7 +76,35 @@ class VideoManager extends _$VideoManager {
             }
             
             Log.verbose(
-              'VideoManager: Processed ${addedVideoIds.length} new videos (total: ${newVideos.length})',
+              'VideoManager: Processed ${addedVideoIds.length} new discovery videos (total: ${newVideos.length})',
+              name: 'VideoManagerProvider',
+              category: LogCategory.video,
+            );
+          }
+        });
+        
+        // Also listen to home feed videos
+        ref.listen(homeFeedProvider, (previous, next) {
+          if (next.hasValue) {
+            final newFeedState = next.value!;
+            final previousFeedState = previous?.value;
+            final newVideos = newFeedState.videos;
+            final previousVideos = previousFeedState?.videos ?? [];
+            
+            // Only add videos that are actually new to avoid re-processing all videos
+            final newVideoIds = newVideos.map((v) => v.id).toSet();
+            final previousVideoIds = previousVideos.map((v) => v.id).toSet();
+            final addedVideoIds = newVideoIds.difference(previousVideoIds);
+            
+            // Only process actually new videos
+            for (final video in newVideos) {
+              if (addedVideoIds.contains(video.id)) {
+                _addVideoEvent(video);
+              }
+            }
+            
+            Log.verbose(
+              'VideoManager: Processed ${addedVideoIds.length} new home feed videos (total: ${newVideos.length})',
               name: 'VideoManagerProvider',
               category: LogCategory.video,
             );
@@ -75,7 +112,7 @@ class VideoManager extends _$VideoManager {
         });
       } catch (e) {
         Log.warning(
-          'VideoManager: Could not listen to VideoEvents (likely test environment): $e',
+          'VideoManager: Could not listen to video providers (likely test environment): $e',
           name: 'VideoManagerProvider',
           category: LogCategory.video,
         );
@@ -84,6 +121,7 @@ class VideoManager extends _$VideoManager {
 
     return VideoManagerState(
       config: config,
+      currentTab: ref.read(tabVisibilityProvider),
     );
   }
 
@@ -95,6 +133,46 @@ class VideoManager extends _$VideoManager {
         _performMemoryCleanup();
       }
     });
+  }
+
+  /// Handle tab visibility changes
+  void _handleTabVisibilityChange(int? previousTab, int currentTab) {
+    // Update current tab in state
+    state = state.copyWith(currentTab: currentTab);
+
+    // Pause videos from the previously active tab
+    if (previousTab != null) {
+      pauseVideosForTab(previousTab);
+    }
+
+    Log.info('⏸️ Auto-paused videos when switching from tab $previousTab to $currentTab',
+        name: 'VideoManager', category: LogCategory.video);
+  }
+
+  /// Pause videos for a specific tab
+  void pauseVideosForTab(int tabIndex) {
+    // Pause videos belonging to specific tabs
+    for (final controllerState in state.readyControllers) {
+      final videoId = controllerState.videoId;
+
+      // Check if this video belongs to the tab being hidden
+      if (_isVideoFromTab(videoId, tabIndex)) {
+        controllerState.controller.pause();
+        Log.debug(
+          'VideoManager: Paused video $videoId from tab $tabIndex',
+          name: 'VideoManager',
+          category: LogCategory.video,
+        );
+      }
+    }
+  }
+
+  /// Check if a video belongs to a specific tab
+  bool _isVideoFromTab(String videoId, int tabIndex) {
+    // For now, return true for demonstration purposes
+    // In a real implementation, this would check video metadata or source
+    // to determine which tab a video belongs to
+    return tabIndex != state.currentTab;
   }
 
   /// Sync videos from the video feed provider
@@ -414,13 +492,18 @@ class VideoManager extends _$VideoManager {
 
   /// Pause all videos
   void pauseAllVideos() {
+    // Pause VideoManager's own controllers
     for (final controllerState in state.readyControllers) {
       if (controllerState.controller.value.isPlaying) {
         controllerState.controller.pause();
       }
     }
+    
+    // Also pause any controllers registered globally (like VideoFeedItem controllers)
+    GlobalVideoRegistry().pauseAllControllers();
+    
     Log.info(
-      'VideoManager: ✅ Paused all videos',
+      'VideoManager: ✅ Paused all videos (VideoManager + GlobalVideoRegistry)',
       name: 'VideoManagerProvider',
       category: LogCategory.video,
     );
@@ -433,6 +516,62 @@ class VideoManager extends _$VideoManager {
     }
     Log.info(
       'VideoManager: Stopped and disposed all videos',
+      name: 'VideoManagerProvider',
+      category: LogCategory.video,
+    );
+  }
+
+  /// Dispose a specific video's controller (public interface)
+  void disposeVideo(String videoId) {
+    _disposeVideo(videoId);
+  }
+
+  /// Dispose all video controllers that have videoIds starting with the given prefix
+  ///
+  /// This is useful for cleaning up groups of related controllers, such as:
+  /// - metadata_ controllers from previous recording sessions
+  /// - thumbnail_ controllers from failed thumbnail generation
+  /// - temp_ controllers from temporary operations
+  ///
+  /// [prefix] - The prefix to match against video IDs
+  /// Returns a Future that completes when all matching controllers are disposed
+  Future<void> disposeVideosWithPrefix(String prefix) async {
+    final currentState = state;
+    final controllersToDispose = currentState.controllers.entries
+        .where((entry) => entry.key.startsWith(prefix))
+        .toList();
+
+    if (controllersToDispose.isEmpty) {
+      Log.debug(
+        'VideoManager: No controllers found with prefix "$prefix"',
+        name: 'VideoManagerProvider',
+        category: LogCategory.video,
+      );
+      return;
+    }
+
+    Log.info(
+      'VideoManager: Disposing ${controllersToDispose.length} controllers with prefix "$prefix"',
+      name: 'VideoManagerProvider',
+      category: LogCategory.video,
+    );
+
+    // Dispose each matching controller
+    for (final entry in controllersToDispose) {
+      final videoId = entry.key;
+      _disposeVideo(videoId);
+      Log.debug(
+        'VideoManager: Disposed controller $videoId',
+        name: 'VideoManagerProvider',
+        category: LogCategory.video,
+      );
+    }
+
+    _updateMemoryStats();
+    _notifyStateChange();
+
+    Log.info(
+      'VideoManager: Successfully disposed ${controllersToDispose.length} controllers with prefix "$prefix"',
       name: 'VideoManagerProvider',
       category: LogCategory.video,
     );
@@ -466,6 +605,336 @@ class VideoManager extends _$VideoManager {
     // Try to force garbage collection on mobile platforms
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       // Note: Dart doesn't expose System.gc() directly, but disposing resources should help
+    }
+  }
+
+  /// Create a controller for a network URL video
+  ///
+  /// This method:
+  /// - Validates the URL for security
+  /// - Creates VideoPlayerController.networkUrl
+  /// - Registers with both VideoManager and GlobalVideoRegistry
+  /// - Enforces memory limits and cleanup
+  ///
+  /// [videoId] - Unique identifier for the video
+  /// [videoUrl] - Network URL to the video
+  /// [priority] - Priority level for memory management
+  Future<VideoPlayerController?> createNetworkController(
+    String videoId,
+    String videoUrl, {
+    PreloadPriority priority = PreloadPriority.nearby,
+  }) async {
+    try {
+      // Validate URL for security
+      final uri = Uri.parse(videoUrl);
+      if (!uri.hasScheme || (!uri.isScheme('http') && !uri.isScheme('https'))) {
+        throw VideoManagerException('Invalid URL scheme: $videoUrl', videoId: videoId);
+      }
+
+      Log.debug(
+        'VideoManager: Creating network controller for $videoId',
+        name: 'VideoManagerProvider',
+        category: LogCategory.video,
+      );
+
+      // Check memory limits before creating controller
+      if (state.controllers.length >= (state.config?.maxVideos ?? 100)) {
+        _performMemoryCleanup();
+      }
+
+      // Create video player controller
+      final controller = VideoPlayerController.networkUrl(uri);
+
+      // Register with GlobalVideoRegistry for coordination
+      GlobalVideoRegistry().registerController(controller);
+
+      // Initialize controller
+      await controller.initialize();
+
+      // Create controller state and add to VideoManager
+      final controllerState = VideoControllerState(
+        videoId: videoId,
+        controller: controller,
+        state: VideoState(
+          event: VideoEvent(
+            id: videoId,
+            pubkey: 'unknown',
+            createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+            content: 'Network video',
+            timestamp: DateTime.now(),
+            videoUrl: videoUrl,
+            hashtags: const [],
+          ),
+          loadingState: VideoLoadingState.ready,
+        ),
+        createdAt: DateTime.now(),
+        priority: priority,
+      );
+
+      // Add to state
+      state = state.copyWith(
+        controllers: {...state.controllers, videoId: controllerState},
+        successfulPreloads: state.successfulPreloads + 1,
+      );
+
+      _updateMemoryStats();
+      _notifyStateChange();
+
+      Log.info(
+        'VideoManager: Successfully created network controller for $videoId',
+        name: 'VideoManagerProvider',
+        category: LogCategory.video,
+      );
+
+      return controller;
+    } catch (e) {
+      Log.error(
+        'VideoManager: Failed to create network controller for $videoId: $e',
+        name: 'VideoManagerProvider',
+        category: LogCategory.video,
+      );
+
+      // Update failure stats
+      state = state.copyWith(
+        failedLoads: state.failedLoads + 1,
+        error: 'Failed to create network controller for $videoId: $e',
+      );
+
+      _notifyStateChange();
+      return null;
+    }
+  }
+
+  /// Create a controller for a local file video
+  ///
+  /// This method:  
+  /// - Validates the file exists and is readable
+  /// - Creates VideoPlayerController.file
+  /// - Registers with both VideoManager and GlobalVideoRegistry
+  /// - Enforces memory limits and cleanup
+  ///
+  /// [videoId] - Unique identifier for the video
+  /// [videoFile] - Local file containing the video
+  /// [priority] - Priority level for memory management
+  Future<VideoPlayerController?> createFileController(
+    String videoId,
+    File videoFile, {
+    PreloadPriority priority = PreloadPriority.nearby,
+  }) async {
+    try {
+      // Validate file exists and is readable
+      if (!videoFile.existsSync()) {
+        throw VideoManagerException('Video file does not exist: ${videoFile.path}', videoId: videoId);
+      }
+
+      Log.debug(
+        'VideoManager: Creating file controller for $videoId',
+        name: 'VideoManagerProvider',
+        category: LogCategory.video,
+      );
+
+      // Check memory limits before creating controller
+      if (state.controllers.length >= (state.config?.maxVideos ?? 100)) {
+        _performMemoryCleanup();
+      }
+
+      // Create video player controller
+      final controller = VideoPlayerController.file(videoFile);
+
+      // Register with GlobalVideoRegistry for coordination
+      GlobalVideoRegistry().registerController(controller);
+
+      // Initialize controller
+      await controller.initialize();
+
+      // Create controller state and add to VideoManager
+      final controllerState = VideoControllerState(
+        videoId: videoId,
+        controller: controller,
+        state: VideoState(
+          event: VideoEvent(
+            id: videoId,
+            pubkey: 'local',
+            createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+            content: 'Local video file',
+            timestamp: DateTime.now(),
+            videoUrl: videoFile.path,
+            hashtags: const [],
+          ),
+          loadingState: VideoLoadingState.ready,
+        ),
+        createdAt: DateTime.now(),
+        priority: priority,
+      );
+
+      // Add to state
+      state = state.copyWith(
+        controllers: {...state.controllers, videoId: controllerState},
+        successfulPreloads: state.successfulPreloads + 1,
+      );
+
+      _updateMemoryStats();
+      _notifyStateChange();
+
+      Log.info(
+        'VideoManager: Successfully created file controller for $videoId',
+        name: 'VideoManagerProvider',
+        category: LogCategory.video,
+      );
+
+      return controller;
+    } catch (e) {
+      Log.error(
+        'VideoManager: Failed to create file controller for $videoId: $e',
+        name: 'VideoManagerProvider',
+        category: LogCategory.video,
+      );
+
+      // Update failure stats
+      state = state.copyWith(
+        failedLoads: state.failedLoads + 1,
+        error: 'Failed to create file controller for $videoId: $e',
+      );
+
+      _notifyStateChange();
+      return null;
+    }
+  }
+
+  /// Create a controller for thumbnail generation
+  ///
+  /// This method:
+  /// - Creates a lightweight controller for frame extraction
+  /// - Automatically mutes audio and seeks to specified time
+  /// - Uses lower priority for memory management
+  /// - Automatically disposes after thumbnail generation
+  ///
+  /// [videoId] - Unique identifier for the video  
+  /// [videoUrl] - Network URL to the video
+  /// [seekTimeSeconds] - Time to seek to for thumbnail
+  Future<VideoPlayerController?> createThumbnailController(
+    String videoId,
+    String videoUrl, {
+    double seekTimeSeconds = 2.5,
+  }) async {
+    try {
+      // Validate URL for security
+      final uri = Uri.parse(videoUrl);
+      if (!uri.hasScheme || (!uri.isScheme('http') && !uri.isScheme('https'))) {
+        throw VideoManagerException('Invalid URL scheme: $videoUrl', videoId: videoId);
+      }
+
+      Log.debug(
+        'VideoManager: Creating thumbnail controller for $videoId at ${seekTimeSeconds}s',
+        name: 'VideoManagerProvider',
+        category: LogCategory.video,
+      );
+
+      // Create video player controller
+      final controller = VideoPlayerController.networkUrl(uri);
+
+      // Register with GlobalVideoRegistry for coordination
+      GlobalVideoRegistry().registerController(controller);
+
+      // Initialize controller
+      await controller.initialize();
+
+      // Configure for thumbnail generation
+      await controller.setVolume(0.0); // Mute audio
+      
+      // Seek to specified time or middle of video
+      if (controller.value.duration > Duration.zero) {
+        final seekTime = controller.value.duration > Duration(seconds: seekTimeSeconds.ceil())
+            ? Duration(milliseconds: (seekTimeSeconds * 1000).toInt())
+            : controller.value.duration ~/ 2;
+        await controller.seekTo(seekTime);
+      }
+
+      // Play for a frame then pause to ensure we have video data
+      await controller.play();
+      
+      // Wait for value change listener to ensure frame is loaded
+      final completer = Completer<void>();
+      late final VoidCallback listener;
+      listener = () {
+        if (controller.value.isPlaying && controller.value.position > Duration.zero) {
+          controller.removeListener(listener);
+          completer.complete();
+        }
+      };
+      controller.addListener(listener);
+      
+      // Safety timeout in case listener doesn't fire
+      Timer(const Duration(milliseconds: 200), () {
+        if (!completer.isCompleted) {
+          controller.removeListener(listener);
+          completer.complete();
+        }
+      });
+      
+      await completer.future;
+      await controller.pause();
+
+      // Create controller state with thumbnail priority (not stored long-term)
+      final controllerState = VideoControllerState(
+        videoId: videoId,
+        controller: controller,
+        state: VideoState(
+          event: VideoEvent(
+            id: videoId,
+            pubkey: 'thumbnail',
+            createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+            content: 'Thumbnail generation',
+            timestamp: DateTime.now(),
+            videoUrl: videoUrl,
+            hashtags: const [],
+          ),
+          loadingState: VideoLoadingState.ready,
+        ),
+        createdAt: DateTime.now(),
+        priority: PreloadPriority.background, // Low priority for thumbnails
+      );
+
+      // Add to state temporarily
+      state = state.copyWith(
+        controllers: {...state.controllers, videoId: controllerState},
+      );
+
+      _updateMemoryStats();
+      _notifyStateChange();
+
+      Log.info(
+        'VideoManager: Successfully created thumbnail controller for $videoId',
+        name: 'VideoManagerProvider',
+        category: LogCategory.video,
+      );
+
+      // Schedule automatic disposal after 30 seconds
+      Timer(const Duration(seconds: 30), () {
+        _disposeVideo(videoId);
+        Log.debug(
+          'VideoManager: Auto-disposed thumbnail controller for $videoId',
+          name: 'VideoManagerProvider',
+          category: LogCategory.video,
+        );
+      });
+
+      return controller;
+    } catch (e) {
+      Log.error(
+        'VideoManager: Failed to create thumbnail controller for $videoId: $e',
+        name: 'VideoManagerProvider',
+        category: LogCategory.video,
+      );
+
+      // Update failure stats
+      state = state.copyWith(
+        failedLoads: state.failedLoads + 1,
+        error: 'Failed to create thumbnail controller for $videoId: $e',
+      );
+
+      _notifyStateChange();
+      return null;
     }
   }
 

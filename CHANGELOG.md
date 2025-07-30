@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased Changes]
 
+### Fixed
+- **Video Feed Display Issue**: Fixed critical issue where videos weren't appearing in the home feed despite successful Nostr event reception
+  - Fixed VideoManager to listen to both discovery videos and home feed videos (homeFeedProvider)
+  - Resolved `VideoManagerException: Video not found in manager state` errors during video preloading
+  - Fixed broken bridge between VideoEventService and VideoManager that prevented videos from being added to manager state
+  - Home feed videos are now properly synchronized with VideoManager for seamless playback
+  - Compilation errors in video_event_service.dart resolved (duplicate variables, method signature mismatches)
+  - App now successfully builds and displays videos from both discovery and following-only feeds
+
 ### Added 
 - **Riverpod Migration Complete**: Fully migrated video feed system from Provider to Riverpod 2.0
   - **VideoEventBridge Eliminated**: Replaced complex manual coordination with reactive provider architecture

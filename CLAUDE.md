@@ -6,7 +6,7 @@ OpenVine is a decentralized vine-like video sharing application powered by Nostr
 - **Cloudflare Workers Backend**: Serverless backend for GIF creation and media processing
 
 ## Current Focus  
-**Camera Integration Implementation** - Building hybrid frame capture for vine recording
+**Video Feed Architecture Complete** - Fixed video display issues and optimized Riverpod-based video management
 
 ## Technology Stack
 - **Frontend**: Flutter (Dart) with Camera plugin
@@ -53,6 +53,19 @@ npm test                           # Run backend tests
 ./flush-analytics-simple.sh true   # Dry run - preview analytics keys to delete
 ./flush-analytics-simple.sh false  # Actually flush analytics database
 ```
+
+## API Documentation
+
+**Backend API Reference**: See `docs/BACKEND_API_REFERENCE.md` for complete documentation of all backend endpoints.
+
+**Domain Architecture**:
+- `api.openvine.co` - Main backend (uploads, media, video management, NIP-05, moderation)
+- `analytics.openvine.co` - Analytics worker (view tracking, trending algorithms)
+
+**Key Endpoints**:
+- File uploads: `POST api.openvine.co/api/upload`
+- Video analytics: `POST analytics.openvine.co/analytics/view`
+- Trending content: `GET analytics.openvine.co/analytics/trending/vines`
 
 ## Native Build Scripts
 **IMPORTANT**: Use these scripts instead of direct Flutter builds for iOS/macOS to prevent CocoaPods sync errors.
@@ -142,6 +155,53 @@ class Controller extends ChangeNotifier {
   }
 }
 ```
+
+## Video Feed Architecture
+
+OpenVine uses a **Riverpod-based reactive architecture** for managing video feeds with multiple subscription types:
+
+### Core Components
+
+**VideoEventService** (`mobile/lib/services/video_event_service.dart`):
+- Manages Nostr video event subscriptions by type (homeFeed, discovery, trending, etc.)
+- Uses per-subscription-type event lists (`_eventLists` map)
+- Supports multiple feed types: `SubscriptionType.homeFeed`, `SubscriptionType.discovery`, `SubscriptionType.hashtag`, etc.
+- Provides getters: `homeFeedVideos`, `discoveryVideos`, `getVideos(subscriptionType)`
+
+**VideoManager** (`mobile/lib/providers/video_manager_providers.dart`):
+- Riverpod provider managing video player controllers and preloading
+- **CRITICAL**: Listens to BOTH `videoEventsProvider` (discovery) AND `homeFeedProvider` (home feed)
+- Automatically adds received videos to internal state via `_addVideoEvent()`
+- Prevents `VideoManagerException: Video not found in manager state` errors during preloading
+- Manages memory efficiently with controller limits and cleanup
+
+**Feed Providers**:
+- `videoEventsProvider` → Discovery videos (general public feed)
+- `homeFeedProvider` → Videos from users you follow only
+- Both providers automatically sync with VideoManager for seamless playback
+
+### Video Feed Flow
+
+1. **Nostr Events** → VideoEventService receives and categorizes by subscription type
+2. **Provider Reactivity** → `videoEventsProvider` and `homeFeedProvider` emit updates
+3. **VideoManager Sync** → Automatically adds videos from both providers to internal state
+4. **UI Display** → Video feed screens render from respective providers
+5. **Preloading** → VideoManager can preload any video because it has all videos in state
+
+### Feed Types
+
+- **Home Feed** (`VideoFeedScreen` with `homeFeedProvider`): Shows videos only from followed users
+- **Discovery Feed** (`explore_screen.dart` with `videoEventsProvider`): Shows all public videos
+- **Hashtag Feeds**: Filter videos by hashtags
+- **Profile Feeds**: Show videos from specific users
+
+### Critical Fix (2024-07-30)
+
+Fixed broken bridge between VideoEventService and VideoManager:
+- VideoManager was only listening to discovery videos (`videoEventsProvider`)
+- Home feed videos (`homeFeedProvider`) weren't being added to VideoManager state
+- Result: Videos appeared in feed providers but caused preload failures
+- **Solution**: Added home feed listener to VideoManager alongside discovery listener
 
 ## Analytics Database Management
 
