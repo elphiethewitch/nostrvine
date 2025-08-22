@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased Changes]
 
+### Added (Backend: Cloudflare Stream)
+- Cloudflare Stream upload and CDN integration (phase-in)
+  - New POST `/v1/media/request-upload` to create Stream direct upload URLs (NIP-98 auth; per-pubkey rate limit)
+  - New POST `/v1/webhooks/stream-complete` to process Stream callbacks (HMAC signature validation)
+  - New GET `/v1/media/status/{videoId}` for processing state; returns HLS/DASH URLs when published
+  - KV mappings for Stream: `stream:file:{fileId}` and `stream:uid:{uid}`
+  - Thumbnail delivery via Cloudflare Images transformation of Stream thumbnails
+  - Compatibility: `/media/{fileId}` and `/thumbnail/{fileId}` redirect to Stream/Images when migrated; fallback to R2 otherwise
+
+### Changed (Backend: Cloudflare Stream)
+- Prefer Cloudflare Stream HLS/DASH for video delivery; R2 remains a fallback path
+- `/media/{fileId}` and `/thumbnail/{fileId}` updated to support redirects for migrated items
+- Standardize webhook secret to `STREAM_WEBHOOK_SECRET` (ensure Wrangler secret is set)
+- Enforced rate limiting for Stream uploads (30/hour per pubkey)
+
+### Notes (Backend)
+- NIP-96 `/api/upload` remains for images and legacy flows. For videos, clients should move to Stream upload flow. Transitional behavior may return processing handoff to Stream.
+- GIF output is not provided by Stream; prefer HLS/short MP4. If GIFs are required, a separate processing path will be needed.
+
+### Migration (Backend)
+- Planned one-time import of existing R2 videos into Cloudflare Stream:
+  - Enumerate R2 `uploads/` objects, generate signed URLs, and create Stream videos with metadata (`fileId`, `sha256`, `originalFilename`)
+  - Store KV mappings and update on webhook completion
+  - Keep dedup and original Vine mappings intact: `sha256:{hash}`, `vine_id:{vineId}`, `filename:{name}`
+
 ### Fixed
 - **Video Upload and Publishing**: Resolved critical issues preventing video uploads and Nostr event publishing
   - Fixed Hive Duration serialization error by converting Duration fields to milliseconds (int)
