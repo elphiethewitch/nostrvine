@@ -7,6 +7,8 @@ import 'package:openvine/main.dart';
 import 'package:openvine/models/video_event.dart';
 import 'package:openvine/providers/app_providers.dart';
 import 'package:openvine/utils/unified_logger.dart';
+import 'package:openvine/widgets/proofmode_badge.dart';
+import 'package:openvine/widgets/proofmode_badge_row.dart';
 import 'package:openvine/widgets/video_thumbnail_widget.dart';
 
 /// Video thumbnail tile for explore screen
@@ -58,6 +60,16 @@ class VideoExploreTile extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(borderRadius),
                 );
               },
+            ),
+
+            // ProofMode and Vine badges
+            Positioned(
+              top: 8,
+              left: 8,
+              child: ProofModeBadgeRow(
+                video: video,
+                size: BadgeSize.small,
+              ),
             ),
 
             // Video info overlay - conditionally shown

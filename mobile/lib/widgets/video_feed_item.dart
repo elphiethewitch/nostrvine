@@ -18,7 +18,7 @@ import 'package:openvine/main.dart';
 import 'package:openvine/utils/string_utils.dart';
 import 'package:openvine/widgets/clickable_hashtag_text.dart';
 import 'package:openvine/widgets/proofmode_badge.dart';
-import 'package:openvine/utils/proofmode_helpers.dart';
+import 'package:openvine/widgets/proofmode_badge_row.dart';
 
 /// Video feed item using individual controller architecture
 class VideoFeedItem extends ConsumerStatefulWidget {
@@ -571,21 +571,12 @@ class VideoOverlayActions extends ConsumerWidget {
                     ),
                   ),
                 ],
-                // ProofMode verification badge
-                if (video.shouldShowProofModeBadge) ...[
-                  const SizedBox(height: 8),
-                  ProofModeBadge(
-                    level: video.getVerificationLevel(),
-                    size: BadgeSize.small,
-                  ),
-                ],
-                // Original Vine badge
-                if (video.shouldShowVineBadge) ...[
-                  const SizedBox(height: 8),
-                  const OriginalVineBadge(
-                    size: BadgeSize.small,
-                  ),
-                ],
+                // ProofMode and Vine badges
+                const SizedBox(height: 8),
+                ProofModeBadgeRow(
+                  video: video,
+                  size: BadgeSize.small,
+                ),
               ],
             );
           }),

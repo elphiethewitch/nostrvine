@@ -8,6 +8,8 @@ import 'package:openvine/models/video_event.dart';
 // import 'package:openvine/services/video_manager_interface.dart'; // TODO: Restore when VideoManager interface is available
 import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/utils/unified_logger.dart';
+import 'package:openvine/widgets/proofmode_badge.dart';
+import 'package:openvine/widgets/proofmode_badge_row.dart';
 import 'package:openvine/widgets/video_thumbnail_widget.dart';
 import 'package:video_player/video_player.dart';
 
@@ -247,6 +249,16 @@ class _VideoPreviewTileState extends ConsumerState<VideoPreviewTile>
                     ),
                   ),
                 ),
+
+              // ProofMode and Vine badges
+              Positioned(
+                top: 8,
+                left: 8,
+                child: ProofModeBadgeRow(
+                  video: widget.video,
+                  size: BadgeSize.small,
+                ),
+              ),
             ],
           ),
         ),
