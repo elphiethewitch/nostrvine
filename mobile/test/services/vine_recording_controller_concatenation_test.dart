@@ -144,17 +144,18 @@ void main() {
         // Add segments to controller
         controller.segments.addAll(segments);
 
-        // Finish recording (should trigger concatenation)
-        final result = await controller.finishRecording();
+        // Finish recording (should trigger concatenation) - returns (File?, ProofManifest?)
+        final recordingResult = await controller.finishRecording();
+        final (videoFile, proofManifest) = recordingResult;
 
         // Verify concatenation occurred
-        expect(result, isNotNull);
-        expect(await result!.exists(), isTrue);
-        expect(result.path, contains('vine_final_'));
-        expect(result.path, endsWith('.mp4'));
+        expect(videoFile, isNotNull);
+        expect(await videoFile!.exists(), isTrue);
+        expect(videoFile.path, contains('vine_final_'));
+        expect(videoFile.path, endsWith('.mp4'));
 
         // Clean up
-        await result.delete();
+        await videoFile.delete();
         await segment1.delete();
         await segment2.delete();
         await segment3.delete();
@@ -173,10 +174,11 @@ void main() {
           ),
         );
 
-        final result = await controller.finishRecording();
+        final recordingResult = await controller.finishRecording();
+        final (videoFile, proofManifest) = recordingResult;
 
-        expect(result, isNotNull);
-        expect(result!.path, equals(segment.path));
+        expect(videoFile, isNotNull);
+        expect(videoFile!.path, equals(segment.path));
 
         await segment.delete();
       });
