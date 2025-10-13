@@ -232,34 +232,26 @@ class SecureKeyContainer {
   static String _bytesToHex(Uint8List bytes) =>
       bytes.map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
 
-  /// Derive public key from private key
-  /// TODO: Replace with platform-specific secure implementation
+  /// Derive public key from private key using secp256k1
+  ///
+  /// Uses NostrEncoding.derivePublicKey() which implements secure secp256k1
+  /// via nostr_sdk's PointyCastle implementation.
   static String _derivePublicKey(String privateKeyHex) {
-    // This is a placeholder - in the real implementation, this should use
-    // platform-specific secure cryptographic functions that don't expose
-    // the private key in memory
-
-    // For now, we'll use the existing nostr_sdk implementation
-    // but this needs to be replaced with hardware-backed crypto
     try {
-      // Import from nostr_sdk
-      // This will be replaced with secure platform implementation
-      return _getPublicKeyFromPrivateKey(privateKeyHex);
+      return NostrEncoding.derivePublicKey(privateKeyHex);
     } catch (e) {
       throw SecureKeyException('Failed to derive public key: $e');
     }
   }
 
   /// Generate a cryptographically secure private key
-  /// TODO: Replace with platform-specific secure random generation
+  ///
+  /// Uses nostr_sdk's generatePrivateKey() which provides cryptographically
+  /// secure random number generation via PointyCastle.
   static String _generateSecurePrivateKey() {
-    // This is a placeholder - in the real implementation, this should use
-    // platform-specific secure random number generation (iOS Secure Enclave,
-    // Android Keystore, etc.)
-
-    // For now, we'll use the existing nostr_sdk implementation
     try {
-      return _generatePrivateKeySecurely();
+      // Use nostr_sdk's secure key generation
+      return generatePrivateKey();
     } catch (e) {
       throw SecureKeyException('Failed to generate secure private key: $e');
     }
@@ -269,10 +261,3 @@ class SecureKeyContainer {
   String toString() =>
       'SecureKeyContainer(npub: ${NostrEncoding.maskKey(_npub)}, disposed: $_isDisposed)';
 }
-
-/// Get public key from private key using nostr_sdk
-String _getPublicKeyFromPrivateKey(String privateKeyHex) =>
-    getPublicKey(privateKeyHex);
-
-/// Generate secure private key using nostr_sdk
-String _generatePrivateKeySecurely() => generatePrivateKey();
