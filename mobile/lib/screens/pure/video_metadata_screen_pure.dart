@@ -34,6 +34,7 @@ class _VideoMetadataScreenPureState extends ConsumerState<VideoMetadataScreenPur
   bool _isExpiringPost = false;
   int _expirationHours = 24;
   bool _isPublishing = false;
+  String _publishingStatus = '';
   VideoPlayerController? _videoController;
   bool _isVideoInitialized = false;
 
@@ -110,9 +111,11 @@ class _VideoMetadataScreenPureState extends ConsumerState<VideoMetadataScreenPur
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
         backgroundColor: Colors.green,
         leading: IconButton(
           key: const Key('back-button'),
@@ -397,6 +400,42 @@ class _VideoMetadataScreenPureState extends ConsumerState<VideoMetadataScreenPur
           ],
         ),
       ),
+    ),
+        // Publishing progress overlay
+        if (_isPublishing)
+          Container(
+            color: Colors.black.withValues(alpha: 0.8),
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.all(32),
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.grey[900],
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(
+                      color: Colors.green,
+                      strokeWidth: 3,
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      _publishingStatus,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -465,6 +504,7 @@ class _VideoMetadataScreenPureState extends ConsumerState<VideoMetadataScreenPur
   Future<void> _publishVideo() async {
     setState(() {
       _isPublishing = true;
+      _publishingStatus = 'Preparing to publish...';
     });
 
     try {
@@ -487,12 +527,19 @@ class _VideoMetadataScreenPureState extends ConsumerState<VideoMetadataScreenPur
       if (!uploadManager.isInitialized) {
         Log.info('📝 Initializing upload manager...',
             category: LogCategory.video);
+        setState(() {
+          _publishingStatus = 'Initializing upload system...';
+        });
         await uploadManager.initialize();
       }
 
       // Start upload to Blossom
       Log.info('📝 Starting upload to Blossom server...',
           category: LogCategory.video);
+
+      setState(() {
+        _publishingStatus = 'Uploading video...';
+      });
 
       final pendingUpload = await uploadManager.startUpload(
         videoFile: widget.videoFile,
@@ -515,6 +562,10 @@ class _VideoMetadataScreenPureState extends ConsumerState<VideoMetadataScreenPur
       Log.info('📝 Publishing Nostr event...',
           category: LogCategory.video);
 
+      setState(() {
+        _publishingStatus = 'Publishing to Nostr...';
+      });
+
       final published = await videoEventPublisher.publishDirectUpload(
         pendingUpload,
         expirationTimestamp: _isExpiringPost
@@ -530,8 +581,26 @@ class _VideoMetadataScreenPureState extends ConsumerState<VideoMetadataScreenPur
           category: LogCategory.video);
 
       if (mounted) {
-        // Success - pop back to camera screen
-        Navigator.of(context).pop();
+        setState(() {
+          _publishingStatus = 'Published successfully!';
+        });
+
+        // Show success message for longer so user can see it
+        await Future.delayed(const Duration(milliseconds: 1200));
+
+        if (mounted) {
+          // Reset publishing state
+          setState(() {
+            _isPublishing = false;
+            _publishingStatus = '';
+          });
+
+          // Pop back to the root (main navigation screen)
+          // This pops both metadata screen AND camera screen
+          Navigator.of(context).popUntil((route) => route.isFirst);
+
+          Log.info('📝 Published successfully, returned to main screen', category: LogCategory.video);
+        }
       }
     } catch (e) {
       Log.error('📝 VideoMetadataScreenPure: Failed to publish video: $e',
@@ -540,6 +609,7 @@ class _VideoMetadataScreenPureState extends ConsumerState<VideoMetadataScreenPur
       if (mounted) {
         setState(() {
           _isPublishing = false;
+          _publishingStatus = '';
         });
 
         ScaffoldMessenger.of(context).showSnackBar(

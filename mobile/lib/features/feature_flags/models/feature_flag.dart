@@ -10,7 +10,9 @@ enum FeatureFlag {
   newProfileLayout('New Profile Layout', 'Redesigned user profile screen'),
   livestreamingBeta(
       'Livestreaming Beta', 'Live video streaming feature (beta)'),
-  debugTools('Debug Tools', 'Developer debugging utilities and diagnostics');
+  debugTools('Debug Tools', 'Developer debugging utilities and diagnostics'),
+  routerDrivenHome('Router-Driven Home Screen',
+      'New router-driven home screen architecture (eliminates lifecycle bugs)');
 
   const FeatureFlag(this.displayName, this.description);
 

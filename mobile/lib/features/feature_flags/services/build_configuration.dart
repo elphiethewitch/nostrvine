@@ -26,6 +26,9 @@ class BuildConfiguration {
             defaultValue: false);
       case FeatureFlag.debugTools:
         return const bool.fromEnvironment('FF_DEBUG_TOOLS', defaultValue: true);
+      case FeatureFlag.routerDrivenHome:
+        return const bool.fromEnvironment('FF_ROUTER_DRIVEN_HOME',
+            defaultValue: false);
     }
   }
 
@@ -50,6 +53,8 @@ class BuildConfiguration {
         return 'FF_LIVESTREAMING_BETA';
       case FeatureFlag.debugTools:
         return 'FF_DEBUG_TOOLS';
+      case FeatureFlag.routerDrivenHome:
+        return 'FF_ROUTER_DRIVEN_HOME';
     }
   }
 }

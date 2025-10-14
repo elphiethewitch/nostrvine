@@ -1,11 +1,12 @@
 // ABOUTME: Comprehensive tests for VideoPageView widget consolidation
-// ABOUTME: Tests all features: pagination, prewarming, lifecycle, callbacks
+// ABOUTME: Tests all features: pagination, prewarming, lifecycle, callbacks, context management
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openvine/models/video_event.dart';
-import 'package:openvine/providers/individual_video_providers.dart';
+import 'package:openvine/providers/individual_video_providers.dart' hide activeVideoProvider;
+import 'package:openvine/providers/computed_active_video_provider.dart';
 import 'package:openvine/widgets/video_page_view.dart';
 import '../builders/test_video_event_builder.dart';
 
@@ -517,6 +518,216 @@ void main() {
 
       // Active video should not be managed
       expect(container.read(activeVideoProvider), isNull);
+    });
+  });
+
+  group('VideoPageView Reactive Context Management', () {
+    late List<VideoEvent> testVideos;
+
+    setUp(() {
+      // Create test videos with realistic 64-character Nostr IDs
+      testVideos = [
+        TestVideoEventBuilder.create(
+          id: '1111111111111111111111111111111111111111111111111111111111111111',
+          pubkey: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          content: 'Video 1',
+          videoUrl: 'https://example.com/v1.mp4',
+        ),
+        TestVideoEventBuilder.create(
+          id: '2222222222222222222222222222222222222222222222222222222222222222',
+          pubkey: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          content: 'Video 2',
+          videoUrl: 'https://example.com/v2.mp4',
+        ),
+        TestVideoEventBuilder.create(
+          id: '3333333333333333333333333333333333333333333333333333333333333333',
+          pubkey: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+          content: 'Video 3',
+          videoUrl: 'https://example.com/v3.mp4',
+        ),
+      ];
+    });
+
+    testWidgets('VideoPageView sets initial context on mount', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      // ACT: Build VideoPageView with screenId 'explore'
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: VideoPageView(
+                videos: testVideos,
+                screenId: 'explore', // NEW: screenId parameter
+                initialIndex: 0,
+                enableLifecycleManagement: true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Wait for async initialization
+      await tester.pumpAndSettle();
+
+      // VERIFY: Context was set to ('explore', 0)
+      final pageContext = container.read(currentPageContextProvider);
+      expect(pageContext, isNotNull, reason: 'Page context should be set');
+      expect(pageContext!.screenId, equals('explore'));
+      expect(pageContext.pageIndex, equals(0));
+    });
+
+    testWidgets('VideoPageView updates context when page changes', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      final controller = PageController(initialPage: 0);
+      addTearDown(controller.dispose);
+
+      // ACT: Build VideoPageView
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: VideoPageView(
+                videos: testVideos,
+                screenId: 'explore',
+                controller: controller,
+                enableLifecycleManagement: true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // VERIFY: Initial context is ('explore', 0)
+      PageContext? pageContext = container.read(currentPageContextProvider);
+      expect(pageContext?.screenId, equals('explore'));
+      expect(pageContext?.pageIndex, equals(0));
+
+      // ACT: Swipe to next page
+      await tester.drag(find.byType(PageView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+
+      // VERIFY: Context updated to ('explore', 1)
+      pageContext = container.read(currentPageContextProvider);
+      expect(pageContext?.screenId, equals('explore'));
+      expect(pageContext?.pageIndex, equals(1));
+
+      // ACT: Swipe to third page
+      await tester.drag(find.byType(PageView), const Offset(0, -300));
+      await tester.pumpAndSettle();
+
+      // VERIFY: Context updated to ('explore', 2)
+      pageContext = container.read(currentPageContextProvider);
+      expect(pageContext?.screenId, equals('explore'));
+      expect(pageContext?.pageIndex, equals(2));
+    });
+
+    testWidgets('VideoPageView clears context on dispose', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      // ACT: Build and mount VideoPageView
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: VideoPageView(
+                videos: testVideos,
+                screenId: 'explore',
+                enableLifecycleManagement: true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // VERIFY: Context is set
+      PageContext? pageContext = container.read(currentPageContextProvider);
+      expect(pageContext, isNotNull);
+
+      // ACT: Dispose widget by replacing with empty container
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(
+            home: Scaffold(
+              body: SizedBox.shrink(),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // VERIFY: Context was cleared
+      pageContext = container.read(currentPageContextProvider);
+      expect(pageContext, isNull, reason: 'Context should be cleared on dispose');
+    });
+
+    testWidgets('VideoPageView with different screenIds have separate contexts', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      // This test verifies that multiple VideoPageView instances can exist
+      // but only the most recent one sets the active context
+
+      // ACT: Build first VideoPageView with 'home' screenId
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: VideoPageView(
+                videos: testVideos,
+                screenId: 'home',
+                initialIndex: 1,
+                enableLifecycleManagement: true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // VERIFY: Context is ('home', 1)
+      PageContext? pageContext = container.read(currentPageContextProvider);
+      expect(pageContext?.screenId, equals('home'));
+      expect(pageContext?.pageIndex, equals(1));
+
+      // ACT: Navigate to explore screen (replace with new VideoPageView)
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: VideoPageView(
+                videos: testVideos,
+                screenId: 'explore',
+                initialIndex: 2,
+                enableLifecycleManagement: true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // VERIFY: Context changed to ('explore', 2)
+      pageContext = container.read(currentPageContextProvider);
+      expect(pageContext?.screenId, equals('explore'));
+      expect(pageContext?.pageIndex, equals(2));
     });
   });
 }

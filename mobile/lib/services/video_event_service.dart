@@ -2689,6 +2689,14 @@ class VideoEventService extends ChangeNotifier {
     _addVideoToSubscription(event, type, isHistorical: isHistorical);
   }
 
+  /// Inject multiple test videos into discovery feed for testing
+  void injectTestVideos(List<VideoEvent> videos) {
+    for (final video in videos) {
+      addVideoEventForTesting(video, SubscriptionType.discovery, isHistorical: true);
+    }
+    notifyListeners(); // Notify providers that videos have changed
+  }
+
 }
 
 /// Exception thrown by video event service operations

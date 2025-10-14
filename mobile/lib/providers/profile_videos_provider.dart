@@ -139,15 +139,8 @@ class ProfileVideosNotifier extends _$ProfileVideosNotifier {
         name: 'ProfileVideosProvider',
         category: LogCategory.ui);
 
-    if (_currentPubkey == pubkey && state.hasVideos && !state.hasError) {
-      Log.debug(
-          '⏭️ Early return: already loaded for ${pubkey.substring(0, 8)} with ${state.videos.length} videos',
-          name: 'ProfileVideosProvider',
-          category: LogCategory.ui);
-      return;
-    }
-
     // Prevent concurrent loads for the same user
+    // This is the ONLY early return - allows reload when returning to profile after publishing
     if (_loadingCompleter != null && _currentPubkey == pubkey) {
       Log.debug(
           '⏭️ Early return: already loading for ${pubkey.substring(0, 8)}',
