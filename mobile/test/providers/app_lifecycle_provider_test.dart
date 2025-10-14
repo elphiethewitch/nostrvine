@@ -1,7 +1,6 @@
 // ABOUTME: Tests for app lifecycle provider (foreground/background state)
 // ABOUTME: Verifies reactive lifecycle tracking and activeVideoIdProvider integration
 
-import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:openvine/models/video_event.dart';
