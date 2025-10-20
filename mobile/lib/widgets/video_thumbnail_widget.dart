@@ -85,7 +85,7 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
     });
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(BoxFit fit) {
     // While determining what thumbnail to use, show blurhash if available
     if (_isLoading && widget.video.blurhash != null) {
       return Stack(
@@ -94,7 +94,7 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
             blurhash: widget.video.blurhash!,
             width: widget.width,
             height: widget.height,
-            fit: widget.fit,
+            fit: fit,
           ),
           if (widget.showPlayIcon)
             Center(
@@ -137,14 +137,14 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
               blurhash: widget.video.blurhash!,
               width: widget.width,
               height: widget.height,
-              fit: widget.fit,
+              fit: fit,
             ),
           // Actual thumbnail image with error boundary
           _SafeNetworkImage(
             url: _thumbnailUrl!,
             width: widget.width,
             height: widget.height,
-            fit: widget.fit,
+            fit: fit,
             videoId: widget.video.id,
             blurhash: widget.video.blurhash,
             showPlayIcon: widget.showPlayIcon,
@@ -185,7 +185,7 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
             blurhash: widget.video.blurhash!,
             width: widget.width,
             height: widget.height,
-            fit: widget.fit,
+            fit: fit,
           ),
           if (widget.showPlayIcon)
             Center(
@@ -233,15 +233,6 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
 
   @override
   Widget build(BuildContext context) {
-    var content = _buildContent();
-
-    if (widget.borderRadius != null) {
-      content = ClipRRect(
-        borderRadius: widget.borderRadius!,
-        child: content,
-      );
-    }
-
     // Calculate aspect ratio from video dimensions if available, fallback to 1:1 square
     final double aspectRatio;
     if (widget.video.width != null && widget.video.height != null && widget.video.height! > 0) {
@@ -258,6 +249,28 @@ class _VideoThumbnailWidgetState extends State<VideoThumbnailWidget> {
         '📐 No dimensions metadata, using square (1:1) aspect ratio for thumbnail',
         name: 'VideoThumbnailWidget',
         category: LogCategory.ui,
+      );
+    }
+
+    // Match video player's BoxFit strategy to prevent visual jump:
+    // - Portrait videos (aspectRatio < 0.9): Use BoxFit.cover to fill screen
+    // - Square/Landscape videos (aspectRatio >= 0.9): Use BoxFit.contain to show full video
+    final bool isPortrait = aspectRatio < 0.9;
+    final BoxFit effectiveFit = isPortrait ? BoxFit.cover : BoxFit.contain;
+
+    Log.debug(
+      '🎨 Thumbnail BoxFit: ${effectiveFit.toString().split('.').last} (portrait=$isPortrait)',
+      name: 'VideoThumbnailWidget',
+      category: LogCategory.ui,
+    );
+
+    // Build content with the calculated fit
+    var content = _buildContent(effectiveFit);
+
+    if (widget.borderRadius != null) {
+      content = ClipRRect(
+        borderRadius: widget.borderRadius!,
+        child: content,
       );
     }
 
