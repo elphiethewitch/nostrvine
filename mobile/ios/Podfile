@@ -38,9 +38,8 @@ target 'Runner' do
   use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
-  
+
   # Explicitly include pods that have given us trouble
-  pod 'wakelock_plus', :path => '.symlinks/plugins/wakelock_plus/ios'
   pod 'libwebp', '~> 1.5.0'
   
   target 'RunnerTests' do

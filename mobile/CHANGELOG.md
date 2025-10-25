@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - iOS Build Failure (2025-10-25)
+
+#### Bug Fixes
+- **Fixed iOS build failing with "No podspec found for wakelock_plus"**
+  - Root cause: Stale explicit pod reference in `ios/Podfile` for plugin that was never actually a dependency
+  - Someone had manually added `pod 'wakelock_plus'` to Podfile, causing CocoaPods to fail
+  - The `flutter_install_all_ios_pods` command already handles all actual plugin dependencies automatically
+  - Fixed by removing the explicit wakelock_plus line from Podfile (line 43)
+  - iOS release builds now complete successfully and can be distributed via TestFlight
+
+#### Technical Details
+- Modified `ios/Podfile`:
+  - Removed explicit `pod 'wakelock_plus', :path => '.symlinks/plugins/wakelock_plus/ios'` line
+  - Kept `pod 'libwebp'` which is still required
+  - Flutter's auto-generated plugin list handles all actual dependencies
+
 ### Fixed - Critical Log Export Bug (2025-10-21)
 
 #### Bug Fixes
