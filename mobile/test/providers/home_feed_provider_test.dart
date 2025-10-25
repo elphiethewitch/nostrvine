@@ -1,6 +1,7 @@
 // ABOUTME: Tests for home feed provider functionality
 // ABOUTME: Verifies that home feed correctly filters videos from followed authors
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mockito/annotations.dart';
@@ -37,20 +38,43 @@ void main() {
     late MockVideoEventService mockVideoEventService;
     late MockINostrService mockNostrService;
     late MockSubscriptionManager mockSubscriptionManager;
+    final List<VoidCallback> registeredListeners = [];
 
     setUp(() {
       mockVideoEventService = MockVideoEventService();
       mockNostrService = MockINostrService();
       mockSubscriptionManager = MockSubscriptionManager();
+      registeredListeners.clear();
 
       // Setup default mock behaviors
-      when(mockVideoEventService.homeFeedVideos).thenReturn([]);
+      // Note: Individual tests will override homeFeedVideos with their own values
       when(mockVideoEventService.getEventCount(SubscriptionType.homeFeed))
           .thenReturn(0);
+
+      // Setup nostrService isInitialized stub (needed for profile fetching)
+      when(mockNostrService.isInitialized).thenReturn(true);
+
+      // Capture listeners when added
+      when(mockVideoEventService.addListener(any)).thenAnswer((invocation) {
+        final listener = invocation.positionalArguments[0] as VoidCallback;
+        registeredListeners.add(listener);
+      });
+
+      // Remove listeners when removed
+      when(mockVideoEventService.removeListener(any)).thenAnswer((invocation) {
+        final listener = invocation.positionalArguments[0] as VoidCallback;
+        registeredListeners.remove(listener);
+      });
+
+      // subscribeToHomeFeed just completes - videos should already be set up by individual tests
       when(mockVideoEventService.subscribeToHomeFeed(
         any,
         limit: anyNamed('limit'),
-      )).thenAnswer((_) async {});
+      )).thenAnswer((_) async {
+        // Videos are already set up via when(homeFeedVideos).thenReturn() in individual tests
+        // The provider will check homeFeedVideos.length after this completes
+        return Future.value();
+      });
 
       container = ProviderContainer(
         overrides: [
@@ -385,6 +409,7 @@ void main() {
       // Act
       await testContainer.read(homeFeedProvider.future);
       await testContainer.read(homeFeedProvider.notifier).refresh();
+      await testContainer.read(homeFeedProvider.future); // Wait for rebuild to complete
 
       // Assert: Should re-subscribe after refresh
       verify(mockVideoEventService.subscribeToHomeFeed(

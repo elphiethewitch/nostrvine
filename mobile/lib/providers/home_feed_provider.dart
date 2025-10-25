@@ -39,6 +39,9 @@ class HomeFeed extends _$HomeFeed {
 
   @override
   Future<VideoFeedState> build() async {
+    // Prevent auto-dispose during async operations
+    final keepAliveLink = ref.keepAlive();
+
     _buildCounter++;
     final buildId = _buildCounter;
     final now = DateTime.now();
@@ -138,6 +141,7 @@ class HomeFeed extends _$HomeFeed {
 
     if (followingPubkeys.isEmpty) {
       // Return empty state if not following anyone
+      keepAliveLink.close();
       return VideoFeedState(
         videos: [],
         hasMoreContent: false,
@@ -195,6 +199,7 @@ class HomeFeed extends _$HomeFeed {
 
     // Check if provider is still mounted after async gap
     if (!ref.mounted) {
+      keepAliveLink.close();
       return VideoFeedState(
         videos: [],
         hasMoreContent: false,
@@ -237,6 +242,7 @@ class HomeFeed extends _$HomeFeed {
 
     // Check if provider is still mounted after async gap
     if (!ref.mounted) {
+      keepAliveLink.close();
       return VideoFeedState(
         videos: [],
         hasMoreContent: false,
@@ -261,6 +267,9 @@ class HomeFeed extends _$HomeFeed {
       name: 'HomeFeedProvider',
       category: LogCategory.video,
     );
+
+    // Close keepAlive link to allow auto-dispose after build completes
+    keepAliveLink.close();
 
     return feedState;
   }
