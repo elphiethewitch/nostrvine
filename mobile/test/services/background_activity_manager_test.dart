@@ -51,21 +51,30 @@ void main() {
       expect(manager.isAppInBackground, isFalse);
     });
 
-    test('should register and notify services', () {
+    test('should register and notify services', () async {
       manager.registerService(testService);
 
       // Simulate app going to background
       manager.onAppLifecycleStateChanged(AppLifecycleState.paused);
 
       expect(manager.isAppInBackground, isTrue);
+
+      // Wait for async service notifications to complete
+      // The implementation uses Future.microtask() which needs event loop processing
+      await Future.delayed(const Duration(milliseconds: 10));
+
       expect(testService.backgroundCalled, isTrue);
     });
 
-    test('should handle app resume', () {
+    test('should handle app resume', () async {
       manager.registerService(testService);
 
       // Go to background then resume
       manager.onAppLifecycleStateChanged(AppLifecycleState.paused);
+
+      // Wait for background notification
+      await Future.delayed(const Duration(milliseconds: 10));
+
       manager.onAppLifecycleStateChanged(AppLifecycleState.resumed);
 
       expect(manager.isAppInForeground, isTrue);
