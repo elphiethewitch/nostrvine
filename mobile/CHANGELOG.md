@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed - Video Grid Thumbnail Layout (2025-10-25)
+
+#### Bug Fixes
+- **Fixed video thumbnails being squished in explore grid**
+  - Root cause: Grid used `childAspectRatio: 1.0` (square) for entire tile including video + labels
+  - This made video thumbnails appear horizontally compressed
+  - Symptom: Video thumbnails were not square, labels were inside the square tile
+  - Solution: Force video to square aspect ratio, adjust grid tile to be vertical rectangle
+
+#### Files Modified
+- `lib/widgets/composable_video_grid.dart` - Changed layout structure and aspect ratios
+
+#### Technical Details
+- Replaced `Expanded(flex: 5)` with `AspectRatio(aspectRatio: 1.0)` to force video thumbnails square
+- Added `mainAxisSize: MainAxisSize.min` to Column to only take needed space
+- Adjusted `childAspectRatio` from `1.0` to `0.85` (vertical rectangle tiles)
+- Video thumbnail is now guaranteed 1:1 square, labels appear cleanly below
+- Removed excess blank space under stats by optimizing tile height
+- Added `StringUtils.formatCompactNumber()` for likes/loops display (shows 1K, 1M instead of raw numbers)
+
 ### Fixed - Explore Feed Sort Order Mismatch (2025-10-25)
 
 #### Bug Fixes

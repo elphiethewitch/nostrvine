@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:openvine/models/video_event.dart';
 import 'package:openvine/providers/app_providers.dart';
 import 'package:openvine/theme/vine_theme.dart';
+import 'package:openvine/utils/string_utils.dart';
 import 'package:openvine/widgets/video_thumbnail_widget.dart';
 
 /// Composable video grid that automatically filters broken videos
@@ -16,7 +17,7 @@ class ComposableVideoGrid extends ConsumerWidget {
     required this.videos,
     required this.onVideoTap,
     this.crossAxisCount = 2,
-    this.childAspectRatio = 0.75,
+    this.childAspectRatio = 0.85,
     this.padding,
     this.emptyBuilder,
   });
@@ -101,10 +102,11 @@ class ComposableVideoGrid extends ConsumerWidget {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(0),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Video thumbnail with play overlay
-              Expanded(
-                flex: 5,
+              // Video thumbnail with play overlay (square aspect ratio)
+              AspectRatio(
+                aspectRatio: 1.0,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -115,6 +117,7 @@ class ComposableVideoGrid extends ConsumerWidget {
                               video: video,
                               width: double.infinity,
                               height: double.infinity,
+                              fit: BoxFit.cover,
                             )
                           : Container(
                               color: VineTheme.cardBackground,
@@ -199,7 +202,7 @@ class ComposableVideoGrid extends ConsumerWidget {
                         ),
                         const SizedBox(width: 3),
                         Text(
-                          '${video.originalLikes ?? 0}',
+                          StringUtils.formatCompactNumber(video.originalLikes ?? 0),
                           style: TextStyle(
                             color: VineTheme.secondaryText,
                             fontSize: 10,
@@ -214,7 +217,7 @@ class ComposableVideoGrid extends ConsumerWidget {
                           ),
                           const SizedBox(width: 3),
                           Text(
-                            '${video.originalLoops}',
+                            StringUtils.formatCompactNumber(video.originalLoops!),
                             style: TextStyle(
                               color: VineTheme.secondaryText,
                               fontSize: 10,
