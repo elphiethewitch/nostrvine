@@ -277,6 +277,8 @@ class _ProfileScreenRouterState extends ConsumerState<ProfileScreenRouter>
                             controller: _tabController,
                             indicatorColor: Colors.white,
                             indicatorWeight: 2,
+                            indicatorSize: TabBarIndicatorSize.tab,
+                            dividerColor: Colors.transparent,
                             labelColor: Colors.white,
                             unselectedLabelColor: Colors.grey,
                             tabs: const [
