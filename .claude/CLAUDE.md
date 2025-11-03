@@ -702,3 +702,4 @@ See `FLUTTER.md` for complete Flutter/Dart AI guidelines. Always read and follow
 [See ./.claude/memories/ for universal standards]
 - memory we do development dewbug with the macos build first, not the chrome
 - memory our focus is to release this app for andorid and ios, some window sand macos, we're not planning on using the chrome release, teh divine.video site is runnign a sepreate react app
+- memorize in Nostr relays never have to send an EOSE and can keep subscrioptons open for a long time. We can never wait for that in order to process data or update the UI
