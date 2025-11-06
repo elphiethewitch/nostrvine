@@ -134,11 +134,9 @@ class _UniversalCameraScreenPureState extends ConsumerState<UniversalCameraScree
   }
 
   Future<void> _initializeServices() async {
-    // Use post-frame callback to avoid provider modification during build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Call async initialization in a separate method that can be properly awaited
-      _performAsyncInitialization();
-    });
+    // Use Future.microtask to safely initialize after build completes
+    // This ensures provider reads happen outside the build phase while still completing promptly
+    Future.microtask(() => _performAsyncInitialization());
   }
 
   /// Perform async initialization after the first frame

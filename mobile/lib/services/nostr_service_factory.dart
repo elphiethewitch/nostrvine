@@ -22,8 +22,9 @@ class NostrServiceFactory {
 
   /// Initialize the created service with appropriate parameters
   static Future<void> initialize(INostrService service) async {
-    // Initialize with P2P enabled for mobile platforms, disabled for web
-    await (service as dynamic).initialize(enableP2P: !kIsWeb);
+    // P2P disabled for release - not ready for production
+    // Initialize with P2P disabled on all platforms
+    await (service as dynamic).initialize(enableP2P: false);
   }
 
   /// Check if P2P features are available on current platform and service

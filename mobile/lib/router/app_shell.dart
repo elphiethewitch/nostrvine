@@ -102,7 +102,9 @@ class AppShell extends ConsumerWidget {
         // Navigation system will resolve 'me' to actual npub
         final ctx = ref.read(pageContextProvider).asData?.value;
         final identifier = ctx?.npub ?? 'me';
-        context.goProfile(identifier, lastIndex ?? 0);  // Profile always has an index
+        // Show grid mode (no video index) when tapping Profile tab
+        // User can tap a video to enter fullscreen mode
+        context.goProfileGrid(identifier);
         break;
     }
   }

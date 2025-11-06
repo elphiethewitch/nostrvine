@@ -81,10 +81,11 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
         backgroundColor: Colors.black,
         body: Stack(
           children: [
-            // Video in background (paused)
+            // Video in background (paused - autoplay disabled)
             VideoFeedItem(
               video: widget.videoEvent,
               index: 0, // Single video in comments screen
+              disableAutoplay: true, // Don't start playing when opening comments
             ),
 
             // Comments overlay
@@ -162,11 +163,60 @@ class _CommentsScreenState extends ConsumerState<CommentsScreen> {
                           }
 
                           if (state.topLevelComments.isEmpty) {
-                            return const Center(
-                              child: Text(
-                                'No comments yet.\nBe the first to comment!',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white70),
+                            // Check if this is a classic vine (recovered from archive)
+                            final isClassicVine = widget.videoEvent.isOriginalVine;
+
+                            return Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (isClassicVine) ...[
+                                    Container(
+                                      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.shade900.withValues(alpha: 0.3),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: Colors.orange.shade700.withValues(alpha: 0.5),
+                                        ),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Icon(
+                                            Icons.history,
+                                            color: Colors.orange.shade300,
+                                            size: 32,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Text(
+                                            'Classic Vine',
+                                            style: TextStyle(
+                                              color: Colors.orange.shade300,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          const Text(
+                                            'We\'re still working on importing old comments from the archive. They\'re not ready yet.',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
+                                  const Text(
+                                    'No comments yet.\nBe the first to comment!',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(color: Colors.white70),
+                                  ),
+                                ],
                               ),
                             );
                           }

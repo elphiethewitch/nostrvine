@@ -17,6 +17,7 @@ import 'package:openvine/utils/public_identifier_normalizer.dart';
 import 'package:openvine/utils/unified_logger.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:openvine/widgets/user_avatar.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Comprehensive share menu for videos
 class ShareVideoMenu extends ConsumerStatefulWidget {
@@ -198,27 +199,30 @@ class _ShareVideoMenuState extends ConsumerState<ShareVideoMenu> {
       if (mounted) {
         Navigator.of(context).pop(); // Close share menu
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  result.success ? Icons.check_circle : Icons.error,
-                  color: Colors.white,
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    result.success
-                        ? 'AI content reported successfully'
-                        : 'Failed to report content: ${result.error}',
+        if (result.success) {
+          // Show success confirmation dialog using root navigator
+          showDialog(
+            context: context,
+            useRootNavigator: true,
+            builder: (context) => const _ReportConfirmationDialog(),
+          );
+        } else {
+          // Show error snackbar
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.error, color: Colors.white),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Failed to report content: ${result.error}'),
                   ),
-                ),
-              ],
+                ],
+              ),
+              backgroundColor: Colors.red,
             ),
-            backgroundColor: result.success ? VineTheme.vineGreen : Colors.red,
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       Log.error('Failed to submit AI report: $e',
@@ -1138,7 +1142,11 @@ class _SendToUserDialogState extends ConsumerState<_SendToUserDialog> {
                   prefixIcon:
                       Icon(Icons.search, color: VineTheme.secondaryText),
                 ),
-                onChanged: _searchUsers,
+                onChanged: (value) {
+                  Log.info('🔍 TextField onChanged fired with value: "$value"',
+                      name: 'ShareVideoMenu', category: LogCategory.ui);
+                  _searchUsers(value);
+                },
               ),
               const SizedBox(height: 16),
               TextField(
@@ -1298,7 +1306,8 @@ class _SendToUserDialogState extends ConsumerState<_SendToUserDialog> {
     final profile = userProfileService.getCachedProfile(user.pubkey);
 
     // Display nip05 if available, otherwise npub (never show raw hex)
-    final displayId = profile?.nip05 ?? hexToNpub(user.pubkey);
+    // Use normalizeToNpub to convert hex to npub format
+    final displayId = profile?.nip05 ?? normalizeToNpub(user.pubkey) ?? user.pubkey;
 
     return ListTile(
       leading: UserAvatar(
@@ -1321,7 +1330,12 @@ class _SendToUserDialogState extends ConsumerState<_SendToUserDialog> {
   }
 
   Future<void> _searchUsers(String query) async {
+    Log.info('🔍 Search users called with query: "$query"',
+        name: 'ShareVideoMenu', category: LogCategory.ui);
+
     if (query.trim().isEmpty) {
+      Log.debug('Search query empty, clearing results',
+          name: 'ShareVideoMenu', category: LogCategory.ui);
       setState(() => _searchResults = []);
       return;
     }
@@ -1336,6 +1350,9 @@ class _SendToUserDialogState extends ConsumerState<_SendToUserDialog> {
 
       // Try to normalize the query as a public identifier (npub/nprofile/hex)
       pubkeyToSearch = normalizeToHex(query);
+
+      Log.debug('Normalized query to pubkey: $pubkeyToSearch',
+          name: 'ShareVideoMenu', category: LogCategory.ui);
 
       if (pubkeyToSearch == null) {
         // Search by display name - check contacts first
@@ -1756,22 +1773,38 @@ class ReportContentDialogState extends ConsumerState<ReportContentDialog> {
       );
 
       if (mounted) {
-        Navigator.of(context).pop(); // Close dialog
+        Navigator.of(context).pop(); // Close report dialog
         Navigator.of(context).pop(); // Close share menu
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              result.success
-                  ? 'Content reported successfully'
-                  : 'Failed to report content: ${result.error}',
+        if (result.success) {
+          // Show success confirmation dialog using root navigator
+          showDialog(
+            context: context,
+            useRootNavigator: true,
+            builder: (context) => const _ReportConfirmationDialog(),
+          );
+        } else {
+          // Show error snackbar
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to report content: ${result.error}'),
+              backgroundColor: Colors.red,
             ),
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       Log.error('Failed to submit report: $e',
           name: 'ShareVideoMenu', category: LogCategory.ui);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to report content: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -2519,4 +2552,100 @@ void showEditDialogForVideo(BuildContext context, VideoEvent video) {
     context: context,
     builder: (context) => _EditVideoDialog(video: video),
   );
+}
+
+/// Confirmation dialog shown after successfully reporting content
+class _ReportConfirmationDialog extends StatelessWidget {
+  const _ReportConfirmationDialog();
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        backgroundColor: VineTheme.cardBackground,
+        title: Row(
+          children: [
+            Icon(Icons.check_circle, color: VineTheme.vineGreen, size: 28),
+            const SizedBox(width: 12),
+            const Text(
+              'Report Received',
+              style: TextStyle(color: VineTheme.whiteText),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Thank you for helping keep diVine safe.',
+              style: TextStyle(
+                color: VineTheme.whiteText,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Our team will review your report and take appropriate action.',
+              style: TextStyle(
+                color: VineTheme.secondaryText,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 20),
+            InkWell(
+              onTap: () async {
+                final uri = Uri.parse('https://divine.video/safety');
+                if (await canLaunchUrl(uri)) {
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: VineTheme.backgroundColor,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: VineTheme.vineGreen),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: VineTheme.vineGreen, size: 20),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Learn More',
+                            style: TextStyle(
+                              color: VineTheme.whiteText,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            'divine.video/safety',
+                            style: TextStyle(
+                              color: VineTheme.vineGreen,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.open_in_new, color: VineTheme.vineGreen, size: 18),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(
+              'Close',
+              style: TextStyle(color: VineTheme.vineGreen),
+            ),
+          ),
+        ],
+      );
 }

@@ -10,7 +10,7 @@ import 'package:openvine/screens/notification_settings_screen.dart';
 import 'package:openvine/screens/profile_setup_screen.dart';
 import 'package:openvine/screens/relay_settings_screen.dart';
 import 'package:openvine/screens/relay_diagnostic_screen.dart';
-import 'package:openvine/screens/p2p_sync_screen.dart';
+// import 'package:openvine/screens/p2p_sync_screen.dart'; // Hidden for release
 import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/widgets/bug_report_dialog.dart';
 import 'package:openvine/widgets/camera_fab.dart';
@@ -106,18 +106,19 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
-          _buildSettingsTile(
-            context,
-            icon: Icons.sync,
-            title: 'P2P Sync',
-            subtitle: 'Peer-to-peer synchronization settings',
-            onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const P2PSyncScreen(),
-              ),
-            ),
-          ),
+          // P2P Sync hidden for release - not ready for production
+          // _buildSettingsTile(
+          //   context,
+          //   icon: Icons.sync,
+          //   title: 'P2P Sync',
+          //   subtitle: 'Peer-to-peer synchronization settings',
+          //   onTap: () => Navigator.push(
+          //     context,
+          //     MaterialPageRoute(
+          //       builder: (context) => const P2PSyncScreen(),
+          //     ),
+          //   ),
+          // ),
 
           // Preferences
           _buildSectionHeader('Preferences'),

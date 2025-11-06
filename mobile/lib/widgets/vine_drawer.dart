@@ -8,7 +8,7 @@ import 'package:openvine/screens/blossom_settings_screen.dart';
 import 'package:openvine/screens/notification_settings_screen.dart';
 import 'package:openvine/screens/profile_setup_screen.dart';
 import 'package:openvine/screens/relay_settings_screen.dart';
-import 'package:openvine/screens/p2p_sync_screen.dart';
+// import 'package:openvine/screens/p2p_sync_screen.dart'; // Hidden for release
 import 'package:openvine/screens/settings_screen.dart';
 import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/widgets/bug_report_dialog.dart';
@@ -155,20 +155,21 @@ class _VineDrawerState extends ConsumerState<VineDrawer> {
                       );
                     },
                   ),
-                  _buildDrawerItem(
-                    icon: Icons.sync,
-                    title: 'P2P Sync',
-                    subtitle: 'Peer-to-peer synchronization',
-                    onTap: () {
-                      Navigator.pop(context); // Close drawer
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const P2PSyncScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                  // P2P Sync hidden for release - not ready for production
+                  // _buildDrawerItem(
+                  //   icon: Icons.sync,
+                  //   title: 'P2P Sync',
+                  //   subtitle: 'Peer-to-peer synchronization',
+                  //   onTap: () {
+                  //     Navigator.pop(context); // Close drawer
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(
+                  //         builder: (context) => const P2PSyncScreen(),
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
                   _buildDrawerItem(
                     icon: Icons.notifications,
                     title: 'Notifications',

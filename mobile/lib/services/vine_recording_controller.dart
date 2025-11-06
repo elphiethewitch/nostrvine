@@ -721,6 +721,7 @@ class VineRecordingController {
   ProofModeSessionService? _proofModeSession;
   String? _currentProofSessionId;
   VineRecordingState _state = VineRecordingState.idle;
+  bool _cameraInitialized = false;
 
   /// Constructor with optional ProofMode integration
   VineRecordingController({ProofModeSessionService? proofModeSession})
@@ -754,6 +755,7 @@ class VineRecordingController {
 
   // Getters
   VineRecordingState get state => _state;
+  bool get isCameraInitialized => _cameraInitialized;
   List<RecordingSegment> get segments => List.unmodifiable(_segments);
   Duration get totalRecordedDuration => _totalRecordedDuration;
   Duration get remainingDuration =>
@@ -892,10 +894,14 @@ class VineRecordingController {
         _tempDirectory = tempDir.path;
       }
 
+      // Mark camera as initialized - UI can now show preview
+      _cameraInitialized = true;
+
       Log.info('VineRecordingController initialized for ${_getPlatformName()}',
           name: 'VineRecordingController', category: LogCategory.system);
     } catch (e) {
       _setState(VineRecordingState.error);
+      _cameraInitialized = false;
       Log.error('VineRecordingController initialization failed: $e',
           name: 'VineRecordingController', category: LogCategory.system);
       rethrow;
@@ -1536,6 +1542,11 @@ class VineRecordingController {
 
     // Check if we need to reinitialize before resetting state
     final wasInError = _state == VineRecordingState.error;
+
+    // Reset camera initialization flag if we're in error state
+    if (wasInError) {
+      _cameraInitialized = false;
+    }
 
     // Reset state
     _setState(VineRecordingState.idle);

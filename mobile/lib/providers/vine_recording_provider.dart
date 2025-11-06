@@ -27,6 +27,7 @@ class VineRecordingUIState {
     required this.remainingDuration,
     required this.canRecord,
     required this.segments,
+    required this.isCameraInitialized,
   });
 
   final VineRecordingState recordingState;
@@ -35,10 +36,11 @@ class VineRecordingUIState {
   final Duration remainingDuration;
   final bool canRecord;
   final List<RecordingSegment> segments;
+  final bool isCameraInitialized;
 
   // Convenience getters used by UI
   bool get isRecording => recordingState == VineRecordingState.recording;
-  bool get isInitialized => recordingState != VineRecordingState.processing && recordingState != VineRecordingState.error;
+  bool get isInitialized => isCameraInitialized && recordingState != VineRecordingState.processing && recordingState != VineRecordingState.error;
   bool get isError => recordingState == VineRecordingState.error;
   bool get hasSegments => segments.isNotEmpty;
   Duration get recordingDuration => totalRecordedDuration;
@@ -51,6 +53,7 @@ class VineRecordingUIState {
     Duration? remainingDuration,
     bool? canRecord,
     List<RecordingSegment>? segments,
+    bool? isCameraInitialized,
   }) {
     return VineRecordingUIState(
       recordingState: recordingState ?? this.recordingState,
@@ -60,6 +63,7 @@ class VineRecordingUIState {
       remainingDuration: remainingDuration ?? this.remainingDuration,
       canRecord: canRecord ?? this.canRecord,
       segments: segments ?? this.segments,
+      isCameraInitialized: isCameraInitialized ?? this.isCameraInitialized,
     );
   }
 }
@@ -75,6 +79,7 @@ class VineRecordingNotifier extends StateNotifier<VineRecordingUIState> {
             remainingDuration: _controller.remainingDuration,
             canRecord: _controller.canRecord,
             segments: _controller.segments,
+            isCameraInitialized: _controller.isCameraInitialized,
           ),
         ) {
     // Set up callback for recording progress updates
@@ -99,6 +104,7 @@ class VineRecordingNotifier extends StateNotifier<VineRecordingUIState> {
       remainingDuration: _controller.remainingDuration,
       canRecord: _controller.canRecord,
       segments: _controller.segments,
+      isCameraInitialized: _controller.isCameraInitialized,
     );
   }
 

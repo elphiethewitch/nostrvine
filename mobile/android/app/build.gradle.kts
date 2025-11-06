@@ -33,6 +33,8 @@ android {
 
     defaultConfig {
         applicationId = "co.openvine.app"
+        // Explicitly set minSdk to 21 (Android 5.0) for broad device support
+        // This supports ~99% of active Android devices as of 2024
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

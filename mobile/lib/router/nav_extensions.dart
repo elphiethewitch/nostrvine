@@ -31,6 +31,8 @@ extension NavX on BuildContext {
       ));
 
   void goProfile(String identifier, [int index = 0]) {
+    debugPrint('🧭 goProfile called: identifier=$identifier, index=$index');
+
     // Handle 'me' special case - need to get current user's hex
     String? currentUserHex;
     if (identifier == 'me') {
@@ -48,13 +50,15 @@ extension NavX on BuildContext {
       return;
     }
 
-    go(buildRoute(
+    final route = buildRoute(
       RouteContext(
         type: RouteType.profile,
         npub: npub,
         videoIndex: index,
       ),
-    ));
+    );
+    debugPrint('🧭 goProfile: navigating to route=$route (videoIndex=$index)');
+    go(route);
   }
 
   /// Navigate to profile in grid mode (no video playing)

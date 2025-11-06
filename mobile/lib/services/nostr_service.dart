@@ -1536,43 +1536,33 @@ class NostrService implements INostrService {
   }
 
   embedded.Filter _convertToEmbeddedFilter(nostr.Filter filter) {
-    // Build tags map for embedded relay - note the # prefix for tag filters
-    final Map<String, List<String>> tags = {};
+    // DIVINE EXTENSIONS: Use filter.toJson() to preserve divine extensions (sort, int#filters, cursor)
+    // This allows VideoFilterBuilder's DivineFilter to pass server-side sorting to the relay
+    final filterJson = filter.toJson();
 
-    // Add e tags if present
-    if (filter.e != null && filter.e!.isNotEmpty) {
-      tags['#e'] = filter.e!;
+    // Check if this filter has divine extensions
+    final hasDivineExtensions = filterJson.containsKey('sort') ||
+        filterJson.keys.any((key) => key.startsWith('int#')) ||
+        filterJson.containsKey('cursor');
+
+    if (hasDivineExtensions) {
+      Log.info('🎯 Converting filter with divine extensions:',
+          name: 'NostrService', category: LogCategory.relay);
+      if (filterJson.containsKey('sort')) {
+        Log.info('  - Sort: ${filterJson['sort']}',
+            name: 'NostrService', category: LogCategory.relay);
+      }
+      for (final key in filterJson.keys) {
+        if (key.startsWith('int#')) {
+          Log.info('  - Int filter $key: ${filterJson[key]}',
+              name: 'NostrService', category: LogCategory.relay);
+        }
+      }
     }
 
-    // Add p tags if present
-    if (filter.p != null && filter.p!.isNotEmpty) {
-      tags['#p'] = filter.p!;
-    }
-
-    // Add t tags (hashtags) if present
-    if (filter.t != null && filter.t!.isNotEmpty) {
-      tags['#t'] = filter.t!;
-    }
-
-    // Add d tags (NIP-33 parameterized replaceable events) if present
-    if (filter.d != null && filter.d!.isNotEmpty) {
-      tags['#d'] = filter.d!;
-    }
-
-    // Add custom group tag if present (client uses 'h')
-    if (filter.h != null && filter.h!.isNotEmpty) {
-      tags['#h'] = filter.h!;
-    }
-
-    return embedded.Filter(
-      ids: filter.ids,
-      authors: filter.authors,
-      kinds: filter.kinds,
-      tags: tags.isNotEmpty ? tags : null,
-      since: filter.since,
-      until: filter.until,
-      limit: filter.limit,
-    );
+    // Use embedded.Filter.fromJson() to deserialize the full JSON including divine extensions
+    // The embedded relay's Filter.fromJson() will handle the JSON properly
+    return embedded.Filter.fromJson(filterJson);
   }
 
   /// Convert embedded relay NostrEvent to nostr_sdk Event

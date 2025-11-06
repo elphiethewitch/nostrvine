@@ -28,7 +28,9 @@ void main() {
         totalRecordedDuration: Duration.zero,
         remainingDuration: const Duration(seconds: 6),
         canRecord: true,
-        segments: [],
+        isCameraInitialized: true,
+        segments: []
+          isCameraInitialized: true,
       );
 
       await tester.pumpWidget(
@@ -81,6 +83,7 @@ void main() {
         totalRecordedDuration: const Duration(seconds: 2),
         remainingDuration: const Duration(seconds: 4),
         canRecord: true,
+        isCameraInitialized: true,
         segments: [
           RecordingSegment(
             startTime: DateTime.now(),
@@ -139,6 +142,7 @@ void main() {
         totalRecordedDuration: const Duration(seconds: 2),
         remainingDuration: const Duration(seconds: 4),
         canRecord: true,
+        isCameraInitialized: true,
         segments: [
           RecordingSegment(
             startTime: DateTime.now(),
@@ -187,7 +191,9 @@ void main() {
         totalRecordedDuration: const Duration(milliseconds: 500),
         remainingDuration: const Duration(milliseconds: 5500),
         canRecord: false,
-        segments: [],
+        isCameraInitialized: true,
+        segments: []
+          isCameraInitialized: true,
       );
 
       await tester.pumpWidget(
@@ -229,6 +235,7 @@ void main() {
         totalRecordedDuration: const Duration(seconds: 1),
         remainingDuration: const Duration(seconds: 5),
         canRecord: true,
+        isCameraInitialized: true,
         segments: [
           RecordingSegment(
             startTime: DateTime.now(),

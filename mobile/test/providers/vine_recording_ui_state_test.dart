@@ -14,7 +14,9 @@ void main() {
         totalRecordedDuration: Duration.zero,
         remainingDuration: const Duration(seconds: 6),
         canRecord: true,
-        segments: [],
+        isCameraInitialized: true,
+        segments: []
+          isCameraInitialized: true,
       );
 
       expect(state.hasSegments, isFalse,
@@ -28,6 +30,7 @@ void main() {
         totalRecordedDuration: const Duration(seconds: 2),
         remainingDuration: const Duration(seconds: 4),
         canRecord: true,
+        isCameraInitialized: true,
         segments: [
           RecordingSegment(
             startTime: DateTime.now(),
@@ -50,7 +53,9 @@ void main() {
         totalRecordedDuration: const Duration(seconds: 1),
         remainingDuration: const Duration(seconds: 5),
         canRecord: false,
-        segments: [],
+        isCameraInitialized: true,
+        segments: []
+          isCameraInitialized: true,
       );
 
       final idleState = VineRecordingUIState(
@@ -59,7 +64,9 @@ void main() {
         totalRecordedDuration: Duration.zero,
         remainingDuration: const Duration(seconds: 6),
         canRecord: true,
-        segments: [],
+        isCameraInitialized: true,
+        segments: []
+          isCameraInitialized: true,
       );
 
       expect(recordingState.isRecording, isTrue);
@@ -73,7 +80,9 @@ void main() {
         totalRecordedDuration: const Duration(seconds: 3),
         remainingDuration: const Duration(seconds: 3),
         canRecord: true,
-        segments: [],
+        isCameraInitialized: true,
+        segments: []
+          isCameraInitialized: true,
       );
 
       expect(state.recordingDuration, equals(const Duration(seconds: 3)));
@@ -108,6 +117,7 @@ void main() {
         totalRecordedDuration: const Duration(seconds: 3),
         remainingDuration: const Duration(seconds: 3),
         canRecord: true,
+        isCameraInitialized: true,
         segments: segments,
       );
 
@@ -122,7 +132,9 @@ void main() {
         totalRecordedDuration: Duration.zero,
         remainingDuration: const Duration(seconds: 6),
         canRecord: true,
-        segments: [],
+        isCameraInitialized: true,
+        segments: []
+          isCameraInitialized: true,
       );
 
       final cannotRecordState = VineRecordingUIState(
@@ -131,7 +143,9 @@ void main() {
         totalRecordedDuration: const Duration(seconds: 6),
         remainingDuration: Duration.zero,
         canRecord: false,
-        segments: [],
+        isCameraInitialized: true,
+        segments: []
+          isCameraInitialized: true,
       );
 
       expect(canRecordState.canRecord, isTrue);
@@ -146,7 +160,9 @@ void main() {
           totalRecordedDuration: Duration.zero,
           remainingDuration: const Duration(seconds: 6),
           canRecord: true,
-          segments: [],
+        isCameraInitialized: true,
+          segments: []
+          isCameraInitialized: true,
         ),
         VineRecordingUIState(
           recordingState: VineRecordingState.recording,
@@ -154,7 +170,9 @@ void main() {
           totalRecordedDuration: const Duration(seconds: 3),
           remainingDuration: const Duration(seconds: 3),
           canRecord: false,
-          segments: [],
+        isCameraInitialized: true,
+          segments: []
+          isCameraInitialized: true,
         ),
         VineRecordingUIState(
           recordingState: VineRecordingState.completed,
@@ -162,7 +180,9 @@ void main() {
           totalRecordedDuration: const Duration(seconds: 6),
           remainingDuration: Duration.zero,
           canRecord: false,
-          segments: [],
+        isCameraInitialized: true,
+          segments: []
+          isCameraInitialized: true,
         ),
       ];
 
