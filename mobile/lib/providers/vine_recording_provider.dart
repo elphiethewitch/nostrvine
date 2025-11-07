@@ -83,8 +83,10 @@ class VineRecordingUIState {
 
 /// StateNotifier that wraps VineRecordingController and provides reactive updates
 class VineRecordingNotifier extends StateNotifier<VineRecordingUIState> {
-  VineRecordingNotifier(this._controller, this._ref)
-      : super(
+  VineRecordingNotifier(
+    this._controller,
+    this._ref,
+  ) : super(
           VineRecordingUIState(
             recordingState: _controller.state,
             progress: _controller.progress,
@@ -137,9 +139,33 @@ class VineRecordingNotifier extends StateNotifier<VineRecordingUIState> {
     final result = await _controller.finishRecording();
     updateState();
 
+    // Auto-create draft immediately after recording finishes
+    if (result.$1 != null) {
+      final draftStorage = await _ref.read(draftStorageServiceProvider.future);
+
+      final draft = VineDraft.create(
+        videoFile: result.$1!,
+        title: 'Do it for the Vine!',
+        description: '',
+        hashtags: ['openvine', 'vine'],
+        frameCount: _controller.segments.length,
+        selectedApproach: 'native',
+      );
+
+      await draftStorage.saveDraft(draft);
+
+      Log.info('📹 Auto-created draft: ${draft.id}', category: LogCategory.video);
+
+      return RecordingResult(
+        videoFile: result.$1,
+        draftId: draft.id,
+        proofManifest: result.$2,
+      );
+    }
+
     return RecordingResult(
-      videoFile: result.$1,
-      draftId: null, // Will implement auto-draft in next task
+      videoFile: null,
+      draftId: null,
       proofManifest: result.$2,
     );
   }
