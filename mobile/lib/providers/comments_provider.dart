@@ -1,6 +1,8 @@
 // ABOUTME: Riverpod providers for managing comment state with reactive updates
 // ABOUTME: Handles comment threads, reply chains, and optimistic UI updates using pure @riverpod functions
 
+import 'dart:async';
+
 import 'package:nostr_sdk/nostr_sdk.dart';
 import 'package:openvine/models/comment.dart';
 import 'package:openvine/providers/app_providers.dart';
@@ -87,36 +89,78 @@ class CommentsNotifier extends _$CommentsNotifier {
 
     state = state.copyWith(isLoading: true, error: null);
 
+    // Use Completer to track stream completion while updating UI reactively
+    final completer = Completer<void>();
+
     try {
       final socialService = ref.read(socialServiceProvider);
       final commentsStream = socialService.fetchCommentsForEvent(_rootEventId);
       final commentMap = <String, Comment>{};
       final replyMap = <String, List<String>>{}; // parentId -> [childIds]
+      var hasReceivedFirstEvent = false;
 
-      await for (final event in commentsStream.take(100)) {
-        // Limit to first 100 comments
-        // Convert Nostr event to Comment model
-        final comment = _eventToComment(event);
-        if (comment != null) {
-          commentMap[comment.id] = comment;
+      // Use listen() instead of await for to avoid blocking on stream completion
+      // Nostr relays may not send EOSE, causing long waits with await for
+      final subscription = commentsStream.take(100).listen(
+        (event) {
+          // Convert Nostr event to Comment model
+          final comment = _eventToComment(event);
+          if (comment != null) {
+            commentMap[comment.id] = comment;
 
-          // Track parent-child relationships
-          if (comment.replyToEventId != null) {
-            replyMap[comment.replyToEventId!] =
-                (replyMap[comment.replyToEventId!] ?? [])..add(comment.id);
+            // Track parent-child relationships
+            if (comment.replyToEventId != null) {
+              replyMap[comment.replyToEventId!] =
+                  (replyMap[comment.replyToEventId!] ?? [])..add(comment.id);
+            }
+
+            // Update UI reactively as events arrive
+            final topLevelComments = _buildCommentTree(commentMap, replyMap);
+            state = state.copyWith(
+              topLevelComments: topLevelComments,
+              isLoading: false, // Stop loading after first event
+              totalCommentCount: commentMap.length,
+              commentCache: commentMap,
+            );
+            hasReceivedFirstEvent = true;
           }
-        }
-      }
-
-      // Build comment tree
-      final topLevelComments = _buildCommentTree(commentMap, replyMap);
-
-      state = state.copyWith(
-        topLevelComments: topLevelComments,
-        isLoading: false,
-        totalCommentCount: commentMap.length,
-        commentCache: commentMap,
+        },
+        onError: (e) {
+          Log.error('Error in comment stream: $e',
+              name: 'CommentsNotifier', category: LogCategory.ui);
+          if (!hasReceivedFirstEvent) {
+            state = state.copyWith(
+              isLoading: false,
+              error: 'Failed to load comments',
+            );
+          }
+          if (!completer.isCompleted) {
+            completer.completeError(e);
+          }
+        },
+        onDone: () {
+          // Stream completed - ensure loading state is cleared
+          if (!hasReceivedFirstEvent) {
+            // No comments received, show empty state immediately
+            state = state.copyWith(
+              topLevelComments: [],
+              isLoading: false,
+              totalCommentCount: 0,
+            );
+          }
+          if (!completer.isCompleted) {
+            completer.complete();
+          }
+        },
       );
+
+      // Clean up subscription when provider is disposed
+      ref.onDispose(() {
+        subscription.cancel();
+      });
+
+      // Wait for stream to complete (for tests and proper async behavior)
+      await completer.future;
     } catch (e) {
       Log.error('Error loading comments: $e',
           name: 'CommentsNotifier', category: LogCategory.ui);
