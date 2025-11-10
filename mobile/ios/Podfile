@@ -43,7 +43,8 @@ target 'Runner' do
   pod 'libwebp', '~> 1.5.0'
 
   # ProofMode library for cryptographic proof generation
-  pod 'LibProofMode', :git => 'https://gitlab.com/guardianproject/proofmode/libproofmode-ios.git'
+  # Using local fork with Swift 5.x compatibility fixes
+  pod 'LibProofMode', :path => 'LocalPods/LibProofMode'
 
   target 'RunnerTests' do
     inherit! :search_paths

@@ -578,9 +578,15 @@ class _UniversalCameraScreenPureState
                           // Preview widget positioned to fill the aspect ratio container
                           if (recordingState.isInitialized)
                             Positioned.fill(
-                              child: ref
-                                  .read(vineRecordingProvider.notifier)
-                                  .previewWidget,
+                              child: Builder(
+                                builder: (context) {
+                                  Log.info('📸 Building camera preview widget',
+                                      name: 'UniversalCameraScreenPure', category: LogCategory.system);
+                                  return ref
+                                      .read(vineRecordingProvider.notifier)
+                                      .previewWidget;
+                                },
+                              ),
                             )
                           else
                             CameraPreviewPlaceholder(
@@ -1143,8 +1149,22 @@ class _UniversalCameraScreenPureState
   }
 
   void _switchCamera() async {
+    Log.info('🔄 _switchCamera() UI button pressed',
+        name: 'UniversalCameraScreenPure', category: LogCategory.system);
+
     try {
+      Log.info('🔄 Calling vineRecordingProvider.notifier.switchCamera()...',
+          name: 'UniversalCameraScreenPure', category: LogCategory.system);
       await ref.read(vineRecordingProvider.notifier).switchCamera();
+      Log.info('🔄 vineRecordingProvider.notifier.switchCamera() completed',
+          name: 'UniversalCameraScreenPure', category: LogCategory.system);
+
+      // Force rebuild by calling setState
+      Log.info('🔄 Calling setState() to force UI rebuild',
+          name: 'UniversalCameraScreenPure', category: LogCategory.system);
+      setState(() {});
+      Log.info('🔄 setState() completed',
+          name: 'UniversalCameraScreenPure', category: LogCategory.system);
     } catch (e) {
       Log.error(
         '📹 UniversalCameraScreenPure: Camera switch failed: $e',

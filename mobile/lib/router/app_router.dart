@@ -1,6 +1,7 @@
 // ABOUTME: GoRouter configuration with ShellRoute for per-tab state preservation
 // ABOUTME: URL is source of truth, bottom nav bound to routes
 
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -65,7 +66,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: _rootKey,
     initialLocation: '/home/0',
-    observers: [VideoStopNavigatorObserver()],
+    observers: [
+      VideoStopNavigatorObserver(),
+      FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
+    ],
     redirect: (context, state) async {
       final location = state.matchedLocation;
 
@@ -120,7 +124,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 key: _homeKey,
                 onGenerateRoute: (r) => MaterialPageRoute(
                   builder: (_) => const HomeScreenRouter(),
-                  settings: const RouteSettings(name: 'home-root'),
+                  settings: const RouteSettings(name: 'HomeScreen'),
                 ),
               ),
             ),
@@ -136,7 +140,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 key: _exploreGridKey,
                 onGenerateRoute: (r) => MaterialPageRoute(
                   builder: (_) => const ExploreScreen(),
-                  settings: const RouteSettings(name: 'explore-root'),
+                  settings: const RouteSettings(name: 'ExploreScreen'),
                 ),
               ),
             ),
@@ -151,7 +155,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 key: _exploreFeedKey,
                 onGenerateRoute: (r) => MaterialPageRoute(
                   builder: (_) => const ExploreScreen(),
-                  settings: const RouteSettings(name: 'explore-root'),
+                  settings: const RouteSettings(name: 'ExploreScreen'),
                 ),
               ),
             ),
@@ -167,7 +171,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 key: _notificationsKey,
                 onGenerateRoute: (r) => MaterialPageRoute(
                   builder: (_) => const NotificationsScreen(),
-                  settings: const RouteSettings(name: 'notifications-root'),
+                  settings: const RouteSettings(name: 'NotificationsScreen'),
                 ),
               ),
             ),
@@ -211,7 +215,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 key: _searchEmptyKey,
                 onGenerateRoute: (r) => MaterialPageRoute(
                   builder: (_) => const SearchScreenPure(embedded: true),
-                  settings: const RouteSettings(name: 'search-root'),
+                  settings: const RouteSettings(name: 'SearchScreen'),
                 ),
               ),
             ),
@@ -226,7 +230,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 key: _searchGridKey,
                 onGenerateRoute: (r) => MaterialPageRoute(
                   builder: (_) => const SearchScreenPure(embedded: true),
-                  settings: const RouteSettings(name: 'search-root'),
+                  settings: const RouteSettings(name: 'SearchScreen'),
                 ),
               ),
             ),
@@ -241,7 +245,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 key: _searchFeedKey,
                 onGenerateRoute: (r) => MaterialPageRoute(
                   builder: (_) => const SearchScreenPure(embedded: true),
-                  settings: const RouteSettings(name: 'search-root'),
+                  settings: const RouteSettings(name: 'SearchScreen'),
                 ),
               ),
             ),
@@ -257,7 +261,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 key: _hashtagGridKey,
                 onGenerateRoute: (r) => MaterialPageRoute(
                   builder: (_) => const HashtagScreenRouter(),
-                  settings: const RouteSettings(name: 'hashtag-root'),
+                  settings: const RouteSettings(name: 'HashtagScreen'),
                 ),
               ),
             ),
@@ -272,7 +276,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 key: _hashtagFeedKey,
                 onGenerateRoute: (r) => MaterialPageRoute(
                   builder: (_) => const HashtagScreenRouter(),
-                  settings: const RouteSettings(name: 'hashtag-root'),
+                  settings: const RouteSettings(name: 'HashtagScreen'),
                 ),
               ),
             ),
@@ -283,19 +287,23 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // Non-tab routes outside the shell (camera/settings/editor/video/welcome)
       GoRoute(
         path: '/welcome',
+        name: 'welcome',
         builder: (_, __) => const WelcomeScreen(),
       ),
       GoRoute(
         path: '/camera',
+        name: 'camera',
         builder: (_, __) => const UniversalCameraScreenPure(),
       ),
       GoRoute(
         path: '/settings',
+        name: 'settings',
         builder: (_, __) => const SettingsScreen(),
       ),
       // Followers screen
       GoRoute(
         path: '/followers/:pubkey',
+        name: 'followers',
         builder: (ctx, st) {
           final pubkey = st.pathParameters['pubkey'];
           final displayName = st.extra as String? ?? 'User';
@@ -313,6 +321,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       // Following screen
       GoRoute(
         path: '/following/:pubkey',
+        name: 'following',
         builder: (ctx, st) {
           final pubkey = st.pathParameters['pubkey'];
           final displayName = st.extra as String? ?? 'User';

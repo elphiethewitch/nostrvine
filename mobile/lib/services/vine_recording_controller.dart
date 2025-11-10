@@ -284,6 +284,8 @@ class MobileCameraInterface extends CameraPlatformInterface {
 
     Log.info('🔄 Current camera index: $_currentCameraIndex, direction: ${_availableCameras[_currentCameraIndex].lensDirection}',
         name: 'VineRecordingController', category: LogCategory.system);
+    Log.info('🔄 OLD controller state: isInitialized=${_controller!.value.isInitialized}, isRecording=${_controller!.value.isRecordingVideo}, isStreaming=${_controller!.value.isStreamingImages}',
+        name: 'VineRecordingController', category: LogCategory.system);
 
     // Stop any active recording before switching
     if (isRecording) {
@@ -301,6 +303,8 @@ class MobileCameraInterface extends CameraPlatformInterface {
     // Store old controller reference for safe disposal
     final oldController = _controller;
     _controller = null; // Clear reference to prevent access during switch
+    Log.info('🔄 OLD controller cleared from _controller reference',
+        name: 'VineRecordingController', category: LogCategory.system);
 
     try {
       // Switch to the next camera
@@ -310,13 +314,28 @@ class MobileCameraInterface extends CameraPlatformInterface {
       Log.info('🔄 Switching from camera $oldIndex to $_currentCameraIndex',
           name: 'VineRecordingController', category: LogCategory.system);
 
+      Log.info('🔄 About to call _initializeNewCamera() for camera $_currentCameraIndex',
+          name: 'VineRecordingController', category: LogCategory.system);
       await _initializeNewCamera();
-
-      Log.info('🔄 New camera initialized: ${_availableCameras[_currentCameraIndex].lensDirection}',
+      Log.info('🔄 _initializeNewCamera() completed',
           name: 'VineRecordingController', category: LogCategory.system);
 
+      if (_controller != null && _controller!.value.isInitialized) {
+        Log.info('🔄 NEW camera initialized: ${_availableCameras[_currentCameraIndex].lensDirection}',
+            name: 'VineRecordingController', category: LogCategory.system);
+        Log.info('🔄 NEW controller state: isInitialized=${_controller!.value.isInitialized}, isRecording=${_controller!.value.isRecordingVideo}, isStreaming=${_controller!.value.isStreamingImages}',
+            name: 'VineRecordingController', category: LogCategory.system);
+      } else {
+        Log.error('🔄 NEW controller is NULL or not initialized!',
+            name: 'VineRecordingController', category: LogCategory.system);
+      }
+
       // Safely dispose old controller after new one is ready
+      Log.info('🔄 Disposing OLD controller...',
+          name: 'VineRecordingController', category: LogCategory.system);
       await oldController?.dispose();
+      Log.info('🔄 OLD controller disposed',
+          name: 'VineRecordingController', category: LogCategory.system);
 
       Log.info('✅ Successfully switched to camera $_currentCameraIndex (${_availableCameras[_currentCameraIndex].lensDirection})',
           name: 'VineRecordingController', category: LogCategory.system);
@@ -336,9 +355,17 @@ class MobileCameraInterface extends CameraPlatformInterface {
   @override
   Widget get previewWidget {
     final controller = _controller;
+    Log.info('📸 previewWidget getter called: controller=${controller != null ? "exists" : "null"}, isInitialized=${controller?.value.isInitialized ?? false}',
+        name: 'VineRecordingController', category: LogCategory.system);
+
     if (controller != null && controller.value.isInitialized) {
+      Log.info('📸 Returning CameraPreview widget with initialized controller',
+          name: 'VineRecordingController', category: LogCategory.system);
       return CameraPreview(controller);
     }
+
+    Log.info('📸 Returning loading placeholder (controller not ready)',
+        name: 'VineRecordingController', category: LogCategory.system);
     return const ColoredBox(
       color: Colors.black,
       child: Center(
@@ -956,6 +983,9 @@ class VineRecordingController {
 
   /// Switch between front and rear cameras
   Future<void> switchCamera() async {
+    Log.info('🔄 VineRecordingController.switchCamera() called, current state: $_state',
+        name: 'VineRecordingController', category: LogCategory.system);
+
     if (_state == VineRecordingState.recording) {
       Log.warning('Cannot switch camera while recording',
           name: 'VineRecordingController', category: LogCategory.system);
@@ -972,12 +1002,18 @@ class VineRecordingController {
     }
 
     try {
+      Log.info('🔄 Calling _cameraInterface?.switchCamera()...',
+          name: 'VineRecordingController', category: LogCategory.system);
       await _cameraInterface?.switchCamera();
-      Log.info('📱 Camera switched successfully',
+      Log.info('📱 Camera switched successfully at interface level',
           name: 'VineRecordingController', category: LogCategory.system);
 
       // CRITICAL: Force state notification to trigger UI rebuild
+      Log.info('🔄 Calling _onStateChanged callback to trigger UI rebuild, callback=${_onStateChanged != null ? "exists" : "null"}',
+          name: 'VineRecordingController', category: LogCategory.system);
       _onStateChanged?.call();
+      Log.info('🔄 _onStateChanged callback completed',
+          name: 'VineRecordingController', category: LogCategory.system);
 
     } catch (e) {
       Log.error('Failed to switch camera: $e',

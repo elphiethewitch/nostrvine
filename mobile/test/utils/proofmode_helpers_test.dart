@@ -227,7 +227,7 @@ void main() {
   });
 
   group('Combined Badge Display Logic', () {
-    test('shows both ProofMode and Vine badges when applicable', () {
+    test('shows only ProofMode badge for vintage vines with verification', () {
       final video = VideoEvent(
         id: 'combo1',
         pubkey: 'pubkey1',
@@ -241,7 +241,7 @@ void main() {
       );
 
       expect(video.shouldShowProofModeBadge, isTrue);
-      expect(video.shouldShowVineBadge, isTrue);
+      expect(video.shouldShowVineBadge, isFalse); // ProofMode takes precedence over Vine badge
       expect(video.getVerificationLevel(), VerificationLevel.verifiedMobile);
       expect(video.isOriginalVine, isTrue);
     });

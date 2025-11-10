@@ -205,31 +205,31 @@ class _VerificationLevelCard extends StatelessWidget {
       return _VerificationConfig(
         icon: Icons.verified,
         color: Colors.green[700]!,
-        title: 'Verified Mobile',
+        title: 'Fully Verified',
         description:
-            'This video was captured with mobile device attestation and cryptographic proof of authenticity.',
+            'This video has the highest level of proof - captured on a real device with hardware security verification. We can confirm it was recorded using diVine on an actual phone.',
       );
     } else if (video.isVerifiedWeb) {
       return _VerificationConfig(
         icon: Icons.shield_outlined,
         color: Colors.blue[700]!,
-        title: 'Verified Web',
+        title: 'Verified',
         description:
-            'This video has web-based verification with cryptographic signatures.',
+            'This video has cryptographic signatures proving it hasn\'t been altered since recording, but we can\'t verify the capture device.',
       );
     } else if (video.hasBasicProof) {
       return _VerificationConfig(
         icon: Icons.info_outline,
         color: Colors.orange[700]!,
         title: 'Basic Proof',
-        description: 'This video has basic metadata verification.',
+        description: 'This video has minimal verification - just basic metadata signatures.',
       );
     } else {
       return _VerificationConfig(
         icon: Icons.shield_outlined,
         color: Colors.grey[600]!,
         title: 'Unverified',
-        description: 'This video does not have cryptographic verification.',
+        description: 'We can\'t be sure this video is real and was recorded using diVine on a user\'s phone.',
       );
     }
   }

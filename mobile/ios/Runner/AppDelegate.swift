@@ -54,21 +54,22 @@ import LibProofMode
             return
           }
 
-          let mediaItem = try MediaItem(url: fileURL)
+          let mediaItem = MediaItem(mediaUrl: fileURL)
 
           // Configure proof generation options
           // Include device ID, location (if available), and network info
           let options = ProofGenerationOptions(
-            includeDeviceIdentifier: true,
-            includeLocation: true,
-            includeNetworkInfo: true
+            showDeviceIds: true,
+            showLocation: true,
+            showMobileNetwork: true,
+            notarizationProviders: []
           )
 
           // Generate proof using LibProofMode
-          try Proof.shared.process(mediaItem, options: options)
+          _ = Proof.shared.process(mediaItem: mediaItem, options: options)
 
           // Return the SHA256 hash (used as proof identifier)
-          let proofHash = mediaItem.sha256
+          let proofHash = mediaItem.mediaItemHash ?? ""
           NSLog("🔐 ProofMode: Proof generated successfully: \(proofHash)")
           result(proofHash)
 

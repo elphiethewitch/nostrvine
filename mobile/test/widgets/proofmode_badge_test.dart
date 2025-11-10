@@ -23,7 +23,7 @@ void main() {
       expect(find.byIcon(Icons.verified), findsOneWidget);
 
       // Should display correct text
-      expect(find.text('Verified Mobile'), findsOneWidget);
+      expect(find.text('Fully Verified'), findsOneWidget);
 
       // Check the badge container exists
       expect(find.byType(Container), findsWidgets);
@@ -45,7 +45,7 @@ void main() {
       expect(find.byIcon(Icons.shield_outlined), findsOneWidget);
 
       // Should display correct text
-      expect(find.text('Verified Web'), findsOneWidget);
+      expect(find.text('Verified'), findsOneWidget);
     });
 
     testWidgets('renders Basic Proof badge correctly', (tester) async {

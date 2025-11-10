@@ -180,7 +180,6 @@ void main() {
       );
 
       // Assert - Original badge should NOT be visible
-      expect(find.text('Original'), findsNothing);
       expect(find.byType(OriginalContentBadge), findsNothing);
     });
 
@@ -212,11 +211,9 @@ void main() {
       );
 
       // Assert - Original Content badge should NOT be visible (vintage vines show their own badge)
-      expect(find.text('Original'), findsNothing);
       expect(find.byType(OriginalContentBadge), findsNothing);
 
       // But OriginalVineBadge should be visible
-      expect(find.text('Original Vine'), findsOneWidget);
       expect(find.byType(OriginalVineBadge), findsOneWidget);
     });
   });

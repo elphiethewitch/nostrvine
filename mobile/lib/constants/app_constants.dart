@@ -100,4 +100,15 @@ class AppConstants {
 
   /// Maximum size of profile cache
   static const int maxProfileCacheSize = 1000;
+
+  // ============================================================================
+  // GEO-BLOCKING CONFIGURATION
+  // ============================================================================
+
+  /// Geo-blocking API endpoint URL
+  static const String geoBlockApiUrl =
+      'https://openvine-geo-blocker.protestnet.workers.dev';
+
+  /// Cache duration for geo-blocking status (24 hours)
+  static const Duration geoBlockCacheDuration = Duration(hours: 24);
 }

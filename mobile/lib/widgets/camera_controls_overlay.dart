@@ -22,9 +22,6 @@ class CameraControlsOverlay extends StatefulWidget {
 }
 
 class _CameraControlsOverlayState extends State<CameraControlsOverlay> {
-  double _currentZoom = 0.0;
-  bool _showZoomSlider = false;
-
   @override
   Widget build(BuildContext context) {
     // Only show enhanced controls for enhanced mobile camera
@@ -38,35 +35,6 @@ class _CameraControlsOverlayState extends State<CameraControlsOverlay> {
 
     return Stack(
       children: [
-        // Zoom gesture detector
-        Positioned.fill(
-          child: GestureDetector(
-            onScaleStart: (_) {
-              if (!isRecording) {
-                setState(() => _showZoomSlider = true);
-              }
-            },
-            onScaleUpdate: (details) {
-              if (!isRecording && details.scale != 1.0) {
-                final newZoom =
-                    (_currentZoom + (details.scale - 1) * 0.1).clamp(0.0, 1.0);
-                setState(() => _currentZoom = newZoom);
-                enhancedCamera.setZoom(newZoom);
-              }
-            },
-            onScaleEnd: (_) {
-              Future.delayed(const Duration(seconds: 2), () {
-                if (mounted) {
-                  setState(() => _showZoomSlider = false);
-                }
-              });
-            },
-            child: Container(
-              color: Colors.transparent,
-            ),
-          ),
-        ),
-
         // Top controls (flash toggle)
         if (!isRecording)
           Positioned(
@@ -80,83 +48,6 @@ class _CameraControlsOverlayState extends State<CameraControlsOverlay> {
                   onTap: () => enhancedCamera.toggleFlash(),
                 ),
               ],
-            ),
-          ),
-
-        // Zoom slider
-        if (_showZoomSlider && !isRecording)
-          Positioned(
-            bottom: 180,
-            left: 20,
-            right: 20,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(25),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.zoom_out,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  Expanded(
-                    child: SliderTheme(
-                      data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: VineTheme.vineGreen,
-                        inactiveTrackColor: Colors.white24,
-                        thumbColor: VineTheme.vineGreen,
-                        overlayColor:
-                            VineTheme.vineGreen.withValues(alpha: 0.3),
-                        thumbShape: const RoundSliderThumbShape(
-                          enabledThumbRadius: 8,
-                        ),
-                        trackHeight: 4,
-                      ),
-                      child: Slider(
-                        value: _currentZoom,
-                        onChanged: (value) {
-                          setState(() => _currentZoom = value);
-                          enhancedCamera.setZoom(value);
-                        },
-                      ),
-                    ),
-                  ),
-                  const Icon(
-                    Icons.zoom_in,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-        // Zoom level indicator
-        if (_currentZoom > 0 && !isRecording)
-          Positioned(
-            bottom: 240,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${(_currentZoom * 10 + 1).toStringAsFixed(1)}x',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
             ),
           ),
       ],

@@ -377,6 +377,59 @@ final class AgeVerificationServiceProvider
 String _$ageVerificationServiceHash() =>
     r'879c0ad45143e63b7c904983b8d542cb212828bb';
 
+/// Geo-blocking service for regional compliance
+
+@ProviderFor(geoBlockingService)
+const geoBlockingServiceProvider = GeoBlockingServiceProvider._();
+
+/// Geo-blocking service for regional compliance
+
+final class GeoBlockingServiceProvider
+    extends
+        $FunctionalProvider<
+          GeoBlockingService,
+          GeoBlockingService,
+          GeoBlockingService
+        >
+    with $Provider<GeoBlockingService> {
+  /// Geo-blocking service for regional compliance
+  const GeoBlockingServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'geoBlockingServiceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$geoBlockingServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<GeoBlockingService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  GeoBlockingService create(Ref ref) {
+    return geoBlockingService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GeoBlockingService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GeoBlockingService>(value),
+    );
+  }
+}
+
+String _$geoBlockingServiceHash() =>
+    r'0475466204746fb8b4c6dd614847e3853d360d12';
+
 /// Secure key storage service (foundational service)
 
 @ProviderFor(secureKeyStorageService)
@@ -1961,7 +2014,7 @@ final class ContentDeletionServiceProvider
 }
 
 String _$contentDeletionServiceHash() =>
-    r'9db4cbcc145288695a319a2424269529f26ba33e';
+    r'8594abe369924c5d080809e29ba7745da70450c0';
 
 /// Broken video tracker service for filtering non-functional videos
 

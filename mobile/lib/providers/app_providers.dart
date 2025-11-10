@@ -5,6 +5,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:openvine/services/age_verification_service.dart';
+import 'package:openvine/services/geo_blocking_service.dart';
 import 'package:openvine/services/analytics_service.dart';
 import 'package:openvine/services/api_service.dart';
 import 'package:openvine/services/auth_service.dart' hide UserProfile;
@@ -118,6 +119,12 @@ AgeVerificationService ageVerificationService(Ref ref) {
   final service = AgeVerificationService();
   service.initialize(); // Initialize asynchronously
   return service;
+}
+
+/// Geo-blocking service for regional compliance
+@riverpod
+GeoBlockingService geoBlockingService(Ref ref) {
+  return GeoBlockingService();
 }
 
 /// Secure key storage service (foundational service)
@@ -551,10 +558,15 @@ VideoSharingService videoSharingService(Ref ref) {
 Future<ContentDeletionService> contentDeletionService(Ref ref) async {
   final nostrService = ref.watch(nostrServiceProvider);
   final prefs = await ref.watch(sharedPreferencesProvider.future);
-  return ContentDeletionService(
+  final service = ContentDeletionService(
     nostrService: nostrService,
     prefs: prefs,
   );
+
+  // Initialize the service to enable content deletion
+  await service.initialize();
+
+  return service;
 }
 
 /// Broken video tracker service for filtering non-functional videos

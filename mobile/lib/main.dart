@@ -25,6 +25,7 @@ import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/utils/unified_logger.dart';
 import 'package:openvine/utils/log_message_batcher.dart';
 import 'package:openvine/widgets/app_lifecycle_handler.dart';
+import 'package:openvine/widgets/geo_blocking_gate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:openvine/features/feature_flags/providers/feature_flag_providers.dart';
 import 'dart:io' if (dart.library.html) 'package:openvine/utils/platform_io_web.dart' as io;
@@ -530,7 +531,10 @@ class _DivineAppState extends ConsumerState<DivineApp> {
       routerConfig: ref.read(goRouterProvider),
     );
 
-    Widget wrapped = AppLifecycleHandler(child: app);
+    // Wrap with geo-blocking check first, then lifecycle handler
+    Widget wrapped = GeoBlockingGate(
+      child: AppLifecycleHandler(child: app),
+    );
 
     if (crashProbe) {
       // Invisible crash probe: tap top-left corner 7 times within 5s to crash

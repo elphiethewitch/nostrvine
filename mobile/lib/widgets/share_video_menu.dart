@@ -987,7 +987,7 @@ class _ShareVideoMenuState extends ConsumerState<ShareVideoMenu> {
   void _showDeleteDialog() {
     showDialog(
       context: context,
-      builder: (context) => _buildDeleteDialog(),
+      builder: (dialogContext) => _buildDeleteDialog(dialogContext),
     );
   }
 
@@ -1048,7 +1048,7 @@ class _ShareVideoMenuState extends ConsumerState<ShareVideoMenu> {
   }
 
   /// Build delete confirmation dialog
-  Widget _buildDeleteDialog() => AlertDialog(
+  Widget _buildDeleteDialog(BuildContext dialogContext) => AlertDialog(
         backgroundColor: VineTheme.cardBackground,
         title: const Text('Delete Video',
             style: TextStyle(color: VineTheme.whiteText)),
@@ -1072,12 +1072,12 @@ class _ShareVideoMenuState extends ConsumerState<ShareVideoMenu> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.of(context).pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.of(context).pop();
+              Navigator.of(dialogContext).pop();
               _deleteContent();
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
