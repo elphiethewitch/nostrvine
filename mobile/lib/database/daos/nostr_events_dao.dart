@@ -298,6 +298,16 @@ class NostrEventsDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
+  /// Get total count of events in database
+  ///
+  /// Used to check if database is empty before loading seed data.
+  Future<int> getEventCount() async {
+    final result = await customSelect(
+      'SELECT COUNT(*) as cnt FROM event',
+    ).getSingle();
+    return result.read<int>('cnt');
+  }
+
   /// Convert database row to Event model
   Event _rowToEvent(QueryRow row) {
     final tags = (jsonDecode(row.read<String>('tags')) as List)

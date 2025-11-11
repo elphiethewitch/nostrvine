@@ -39,6 +39,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true
     }
 
     signingConfigs {
@@ -53,7 +54,18 @@ android {
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("release")
+            // Disable minification/R8 to avoid duplicate class errors from java-opentimestamps fat JAR
+            // This increases APK size but is necessary until ProofMode library is fixed
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
+    }
+
+    packaging {
+        // Handle duplicate classes from java-opentimestamps fat JAR
+        // Pick first occurrence of duplicate classes during DEX merging
+        jniLibs.pickFirsts.add("**")
+        resources.pickFirsts.add("**")
     }
 }
 
@@ -70,7 +82,18 @@ configurations.all {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+    implementation("androidx.multidex:multidex:2.0.1")
 
     // ProofMode library for cryptographic proof generation
+    // Note: This pulls in java-opentimestamps:1.20 which is a fat JAR
     implementation("org.witness:android-libproofmode:1.0.18")
+}
+
+// Disable duplicate class check for release builds
+// This is required because java-opentimestamps (pulled in by ProofMode) is a fat JAR
+// that bundles common libraries like Guava, Protobuf, etc. instead of declaring them as dependencies
+afterEvaluate {
+    tasks.named("checkReleaseDuplicateClasses") {
+        enabled = false
+    }
 }
