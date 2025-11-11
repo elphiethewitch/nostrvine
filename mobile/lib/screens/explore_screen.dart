@@ -219,8 +219,9 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
             dividerColor: Colors.transparent,
             labelColor: VineTheme.whiteText,
             unselectedLabelColor: VineTheme.whiteText.withValues(alpha: 0.7),
+            labelPadding: const EdgeInsets.symmetric(horizontal: 8),
             labelStyle: const TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
             onTap: (index) {
@@ -242,8 +243,8 @@ class _ExploreScreenState extends ConsumerState<ExploreScreen>
               }
             },
             tabs: const [
-              Tab(text: 'New Vines'),
-              Tab(text: 'Popular Vines'),
+              Tab(text: 'New Videos'),
+              Tab(text: 'Popular Videos'),
               Tab(text: "Editor's Pick"),
             ],
           ),

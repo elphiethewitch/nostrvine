@@ -56,10 +56,10 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen>
             labelColor: VineTheme.whiteText,
             unselectedLabelColor: VineTheme.whiteText.withValues(alpha: 0.7),
             labelStyle: const TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
-            labelPadding: const EdgeInsets.symmetric(horizontal: 20),
+            labelPadding: const EdgeInsets.symmetric(horizontal: 14),
             onTap: (index) {
               setState(() {
                 switch (index) {
