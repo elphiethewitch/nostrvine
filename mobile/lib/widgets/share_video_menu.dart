@@ -918,7 +918,10 @@ class _ShareVideoMenuState extends ConsumerState<ShareVideoMenu> {
   void _showReportDialog() {
     showDialog(
       context: context,
-      builder: (context) => ReportContentDialog(video: widget.video),
+      builder: (context) => ReportContentDialog(
+        video: widget.video,
+        isFromShareMenu: true,
+      ),
     );
   }
 
@@ -1722,8 +1725,13 @@ class _SelectListDialog extends StatelessWidget {
 /// Dialog for reporting content
 /// Public report content dialog that can be used from anywhere
 class ReportContentDialog extends ConsumerStatefulWidget {
-  const ReportContentDialog({super.key, required this.video});
+  const ReportContentDialog({
+    super.key,
+    required this.video,
+    this.isFromShareMenu = false,
+  });
   final VideoEvent video;
+  final bool isFromShareMenu;
 
   @override
   ConsumerState<ReportContentDialog> createState() =>
@@ -1873,7 +1881,9 @@ class ReportContentDialogState extends ConsumerState<ReportContentDialog> {
 
       if (mounted) {
         Navigator.of(context).pop(); // Close report dialog
-        Navigator.of(context).pop(); // Close share menu
+        if (widget.isFromShareMenu) {
+          Navigator.of(context).pop(); // Close share menu (only if opened from share menu)
+        }
 
         if (result.success) {
           // Block user if checkbox was checked - publish proper Nostr events

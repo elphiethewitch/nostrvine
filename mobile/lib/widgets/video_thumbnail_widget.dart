@@ -4,6 +4,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:openvine/models/video_event.dart';
+import 'package:openvine/services/image_cache_manager.dart';
 import 'package:openvine/services/thumbnail_api_service.dart'
     show ThumbnailSize;
 import 'package:openvine/utils/unified_logger.dart';
@@ -316,13 +317,25 @@ class _SafeNetworkImage extends StatelessWidget {
       height: height,
       fit: fit,
       alignment: Alignment.topCenter,
+      cacheManager: openVineImageCache,
       placeholder: (context, url) => _buildFallback(),
       errorWidget: (context, url, error) {
         // Log the specific error for debugging
-        Log.error('Network image failed: $url',
+        Log.error('❌ Network image failed: $url',
             name: 'VideoThumbnailWidget', category: LogCategory.video);
-        Log.error('Error type: ${error.runtimeType}, Details: $error',
+        Log.error('❌ Error type: ${error.runtimeType}, Details: $error',
             name: 'VideoThumbnailWidget', category: LogCategory.video);
+
+        // Log the full stack trace if available
+        if (error is Exception) {
+          try {
+            final stackTrace = StackTrace.current;
+            Log.error('❌ Stack trace: $stackTrace',
+                name: 'VideoThumbnailWidget', category: LogCategory.video);
+          } catch (e) {
+            // Ignore stack trace errors
+          }
+        }
 
         // Check if this is specifically a 404 or HTTP error
         if (error.toString().contains('404') ||

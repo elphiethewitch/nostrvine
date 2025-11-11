@@ -14,8 +14,6 @@ import 'package:openvine/screens/safety_settings_screen.dart';
 // import 'package:openvine/screens/p2p_sync_screen.dart'; // Hidden for release
 import 'package:openvine/theme/vine_theme.dart';
 import 'package:openvine/widgets/bug_report_dialog.dart';
-import 'package:openvine/widgets/camera_fab.dart';
-import 'package:openvine/widgets/vine_bottom_nav.dart';
 import 'package:openvine/widgets/delete_account_dialog.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -77,6 +75,13 @@ class SettingsScreen extends ConsumerWidget {
           // Account Section (only show when authenticated)
           if (isAuthenticated) ...[
             _buildSectionHeader('Account'),
+            _buildSettingsTile(
+              context,
+              icon: Icons.logout,
+              title: 'Log Out',
+              subtitle: 'Sign out of your account (keeps your keys)',
+              onTap: () => _handleLogout(context, ref),
+            ),
             _buildSettingsTile(
               context,
               icon: Icons.delete_forever,
@@ -269,6 +274,57 @@ class SettingsScreen extends ConsumerWidget {
         trailing: const Icon(Icons.chevron_right, color: Colors.grey),
         onTap: onTap,
       );
+
+  Future<void> _handleLogout(BuildContext context, WidgetRef ref) async {
+    final authService = ref.read(authServiceProvider);
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: VineTheme.cardBackground,
+        title: const Text(
+          'Log Out?',
+          style: TextStyle(color: VineTheme.whiteText),
+        ),
+        content: const Text(
+          'Are you sure you want to log out? Your keys will be saved and you can log back in later.',
+          style: TextStyle(color: Colors.grey),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Log Out',
+              style: TextStyle(color: VineTheme.vineGreen),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    // Sign out (keeps keys for re-login)
+    await authService.signOut(deleteKeys: false);
+
+    // Navigate to home/login screen
+    if (context.mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (context) => const ProfileSetupScreen(isNewUser: true),
+        ),
+        (route) => false,
+      );
+    }
+  }
 
   Future<void> _handleDeleteAccount(BuildContext context, WidgetRef ref) async {
     final deletionService = ref.read(accountDeletionServiceProvider);
