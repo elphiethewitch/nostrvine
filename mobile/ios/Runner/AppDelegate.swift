@@ -184,8 +184,8 @@ import SupportSDK
       case "showNewTicket":
         let args = call.arguments as? [String: Any]
         let subject = args?["subject"] as? String ?? ""
-        let description = args?["description"] as? String ?? ""
         let tags = args?["tags"] as? [String] ?? []
+        // Note: description parameter not supported by Zendesk iOS SDK RequestUiConfiguration
 
         NSLog("🎫 Zendesk: Showing new ticket screen")
 

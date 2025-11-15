@@ -510,7 +510,7 @@ class SettingsScreen extends ConsumerWidget {
   void _showSupportFallback(
     BuildContext context,
     WidgetRef ref,
-    dynamic authService,
+    dynamic authService,  // Type inferred from authServiceProvider
   ) {
     final bugReportService = ref.read(bugReportServiceProvider);
     final userPubkey = authService.currentPublicKeyHex;

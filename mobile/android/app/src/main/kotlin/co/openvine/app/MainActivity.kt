@@ -156,11 +156,12 @@ class MainActivity : FlutterActivity() {
 
                 "showNewTicket" -> {
                     try {
-                        // Note: Subject and tags configuration not supported in basic implementation
-                        // The Zendesk SDK requires users to fill those in the UI
+                        // Note: Zendesk Android SDK v5.1.2 does not support pre-filling
+                        // subject/tags in RequestActivity. Users must fill these in the UI.
+                        // This is a known limitation of the Android SDK vs iOS SDK.
                         Log.d(ZENDESK_TAG, "Showing new ticket screen")
 
-                        // Launch Zendesk request activity with default configuration
+                        // Launch Zendesk request activity
                         RequestActivity.builder()
                             .show(this)
 
